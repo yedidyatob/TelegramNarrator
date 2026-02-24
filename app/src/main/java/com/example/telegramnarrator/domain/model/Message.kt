@@ -6,5 +6,6 @@ data class Message(
     val senderName: String?,
     val text: String,
     val timestamp: Long,
-    val isOutgoing: Boolean
+    val isOutgoing: Boolean,
+    val voiceNoteFileId: Int? = null
 )

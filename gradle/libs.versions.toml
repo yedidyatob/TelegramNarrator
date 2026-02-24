@@ -1,5 +1,5 @@
 [versions]
-agp = "8.2.0"
+agp = "8.2.1"
 kotlin = "1.9.22"
 coreKtx = "1.12.0"
 junit = "4.13.2"
@@ -13,9 +13,11 @@ hiltNavigationCompose = "1.1.0"
 navigationCompose = "2.7.7"
 secureStorage = "1.1.0-alpha03" # androidx.security:security-crypto
 datastore = "1.0.0"
-tdlib = "0.8.0" # Example version for pre-built lib, adjust as needed
+tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
+media = "1.7.0"
 
 [libraries]
+androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -45,9 +47,8 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 # Security
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "secureStorage" }
 
-# TDLib (Using a community wrapper found in search, or placeholder)
-# Ideally: org.thunderdog.challegram:tdlib or similar
-tdlib = { group = "org.thunderdog.challegram", name = "tdlib", version.ref = "tdlib" }
+# TDLib — pre-built Android library via JitPack (tdlibx/td)
+tdlib = { group = "com.github.tdlibx", name = "td", version.ref = "tdlib" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

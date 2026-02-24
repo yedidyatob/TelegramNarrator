@@ -19,11 +19,11 @@ object MessageCleaner {
         val urlMatcher = URL_PATTERN.matcher(cleaned)
         cleaned = urlMatcher.replaceAll("Link")
 
-        // Remove Markdown characters (simple approach: just remove the chars, rely on TTS to read text)
-        // Alternatively, we could try to parse them, but for TTS just stripping separators is usually enough.
-        // We might want to keep some punctuation.
-        // let's just strip double asterisks or underscores often used for bold
+        // Remove Markdown characters
         cleaned = cleaned.replace("**", "").replace("__", "")
+
+        // Remove Emojis and unassigned characters
+        cleaned = cleaned.replace(Regex("[\\p{So}\\p{Cn}]"), "")
 
         // Collapse multiple spaces
         cleaned = cleaned.replace(Regex("\\s+"), " ")

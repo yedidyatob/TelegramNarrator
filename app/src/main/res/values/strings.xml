@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">Telegram Narrator</string>
+
+    <!-- Login Screen -->
+    <string name="login_title_phone">Enter your phone number</string>
+    <string name="login_label_phone">Phone Number</string>
+    <string name="login_btn_send_code">Send Code</string>
+    <string name="login_title_code">Enter verification code</string>
+    <string name="login_label_code">Verification Code</string>
+    <string name="login_btn_verify_code">Verify Code</string>
+    <string name="login_title_password">Enter your 2FA password</string>
+    <string name="login_label_password">Password</string>
+    <string name="login_btn_login">Login</string>
+    <string name="login_btn_unlock">Unlock</string>
+    <string name="login_status_initializing">Initializing Telegram...</string>
+    <string name="login_status_redirecting">Redirecting...</string>
+    <string name="error_unknown">Unknown error</string>
+
+    <!-- Home Screen -->
+    <string name="home_title">Unread Chats</string>
+    <string name="home_btn_play_all">Play All</string>
+    <string name="home_btn_stop">Stop</string>
+    <string name="home_btn_logout">Logout</string>
+    <string name="home_no_chats">No unread chats</string>
+    <string name="home_unread_suffix">messages</string>
+
+    <!-- Playback Service -->
+    <string name="playback_skip_msg">Skip Message</string>
+    <string name="playback_skip_chat">Skip Chat</string>
+    <string name="playback_new_chat">New chat: %1$s</string>
+    <string name="playback_from">Message from %1$s: %2$s</string>
+    <string name="playback_end">End of messages.</string>
 </resources>

@@ -6,12 +6,11 @@ import com.example.telegramnarrator.domain.model.AuthState
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.stateIn
-import org.drinkless.td.libcore.telegram.TdApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import org.drinkless.tdlib.TdApi
+import android.util.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.io.File
@@ -19,56 +18,79 @@ import java.io.File
 @Singleton
 class TdLibAuthRepository @Inject constructor(
     private val client: TdLibClient,
-    private val filesDir: File // We'll inject this via a Hilt module
+    private val filesDir: File
 ) : AuthRepository {
 
-    private val updates = client.updates
-        .stateIn(CoroutineScope(Dispatchers.IO), SharingStarted.Eagerly, null)
+    private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Initializing)
+    override val authState: Flow<AuthState> = _authState.asStateFlow()
 
-    override val authState: Flow<AuthState> = updates
-        .filterIsInstance<TdApi.UpdateAuthorizationState>()
-        .map { update ->
-            handleAuthState(update.authorizationState)
-        }
-        
-    private suspend fun handleAuthState(state: TdApi.AuthorizationState): AuthState {
-        when (state) {
-            is TdApi.AuthorizationStateWaitTdlibParameters -> {
-                val parameters = TdApi.TdlibParameters()
-                parameters.databaseDirectory = File(filesDir, "tdlib").absolutePath
-                parameters.useMessageDatabase = true
-                parameters.useSecretChats = false
-                parameters.apiId = BuildConfig.TELEGRAM_API_ID.toIntOrNull() ?: 0
-                parameters.apiHash = BuildConfig.TELEGRAM_API_HASH
-                parameters.systemLanguageCode = "en"
-                parameters.deviceModel = "Android"
-                parameters.applicationVersion = "1.0"
-                parameters.enableStorageOptimizer = true
-
-                client.send(TdApi.SetTdlibParameters(parameters))
-                return AuthState.Unauthenticated
+    init {
+        repositoryScope.launch {
+            client.updates.collect { update ->
+                if (update is TdApi.UpdateAuthorizationState) {
+                    handleAuthorizationState(update.authorizationState)
+                }
             }
-            is TdApi.AuthorizationStateWaitPhoneNumber -> return AuthState.WaitPhoneNumber
-            is TdApi.AuthorizationStateWaitCode -> return AuthState.WaitCode
-            is TdApi.AuthorizationStateWaitPassword -> return AuthState.WaitPassword
-            is TdApi.AuthorizationStateReady -> return AuthState.Authenticated
-            else -> return AuthState.Unauthenticated
         }
+    }
+
+    private suspend fun handleAuthorizationState(state: TdApi.AuthorizationState) {
+        Log.d("AuthRepository", "New TDLib state: ${state::class.simpleName}")
+        
+        val newState = when (state) {
+            is TdApi.AuthorizationStateWaitTdlibParameters -> {
+                try {
+                    client.send<TdApi.Ok>(TdApi.SetTdlibParameters(
+                        false,                                          // useTestDc
+                        File(filesDir, "tdlib").absolutePath,           // databaseDirectory
+                        null,                                           // filesDirectory
+                        null,                                           // databaseEncryptionKey
+                        true,                                           // useFileDatabase
+                        true,                                           // useChatInfoDatabase
+                        true,                                           // useMessageDatabase
+                        false,                                          // useSecretChats
+                        BuildConfig.TELEGRAM_API_ID.toIntOrNull() ?: 0, // apiId
+                        BuildConfig.TELEGRAM_API_HASH,                  // apiHash
+                        "en",                                           // systemLanguageCode
+                        "Android",                                      // deviceModel
+                        "",                                             // systemVersion
+                        "1.0"                                           // applicationVersion
+                    ))
+                } catch (e: Exception) {
+                    Log.e("AuthRepository", "Failed to set TDLib parameters", e)
+                }
+                AuthState.Initializing
+            }
+            is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.WaitPhoneNumber
+            is TdApi.AuthorizationStateWaitCode -> AuthState.WaitCode
+            is TdApi.AuthorizationStateWaitPassword -> AuthState.WaitPassword
+            is TdApi.AuthorizationStateReady -> AuthState.Authenticated
+            is TdApi.AuthorizationStateLoggingOut -> AuthState.Unauthenticated
+            is TdApi.AuthorizationStateClosing -> AuthState.Unauthenticated
+            is TdApi.AuthorizationStateClosed -> {
+                client.recreateClient()
+                AuthState.Initializing
+            }
+            else -> AuthState.Unauthenticated
+        }
+        _authState.value = newState
     }
 
     override suspend fun setPhoneNumber(phoneNumber: String) {
-        client.send(TdApi.SetAuthenticationPhoneNumber(phoneNumber, null))
+        client.send<TdApi.Ok>(TdApi.SetAuthenticationPhoneNumber(phoneNumber, null))
     }
-
+ 
     override suspend fun checkAuthenticationCode(code: String) {
-        client.send(TdApi.CheckAuthenticationCode(code))
+        client.send<TdApi.Ok>(TdApi.CheckAuthenticationCode(code))
     }
-
+ 
     override suspend fun checkAuthenticationPassword(password: String) {
-        client.send(TdApi.CheckAuthenticationPassword(password))
+        client.send<TdApi.Ok>(TdApi.CheckAuthenticationPassword(password))
     }
 
     override suspend fun logOut() {
-        client.send(TdApi.LogOut())
+        client.send<TdApi.Ok>(TdApi.LogOut())
     }
 }

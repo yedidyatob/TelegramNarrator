@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.data.repository.TdLibAuthRepository
 import com.example.telegramnarrator.data.repository.TdLibChatRepository
+import com.example.telegramnarrator.data.repository.TdLibUserCache
 import com.example.telegramnarrator.data.tdlib.TdLibClient
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import com.example.telegramnarrator.domain.repository.ChatRepository
@@ -33,6 +34,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideUserCache(client: TdLibClient): TdLibUserCache {
+        return TdLibUserCache(client)
+    }
+
+    @Provides
+    @Singleton
     fun provideAuthRepository(
         client: TdLibClient,
         filesDir: File
@@ -43,9 +50,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideChatRepository(
-        client: TdLibClient
+        client: TdLibClient,
+        userCache: TdLibUserCache
     ): ChatRepository {
-        return TdLibChatRepository(client)
+        return TdLibChatRepository(client, userCache)
     }
 
     @Provides

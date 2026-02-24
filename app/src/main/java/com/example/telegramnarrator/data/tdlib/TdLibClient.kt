@@ -1,12 +1,13 @@
 package com.example.telegramnarrator.data.tdlib
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import org.drinkless.td.libcore.telegram.Client
-import org.drinkless.td.libcore.telegram.TdApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import org.drinkless.tdlib.Client
+import org.drinkless.tdlib.TdApi
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -19,31 +20,40 @@ class TdLibClient @Inject constructor(
 ) {
 
     private var client: Client? = null
-    
-    // Flow of all TDLib updates
-    val updates: Flow<TdApi.Object> = callbackFlow {
-        val handler = Client.ResultHandler { `object` ->
-            trySend(`object`)
-        }
-        
-        // precise initialization might differ based on the specific pre-built lib, 
-        // but generally it's creating a client with a handler.
-        client = Client.create(handler, null, null)
-        
-        awaitClose {
-            // Cleanup if needed, though usually we keep client alive
-        }
+    private val _updates = MutableSharedFlow<TdApi.Object>(
+        replay = 1,
+        extraBufferCapacity = 100,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val updates: Flow<TdApi.Object> = _updates
+
+    init {
+        Client.execute(TdApi.SetLogVerbosityLevel(1))
+        recreateClient()
+    }
+
+    fun recreateClient() {
+        Log.d("TdLibClient", "Recreating TDLib client")
+        client = Client.create({ `object` ->
+            _updates.tryEmit(`object`)
+        }, null, null)
     }
 
     // Suspending function to send a request and wait for a response
-    suspend fun <T : TdApi.Object> send(function: TdApi.Function): T = suspendCoroutine { continuation ->
-        client?.send(function) { result ->
+    suspend fun <T : TdApi.Object> send(function: TdApi.Function<T>): T = suspendCoroutine { continuation ->
+        val currentClient = client
+        if (currentClient == null) {
+            continuation.resumeWithException(IllegalStateException("TDLib Client not initialized"))
+            return@suspendCoroutine
+        }
+        
+        currentClient.send(function) { result ->
             if (result is TdApi.Error) {
                 continuation.resumeWithException(RuntimeException("TDLib Error: ${result.code} - ${result.message}"))
             } else {
                 @Suppress("UNCHECKED_CAST")
                 continuation.resume(result as T)
             }
-        } ?: continuation.resumeWithException(IllegalStateException("TDLib Client not initialized"))
+        }
     }
 }

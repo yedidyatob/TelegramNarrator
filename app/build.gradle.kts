@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -8,6 +11,7 @@ plugins {
 android {
     namespace = "com.example.telegramnarrator"
     compileSdk = 34
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         applicationId = "com.example.telegramnarrator"
@@ -22,14 +26,14 @@ android {
         }
         
         // Inject API keys from local.properties
-        val localProperties = java.util.Properties()
+        val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
-            localProperties.load(java.io.FileInputStream(localPropertiesFile))
+            localProperties.load(FileInputStream(localPropertiesFile))
         }
         
-        buildConfigField("String", "TELEGRAM_API_ID", localProperties.getProperty("TELEGRAM_API_ID") ?: "\"\"")
-        buildConfigField("String", "TELEGRAM_API_HASH", localProperties.getProperty("TELEGRAM_API_HASH") ?: "\"\"")
+        buildConfigField("String", "TELEGRAM_API_ID", "\"${localProperties.getProperty("TELEGRAM_API_ID") ?: ""}\"")
+        buildConfigField("String", "TELEGRAM_API_HASH", "\"${localProperties.getProperty("TELEGRAM_API_HASH") ?: ""}\"")
     }
 
     buildTypes {
@@ -62,6 +66,7 @@ android {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.media)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -69,6 +74,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     
     // Hilt
     implementation(libs.hilt.android)

@@ -1,6 +1,7 @@
 package com.example.telegramnarrator.domain.model
 
 sealed class AuthState {
+    object Initializing : AuthState()
     object Unauthenticated : AuthState()
     object WaitPhoneNumber : AuthState()
     object WaitCode : AuthState()

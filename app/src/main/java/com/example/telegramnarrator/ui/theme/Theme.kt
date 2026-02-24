@@ -16,22 +16,37 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = TelegramBlueNight,
+    secondary = TelegramSecondaryNight,
+    background = TelegramBackgroundNight,
+    surface = TelegramSurfaceNight,
+    onPrimary = TelegramSurfaceDay,
+    onSecondary = TelegramSurfaceDay,
+    onBackground = TelegramSurfaceDay,
+    onSurface = TelegramSurfaceDay,
+    surfaceVariant = TelegramDarkNight,
+    onSurfaceVariant = TelegramSecondaryNight
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = TelegramBlueDay,
+    secondary = TelegramSecondaryDay,
+    background = TelegramSurfaceDay,
+    surface = TelegramSurfaceDay,
+    onPrimary = TelegramSurfaceDay,
+    onSecondary = TelegramDarkDay,
+    onBackground = TelegramDarkDay,
+    onSurface = TelegramDarkDay,
+    surfaceVariant = TelegramSurfaceDay,
+    onSurfaceVariant = TelegramSecondaryDay
 )
 
 @Composable
 fun TelegramNarratorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Dynamic color is available on Android 12+ but we might want our custom Telegram branding 
+    // to overrule dynamic colours so it always feels like Telegram!
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -46,8 +61,8 @@ fun TelegramNarratorTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

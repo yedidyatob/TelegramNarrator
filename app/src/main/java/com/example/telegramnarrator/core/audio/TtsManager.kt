@@ -40,18 +40,27 @@ class TtsManager @Inject constructor(
                     }
                 })
                 _isInitialized.value = true
+            } else {
+                android.util.Log.e("TtsManager", "TextToSpeech initialization failed with status: $status")
+                _isInitialized.value = true // Unblock listeners so they don't deadlock
             }
         }
     }
 
     fun speak(text: String, onDone: () -> Unit) {
-        if (!_isInitialized.value) return
+        if (!_isInitialized.value || tts == null) {
+            onDone()
+            return
+        }
         
         onDoneCallback = onDone
         val params = android.os.Bundle()
         params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "id")
         
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "id")
+        val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "id")
+        if (result == TextToSpeech.ERROR) {
+            onDone()
+        }
     }
 
     fun stop() {
