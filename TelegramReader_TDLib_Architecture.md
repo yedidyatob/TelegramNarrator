@@ -1,3 +1,5 @@
+> **Note:** this is the original design spec and is partly outdated (e.g. the app does not encrypt the TDLib database yet, has no use-case layer, onboarding or Player screen, and uses SharedPreferences, not DataStore). See README.md for the current state.
+
 # Telegram Reader -- Production Architecture Specification
 
 **Platform:** Android
