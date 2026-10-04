@@ -27,6 +27,10 @@ class AuthViewModel @Inject constructor(
     val authState: StateFlow<AuthState> = authRepository.authState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Initializing)
 
+    fun onRetry() {
+        viewModelScope.launch { authRepository.retryInitialization() }
+    }
+
     fun onPhoneNumberEntered(phoneNumber: String) {
         if (_isLoading.value) return
         viewModelScope.launch {
