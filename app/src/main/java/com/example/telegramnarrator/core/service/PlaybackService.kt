@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
@@ -17,12 +18,15 @@ import com.example.telegramnarrator.domain.audio.AudioQueue
 import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
+import com.example.telegramnarrator.domain.audio.ReadCheckpointer
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.support.v4.media.session.MediaSessionCompat
@@ -40,6 +44,12 @@ class PlaybackService : Service() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
     
+    // Mark-as-read requests run in their own scope that is not cancelled in onDestroy(), so the
+    // final flush when the service stops still gets sent
+    private val markReadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val readCheckpointer = ReadCheckpointer()
+    private var readFlushJob: Job? = null
+
     private val audioQueue = AudioQueue()
     @Volatile private var isPlaying = false
     @Volatile private var isPaused = false
@@ -139,9 +149,8 @@ class PlaybackService : Service() {
             if (messages.isNotEmpty()) {
                 audioQueue.add(PlaybackItem.Intro(title))
                 messages.forEach { msg ->
-                    audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, msg.voiceNoteFileId, msg.contentType))
+                    audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType))
                 }
-                audioQueue.add(PlaybackItem.MarkAsRead(chatId))
                 audioQueue.add(PlaybackItem.Silence(1000))
             }
         }
@@ -158,6 +167,8 @@ class PlaybackService : Service() {
         } else {
             // Already playing, but we cleared the queue and added new items, so stop current TTS
             // and let the next loop run, or force processQueue()
+            // (the interrupted message is not marked as read)
+            flushReadCheckpoints()
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
@@ -198,6 +209,8 @@ class PlaybackService : Service() {
                     .ifBlank { item.contentType.labelRes()?.let { getString(it) } ?: "" }
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {
+                    // Nothing to say (unsupported content, emoji only, ...): handled, so mark it read
+                    markMessagePlayed(item)
                     processQueue()
                     return
                 }
@@ -223,23 +236,17 @@ class PlaybackService : Service() {
                         if (generation != itemGeneration.get()) return@launch
                         if (path != null) {
                             ttsManager.speak(introText) { 
-                                playAudioFile(path, generation)
+                                playAudioFile(path, generation, item)
                             }
                         } else {
-                            ttsManager.speak(speechText) { processQueue() }
+                            speakMessage(item, speechText)
                         }
                     }
                 } else {
-                    ttsManager.speak(speechText) { processQueue() }
+                    speakMessage(item, speechText)
                 }
             }
             is PlaybackItem.Silence -> {
-                processQueue()
-            }
-            is PlaybackItem.MarkAsRead -> {
-                scope.launch {
-                    chatRepository.markChatAsRead(item.chatId)
-                }
                 processQueue()
             }
             is PlaybackItem.Outro -> {
@@ -248,7 +255,15 @@ class PlaybackService : Service() {
         }
     }
 
-    private fun playAudioFile(path: String, generation: Int) {
+    // Speaks a message; it counts as played (and gets marked as read) only if the speech finished
+    private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
+        ttsManager.speak(speechText) { completed ->
+            if (completed) markMessagePlayed(item)
+            processQueue()
+        }
+    }
+
+    private fun playAudioFile(path: String, generation: Int, item: PlaybackItem.MessageItem) {
         if (!isPlaying || isPaused || generation != itemGeneration.get()) return
         val player = android.media.MediaPlayer()
         try {
@@ -257,6 +272,8 @@ class PlaybackService : Service() {
                 setOnCompletionListener { 
                     it.release()
                     if (mediaPlayer === it) mediaPlayer = null
+                    // The voice note played to the end
+                    markMessagePlayed(item)
                     processQueue()
                 }
                 setOnErrorListener { mp, _, _ ->
@@ -297,7 +314,10 @@ class PlaybackService : Service() {
         ttsManager.stop()
         releaseMediaPlayer()
         // Paused in the middle of a message: that message was pushed back to the front of the queue
-        if (isPaused && currentItem == null) audioQueue.next()
+        val skipped = if (isPaused && currentItem == null) audioQueue.next() else currentItem
+        // The user chose to skip this message, so it counts as handled and is marked as read
+        if (skipped is PlaybackItem.MessageItem) markMessagePlayed(skipped)
+        flushReadCheckpoints()
         currentItem = null
         // processQueue() will be triggered by onDone if we use a listener, 
         // but currently ttsManager.speak handles the callback.
@@ -306,6 +326,8 @@ class PlaybackService : Service() {
     }
 
     private fun skipChat() {
+        // The message being played and the rest of the chat are NOT marked as read
+        flushReadCheckpoints()
         ttsManager.stop()
         releaseMediaPlayer()
         currentItem = null
@@ -317,6 +339,8 @@ class PlaybackService : Service() {
         if (!isPlaying || isPaused) return
         isPaused = true
         playbackManager.setPaused(true)
+        // The interrupted message is not marked as read; the ones that finished are sent now
+        flushReadCheckpoints()
         // Invalidate everything that is still pending for the current item
         itemGeneration.incrementAndGet()
 
@@ -371,6 +395,7 @@ class PlaybackService : Service() {
             isPlaying = false
             isPaused = false
             itemGeneration.incrementAndGet()
+            flushReadCheckpoints()
             playbackManager.setPlaying(false)
             updateMediaSessionState()
             ttsManager.stop()
@@ -378,6 +403,36 @@ class PlaybackService : Service() {
             currentItem = null
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
+    }
+
+    /** A message was fully played (or deliberately skipped): queue it for marking as read. */
+    private fun markMessagePlayed(item: PlaybackItem.MessageItem) {
+        sendReadBatches(readCheckpointer.messagePlayed(item.chatId, item.messageId, SystemClock.elapsedRealtime()))
+        scheduleReadFlush()
+    }
+
+    /** Sends everything that is waiting to be marked as read, right now. */
+    private fun flushReadCheckpoints() {
+        readFlushJob?.cancel()
+        readFlushJob = null
+        sendReadBatches(readCheckpointer.flush())
+    }
+
+    private fun scheduleReadFlush() {
+        readFlushJob?.cancel()
+        val dueAt = readCheckpointer.nextDueAtMs() ?: return
+        readFlushJob = scope.launch {
+            delay((dueAt - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
+            sendReadBatches(readCheckpointer.flushIfDue(SystemClock.elapsedRealtime()))
+        }
+    }
+
+    private fun sendReadBatches(batches: List<ReadCheckpointer.Batch>) {
+        batches.forEach { batch ->
+            markReadScope.launch {
+                chatRepository.markChatAsRead(batch.chatId, batch.messageIds)
+            }
+        }
     }
 
     private fun createNotificationChannel() {
@@ -447,6 +502,7 @@ class PlaybackService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
+        flushReadCheckpoints()
         job.cancel()
         mediaSession.isActive = false
         mediaSession.release()

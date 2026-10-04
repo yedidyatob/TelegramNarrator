@@ -5,9 +5,8 @@ import com.example.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
     data class Intro(val chatName: String) : PlaybackItem()
-    data class MessageItem(val sender: String?, val text: String, val messageId: Long, val voiceNoteFileId: Int? = null, val contentType: MessageContentType = MessageContentType.TEXT) : PlaybackItem()
+    data class MessageItem(val sender: String?, val text: String, val messageId: Long, val chatId: Long, val voiceNoteFileId: Int? = null, val contentType: MessageContentType = MessageContentType.TEXT) : PlaybackItem()
     data class Silence(val durationMs: Long) : PlaybackItem()
-    data class MarkAsRead(val chatId: Long) : PlaybackItem()
     object Outro : PlaybackItem()
 }
 

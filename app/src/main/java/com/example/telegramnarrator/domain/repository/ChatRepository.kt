@@ -20,7 +20,12 @@ interface ChatRepository {
      * the last read message); the newer ones stay unread for the next run.
      */
     suspend fun getChatMessages(chatId: Long, limit: Int = MAX_UNREAD_MESSAGES): List<Message>
-    suspend fun markChatAsRead(chatId: Long)
+
+    /**
+     * Marks the given (played) messages of the chat as read; messages newer than the newest of
+     * [messageIds] stay unread. No-op if [markAsReadEnabled] is false.
+     */
+    suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>)
     suspend fun getVoiceFilePath(fileId: Int): String?
     suspend fun loadChats()
     

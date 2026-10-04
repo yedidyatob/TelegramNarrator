@@ -191,14 +191,19 @@ class TdLibChatRepository @Inject constructor(
         )
     }
 
-    override suspend fun markChatAsRead(chatId: Long) {
+    override suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>) {
         if (!markAsReadEnabled) {
             Log.d("ChatRepository", "Mark as read skipped (Debug/Disabled): $chatId")
             return
         }
-        Log.d("ChatRepository", "Marking chat as read: $chatId")
+        if (messageIds.isEmpty()) {
+            // ViewMessages with an empty id list does nothing
+            Log.d("ChatRepository", "Mark as read skipped (no messages): $chatId")
+            return
+        }
+        Log.d("ChatRepository", "Marking ${messageIds.size} messages as read in chat: $chatId")
         try {
-            client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, longArrayOf(), null, true))
+            client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, messageIds.toLongArray(), null, true))
         } catch (e: Exception) {
             Log.e("ChatRepository", "Failed to mark chat as read: $chatId", e)
         }
