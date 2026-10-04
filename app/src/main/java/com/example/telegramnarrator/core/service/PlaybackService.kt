@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
+import com.example.telegramnarrator.core.labelRes
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.domain.audio.AudioQueue
 import com.example.telegramnarrator.domain.audio.MessageCleaner
@@ -137,7 +138,7 @@ class PlaybackService : Service() {
             if (messages.isNotEmpty()) {
                 audioQueue.add(PlaybackItem.Intro(title))
                 messages.reversed().forEach { msg ->
-                    audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, msg.voiceNoteFileId))
+                    audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, msg.voiceNoteFileId, msg.contentType))
                 }
                 audioQueue.add(PlaybackItem.MarkAsRead(chatId))
                 audioQueue.add(PlaybackItem.Silence(1000))
@@ -190,7 +191,10 @@ class PlaybackService : Service() {
             is PlaybackItem.MessageItem -> {
                 val sender = item.sender ?: getString(R.string.playback_unknown_sender)
                 
+                // Media without a caption is announced by its type ("Photo", "Sticker", ...);
+                // content we can't handle has no label and is skipped below
                 val text = MessageCleaner.clean(item.text, getString(R.string.playback_link))
+                    .ifBlank { item.contentType.labelRes()?.let { getString(it) } ?: "" }
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {
                     processQueue()
@@ -212,8 +216,6 @@ class PlaybackService : Service() {
                 if (item.voiceNoteFileId != null) {
                     val voiceNoteLabel = getString(R.string.playback_voice_note)
                     val introText = if (isNewSender) getString(R.string.playback_from, sender, voiceNoteLabel) else voiceNoteLabel
-                    // If the file can't be fetched, fall back to the caption (or just say it was a voice note)
-                    val fallbackText = if (text.isBlank()) introText else speechText
                     scope.launch {
                         val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
                         // Paused / skipped / stopped while the file was downloading
@@ -223,7 +225,7 @@ class PlaybackService : Service() {
                                 playAudioFile(path, generation)
                             }
                         } else {
-                            ttsManager.speak(fallbackText) { processQueue() }
+                            ttsManager.speak(speechText) { processQueue() }
                         }
                     }
                 } else {

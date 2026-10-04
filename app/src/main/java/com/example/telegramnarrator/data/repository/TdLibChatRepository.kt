@@ -3,6 +3,7 @@ package com.example.telegramnarrator.data.repository
 import com.example.telegramnarrator.data.tdlib.TdLibClient
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.model.Message
+import com.example.telegramnarrator.domain.model.MessageContentType
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import com.example.telegramnarrator.BuildConfig
 import kotlinx.coroutines.flow.Flow
@@ -139,15 +140,22 @@ class TdLibChatRepository @Inject constructor(
         return history.messages.map { tdMessage ->
             val content = tdMessage.content
             var voiceFileId: Int? = null
-            val text = when (content) {
-                is TdApi.MessageText -> content.text.text
-                is TdApi.MessagePhoto -> content.caption.text
-                is TdApi.MessageVideo -> content.caption.text
+            // text is only the text / caption; the content type tells the player what to announce
+            // for media without a caption (and unsupported content has no text at all)
+            val (contentType, text) = when (content) {
+                is TdApi.MessageText -> MessageContentType.TEXT to content.text.text
+                is TdApi.MessagePhoto -> MessageContentType.PHOTO to content.caption.text
+                is TdApi.MessageVideo -> MessageContentType.VIDEO to content.caption.text
                 is TdApi.MessageVoiceNote -> {
                     voiceFileId = content.voiceNote.voice.id
-                    content.caption.text
+                    MessageContentType.VOICE_NOTE to content.caption.text
                 }
-                else -> "[Unsupported content]"
+                is TdApi.MessageVideoNote -> MessageContentType.VIDEO_NOTE to ""
+                is TdApi.MessageSticker -> MessageContentType.STICKER to ""
+                is TdApi.MessageAnimation -> MessageContentType.ANIMATION to content.caption.text
+                is TdApi.MessageAudio -> MessageContentType.AUDIO to content.caption.text
+                is TdApi.MessageDocument -> MessageContentType.DOCUMENT to content.caption.text
+                else -> MessageContentType.UNSUPPORTED to ""
             }
             
             val senderName = when (val s = tdMessage.senderId) {
@@ -163,7 +171,8 @@ class TdLibChatRepository @Inject constructor(
                 text = text,
                 timestamp = tdMessage.date.toLong(),
                 isOutgoing = tdMessage.isOutgoing,
-                voiceNoteFileId = voiceFileId
+                voiceNoteFileId = voiceFileId,
+                contentType = contentType
             )
         }
     }

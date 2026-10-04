@@ -23,6 +23,7 @@
     <string name="home_btn_logout">Logout</string>
     <string name="home_no_chats">No unread chats</string>
     <string name="home_unread_suffix">messages</string>
+    <string name="message_unsupported_content">Unsupported content</string>
 
     <!-- Playback Service -->
     <string name="playback_skip_msg">Skip Message</string>
@@ -32,6 +33,13 @@
     <string name="playback_end">End of messages.</string>
     <string name="playback_link">Link</string>
     <string name="playback_voice_note">Voice note</string>
+    <string name="playback_content_photo">Photo</string>
+    <string name="playback_content_video">Video</string>
+    <string name="playback_content_video_note">Video message</string>
+    <string name="playback_content_sticker">Sticker</string>
+    <string name="playback_content_animation">GIF</string>
+    <string name="playback_content_audio">Audio</string>
+    <string name="playback_content_document">Document</string>
     <string name="playback_unknown_sender">Unknown</string>
     <string name="playback_pause">Pause</string>
     <string name="playback_resume">Resume</string>
