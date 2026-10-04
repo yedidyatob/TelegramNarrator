@@ -12,9 +12,6 @@ app/build
 
 # Gradle
 .gradle
-gradlew
-gradlew.bat
-/gradle/wrapper/gradle-wrapper.jar
 .externalNativeBuild
 .cxx
 
