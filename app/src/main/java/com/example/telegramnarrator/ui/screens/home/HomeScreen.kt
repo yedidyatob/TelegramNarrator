@@ -23,6 +23,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.ui.viewmodel.HomeViewModel
@@ -95,8 +97,11 @@ fun HomeScreen(
                         )
                     }
                     if (isLoading && !pullToRefreshState.isRefreshing) {
+                        val loadingDescription = stringResource(R.string.home_loading)
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier
+                                .size(24.dp)
+                                .semantics { contentDescription = loadingDescription }
                         )
                     } else {
                         TextButton(onClick = { viewModel.logout() }) {
@@ -110,7 +115,8 @@ fun HomeScreen(
             if (chats.isNotEmpty() && !isPlaying) {
                 ExtendedFloatingActionButton(
                     text = { Text(stringResource(R.string.home_btn_play_all)) },
-                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.home_btn_play_all)) },
+                    // The label next to the icon already says "Play All": a second description would be read twice
+                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
                     onClick = { onPlayAll(chats) }
                 )
             }
@@ -134,12 +140,12 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Now Playing",
+                                text = stringResource(R.string.home_now_playing),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = playStatus ?: "Initializing...",
+                                text = playStatus ?: stringResource(R.string.home_player_starting),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 maxLines = 1,
@@ -156,7 +162,7 @@ fun HomeScreen(
                             }) {
                                 Icon(
                                     imageVector = if (isPaused) androidx.compose.material.icons.Icons.Default.PlayArrow else androidx.compose.material.icons.Icons.Default.Pause,
-                                    contentDescription = "Play/Pause",
+                                    contentDescription = stringResource(if (isPaused) R.string.playback_resume else R.string.playback_pause),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
@@ -167,7 +173,7 @@ fun HomeScreen(
                             }) {
                                 Icon(
                                     imageVector = androidx.compose.material.icons.Icons.Default.SkipNext,
-                                    contentDescription = "Skip Msg",
+                                    contentDescription = stringResource(R.string.playback_skip_msg),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
@@ -178,7 +184,7 @@ fun HomeScreen(
                             }) {
                                 Icon(
                                     imageVector = androidx.compose.material.icons.Icons.Default.Close,
-                                    contentDescription = "Stop",
+                                    contentDescription = stringResource(R.string.home_btn_stop),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
@@ -257,7 +263,7 @@ fun HomeScreen(
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
-                                        text = msg.senderName ?: "Unknown",
+                                        text = msg.senderName ?: stringResource(R.string.playback_unknown_sender),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -303,13 +309,16 @@ fun ChatListItem(chat: Chat, onClick: () -> Unit, onPlayClick: () -> Unit) {
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Badge {
+                    val unreadDescription = LocalContext.current.resources
+                        .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
+                    Badge(modifier = Modifier.semantics { contentDescription = unreadDescription }) {
                         Text(text = chat.unreadCount.toString())
                     }
-                    IconButton(onClick = onPlayClick, modifier = Modifier.size(36.dp)) {
+                    // Default IconButton size (48dp) = the minimum touch target
+                    IconButton(onClick = onPlayClick) {
                         Icon(
                             imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
-                            contentDescription = "Play Only This Chat", 
+                            contentDescription = stringResource(R.string.home_play_chat, chat.title),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }

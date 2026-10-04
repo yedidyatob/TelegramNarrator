@@ -23,6 +23,14 @@
     <string name="home_btn_logout">Logout</string>
     <string name="home_no_chats">No unread chats</string>
     <string name="home_unread_suffix">messages</string>
+    <string name="home_now_playing">Now playing</string>
+    <string name="home_player_starting">Starting…</string>
+    <string name="home_loading">Loading</string>
+    <string name="home_play_chat">Play unread messages of %1$s</string>
+    <plurals name="home_unread_messages">
+        <item quantity="one">%d unread message</item>
+        <item quantity="other">%d unread messages</item>
+    </plurals>
     <string name="message_unsupported_content">Unsupported content</string>
 
     <!-- Playback Service -->
