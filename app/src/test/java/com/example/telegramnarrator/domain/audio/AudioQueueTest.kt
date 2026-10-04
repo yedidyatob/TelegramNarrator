@@ -70,4 +70,11 @@ class AudioQueueTest {
         assertEquals(5L, item.chatId)
         assertEquals(7L, item.messageId)
     }
+
+    @Test
+    fun `dropped and silent flags default to false`() {
+        assertEquals(false, message(1, 2).dropped)
+        assertEquals(false, PlaybackItem.Intro("chat").silent)
+        assertEquals(true, PlaybackItem.MessageItem("s", "", 2, 1, dropped = true).dropped)
+    }
 }

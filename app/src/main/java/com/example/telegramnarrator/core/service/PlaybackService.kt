@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
 import com.example.telegramnarrator.core.labelRes
+import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.domain.audio.AudioQueue
 import com.example.telegramnarrator.domain.audio.MessageCleaner
@@ -40,6 +41,7 @@ class PlaybackService : Service() {
     @Inject lateinit var ttsManager: TtsManager
     @Inject lateinit var chatRepository: ChatRepository
     @Inject lateinit var playbackManager: PlaybackManager
+    @Inject lateinit var channelRules: ChannelRulesRepository
 
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
@@ -146,10 +148,22 @@ class PlaybackService : Service() {
             val title = chat?.title ?: "Chat $chatId"
             // Unread incoming messages, oldest first
             val messages = chatRepository.getChatMessages(chatId)
-            if (messages.isNotEmpty()) {
-                audioQueue.add(PlaybackItem.Intro(title))
-                messages.forEach { msg ->
-                    audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType))
+            // Per-channel cleaning rules decide which messages are dropped and cut/replace text before
+            // the generic MessageCleaner runs. A "drop the next N" group that continues in the next batch
+            // is deferred (not queued, not marked as read) so the next run sees it whole.
+            val moreUnreadFollows = (chat?.unreadCount ?: 0) > messages.size
+            val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
+                .filter { !it.deferred }
+            if (decisions.isNotEmpty()) {
+                audioQueue.add(PlaybackItem.Intro(title, silent = decisions.all { it.dropped }))
+                decisions.forEach { decision ->
+                    val msg = decision.message
+                    audioQueue.add(
+                        PlaybackItem.MessageItem(
+                            msg.senderName, decision.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType,
+                            dropped = decision.dropped
+                        )
+                    )
                 }
                 audioQueue.add(PlaybackItem.Silence(1000))
             }
@@ -198,9 +212,19 @@ class PlaybackService : Service() {
         when (item) {
             is PlaybackItem.Intro -> {
                 lastSender = null
-                ttsManager.speak(getString(R.string.playback_new_chat, item.chatName)) { processQueue() }
+                if (item.silent) {
+                    processQueue()
+                } else {
+                    ttsManager.speak(getString(R.string.playback_new_chat, item.chatName)) { processQueue() }
+                }
             }
             is PlaybackItem.MessageItem -> {
+                if (item.dropped) {
+                    // Dropped by the channel rules: not read, but handled, so it is marked as read in order
+                    markMessagePlayed(item)
+                    processQueue()
+                    return
+                }
                 val sender = item.sender ?: getString(R.string.playback_unknown_sender)
                 
                 // Media without a caption is announced by its type ("Photo", "Sticker", ...);

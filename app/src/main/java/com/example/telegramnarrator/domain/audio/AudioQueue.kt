@@ -4,8 +4,18 @@ import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
-    data class Intro(val chatName: String) : PlaybackItem()
-    data class MessageItem(val sender: String?, val text: String, val messageId: Long, val chatId: Long, val voiceNoteFileId: Int? = null, val contentType: MessageContentType = MessageContentType.TEXT) : PlaybackItem()
+    // silent: every message of the chat is dropped by the channel rules, so the chat isn't announced
+    data class Intro(val chatName: String, val silent: Boolean = false) : PlaybackItem()
+    data class MessageItem(
+        val sender: String?,
+        val text: String,
+        val messageId: Long,
+        val chatId: Long,
+        val voiceNoteFileId: Int? = null,
+        val contentType: MessageContentType = MessageContentType.TEXT,
+        // Dropped by the channel rules: not read, but marked as read when its turn comes
+        val dropped: Boolean = false
+    ) : PlaybackItem()
     data class Silence(val durationMs: Long) : PlaybackItem()
     object Outro : PlaybackItem()
 }
