@@ -3,7 +3,9 @@
 Telegram channels often end their posts with things that should not be read aloud ("12 תגובות",
 "כדי להגיב לכתבה לחצו כאן", links to the post itself, ads...). The rules engine removes them
 **before** the generic `MessageCleaner` and the text-to-speech run. Chats without a matching
-preset are cleaned by `MessageCleaner` only, exactly as before.
+preset are cleaned by the `default` preset and `MessageCleaner`. **No link is ever read aloud by default**
+(`readLinks: false`, `removeTelegramLinks: true`); the generic `MessageCleaner` also removes URLs when the
+rules file cannot be loaded.
 
 The rules live in `app/src/main/assets/channel_rules.json` and are loaded once when playback starts
 (`ChannelRulesRepository`). If the file is missing or invalid the error is logged under the tag
@@ -18,7 +20,7 @@ For every unread message of a chat, in the order they are played:
    through the normal read-checkpoint flow, like a message that was heard.
 2. **Text rules** for messages that are read: `cut` -> `replace` -> `removeTelegramLinks` ->
    links (`readLinks` / `linkLabel`) -> `stripSymbols` -> `numberedLists`.
-3. The generic `MessageCleaner` (markdown, emoji, the remaining links read as "Link", whitespace).
+3. The generic `MessageCleaner` (markdown, emoji, any URL that is still left is removed, whitespace).
 
 If the rules leave nothing to say (e.g. the message was only "12 תגובות"), the message is skipped
 and marked as read, like any other empty message.
@@ -54,9 +56,9 @@ and marked as read, like any other empty message.
       },
 
       "options": {
-        "readLinks": true,
-        "linkLabel": "קישור",
-        "removeTelegramLinks": false,
+        "readLinks": true,                   // the default preset has false: links are not read
+        "linkLabel": "קישור",                // only used when readLinks is true
+        "removeTelegramLinks": true,
         "numberedLists": "keep",
         "stripSymbols": ["°"]
       }
@@ -94,9 +96,9 @@ itself (like the `givechak` one) as a backstop.
 
 | Option | Values | Default | Meaning |
 |--------|--------|---------|---------|
-| `readLinks` | `true` / `false` | `true` | `false` removes URLs completely instead of reading "link". |
-| `linkLabel` | string | the localized word for "Link" | What a URL is read as (when `readLinks` is true). |
-| `removeTelegramLinks` | `true` / `false` | `false` | Removes `t.me`, `telegram.me`, `telegram.dog` links entirely, including suffixes like `?single`. For one channel only, use a `cut` rule such as `"(?i)(?:https?://)?t\\.me/mychannel\\S*"`. |
+| `readLinks` | `true` / `false` | `false` | **Links are not read by default**: `false` removes URLs completely (no "link" word). `true` reads every URL as `linkLabel`. |
+| `linkLabel` | string | the localized word for "Link" | What a URL is read as (only when `readLinks` is `true`). |
+| `removeTelegramLinks` | `true` / `false` | `true` | Removes `t.me`, `telegram.me`, `telegram.dog` links entirely, including suffixes like `?single`. This matters when `readLinks` is `true` (to read other links but never Telegram ones); with `readLinks: false` every link is removed anyway. To remove the links of one channel only, use a `cut` rule such as `"(?i)(?:https?://)?t\\.me/mychannel\\S*"`. |
 | `numberedLists` | `"keep"` / `"strip"` / `"natural"` | `"keep"` | Handling of list numbers at the start of a line (`1.` / `2)`): `strip` removes them, `natural` turns `1. text` into `1, text` so it is read as a number with a pause. |
 | `stripSymbols` | list of strings | `[]` | Literal strings removed from the text, e.g. `["°"]`. |
 
@@ -122,5 +124,5 @@ pattern.
 
 See the `Abu Ali Express` entry in `channel_rules.json` and the reconstructed sample messages in
 `app/src/test/resources/channel_rules/abu_ali/`: it drops `°תוכן שיווקי` ads (inline, or as a separate marker
-message followed by the ad) and `givechak` / donation links, cuts `N תגובות`, `כדי להגיב לכתבה לחצו כאן` and
-`t.me/abualiexpress/...` links, reads list numbers naturally and removes `°`.
+message followed by the ad) and `givechak` / donation links, cuts `N תגובות` and `כדי להגיב לכתבה לחצו כאן`, drops all
+`t.me` links (via the default `removeTelegramLinks` / `readLinks: false`), reads list numbers naturally and removes `°`.

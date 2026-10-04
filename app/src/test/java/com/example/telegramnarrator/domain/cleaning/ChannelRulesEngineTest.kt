@@ -174,6 +174,7 @@ class ChannelRulesEngineTest {
     ).channels[0].preset
 
     private val e = ChannelRulesEngine()
+    private val linkReader = ChannelRulesEngine(defaultLinkLabel = { "קישור" })
 
     @Test
     fun `readLinks false removes links`() {
@@ -184,22 +185,42 @@ class ChannelRulesEngineTest {
 
     @Test
     fun `linkLabel replaces links`() {
-        val p = preset("""{"linkLabel":"לינק"}""")
+        val p = preset("""{"readLinks":true,"linkLabel":"לינק"}""")
         assertEquals("ראו לינק ועוד לינק", MessageCleaner.clean(e.applyTextRules("ראו https://a.com/x ועוד www.b.com", p)))
     }
 
     @Test
-    fun `default link behavior is left to the message cleaner`() {
+    fun `links are removed by default - no preset options needed`() {
         val p = preset("""{}""")
+        assertFalse(p.readLinks)
+        assertEquals("ראו", MessageCleaner.clean(e.applyTextRules("ראו https://a.com/x", p)))
+        assertEquals("ראו", MessageCleaner.clean(e.applyTextRules("ראו www.a.com/x?y=1", p)))
+        // and with no rules at all
+        assertEquals("ראו", MessageCleaner.clean(e.applyTextRules("ראו https://a.com/x", ChannelRulesConfig.EMPTY.default)))
+    }
+
+    @Test
+    fun `readLinks true without a label reads the localized default word`() {
+        val p = preset("""{"readLinks":true}""")
         assertEquals("ראו Link", MessageCleaner.clean(e.applyTextRules("ראו https://a.com/x", p)))
-        assertEquals("ראו קישור", MessageCleaner.clean(e.applyTextRules("ראו https://a.com/x", p), "קישור"))
+        assertEquals("ראו קישור", MessageCleaner.clean(linkReader.applyTextRules("ראו https://a.com/x", p)))
+    }
+
+    @Test
+    fun `shipped default preset skips every link for every chat`() {
+        val text = "חדשות https://example.com/a?b=1 וגם t.me/somechannel/12?single ועוד www.site.co.il/x וכן http://telegram.me/c/1 סוף"
+        for (title in listOf("ערוץ אחר", abuAliTitle, "")) {
+            assertEquals("חדשות וגם ועוד וכן סוף", spoken(title, text))
+        }
+        assertFalse(engine.presetFor(chatId, "ערוץ אחר").readLinks)
+        assertTrue(engine.presetFor(chatId, "ערוץ אחר").removeTelegramLinks)
     }
 
     @Test
     fun `removeTelegramLinks removes t me links including suffixes but not other links`() {
         val p = preset("""{"removeTelegramLinks":true}""")
         assertEquals(
-            "a b c Link",
+            "a b c",
             MessageCleaner.clean(
                 e.applyTextRules(
                     "a https://t.me/chan/12?single b t.me/chan/3 c http://telegram.me/x/1?single=1 https://example.com/t.me", p

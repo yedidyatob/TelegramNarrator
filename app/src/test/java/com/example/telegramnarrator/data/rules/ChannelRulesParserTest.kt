@@ -25,10 +25,11 @@ class ChannelRulesParserTest {
         assertEquals(3, channel.preset.dropMessage.size)
         assertEquals(1, channel.preset.dropNext.size)
         assertEquals(1, channel.preset.dropNext[0].count)
-        assertEquals(3, channel.preset.cut.size)
+        assertEquals(2, channel.preset.cut.size)
         // everything else is the default
         assertTrue(config.default.dropMessage.isEmpty())
-        assertTrue(config.default.readLinks)
+        assertFalse(config.default.readLinks) // links are never read by default
+        assertTrue(config.default.removeTelegramLinks)
     }
 
     @Test
@@ -68,7 +69,7 @@ class ChannelRulesParserTest {
         val config = ChannelRulesParser.parse(
             """
             {
-              "default": { "rules": { "cut": ["x"] }, "options": { "stripSymbols": ["@"], "readLinks": false } },
+              "default": { "rules": { "cut": ["x"] }, "options": { "stripSymbols": ["@"], "readLinks": true } },
               "channels": [
                 { "name": "inherits", "match": { "titleEquals": "A" } },
                 { "name": "alone", "match": { "titleEquals": "B" }, "inheritDefault": false }
@@ -78,10 +79,10 @@ class ChannelRulesParserTest {
         )
         assertEquals(1, config.channels[0].preset.cut.size)
         assertEquals(listOf("@"), config.channels[0].preset.stripSymbols)
-        assertFalse(config.channels[0].preset.readLinks)
+        assertTrue(config.channels[0].preset.readLinks) // inherited
         assertEquals(0, config.channels[1].preset.cut.size)
         assertTrue(config.channels[1].preset.stripSymbols.isEmpty())
-        assertTrue(config.channels[1].preset.readLinks)
+        assertFalse(config.channels[1].preset.readLinks) // not inherited: built-in default
     }
 
     @Test
@@ -89,6 +90,8 @@ class ChannelRulesParserTest {
         val config = ChannelRulesParser.parse("{}")
         assertTrue(config.channels.isEmpty())
         assertEquals(ChannelRulesConfig.EMPTY.default, config.default)
+        assertFalse(config.default.readLinks) // without any options, links are removed
+        assertTrue(config.default.removeTelegramLinks)
         assertNull(config.default.linkLabel)
     }
 

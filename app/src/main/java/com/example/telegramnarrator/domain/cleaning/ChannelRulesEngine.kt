@@ -7,7 +7,11 @@ import com.example.telegramnarrator.domain.model.Message
  * [com.example.telegramnarrator.domain.audio.MessageCleaner], which stays the fallback for everything
  * the rules don't touch.
  */
-class ChannelRulesEngine(private val config: ChannelRulesConfig = ChannelRulesConfig.EMPTY) {
+class ChannelRulesEngine(
+    private val config: ChannelRulesConfig = ChannelRulesConfig.EMPTY,
+    /** The word a URL is read as when a preset has readLinks=true and no linkLabel (localized by the app). */
+    private val defaultLinkLabel: () -> String = { "Link" }
+) {
 
     /** What to do with one message of a batch. */
     data class Decision(
@@ -93,8 +97,8 @@ class ChannelRulesEngine(private val config: ChannelRulesConfig = ChannelRulesCo
 
         if (!preset.readLinks) {
             result = URL_REGEX.replace(result, "")
-        } else if (preset.linkLabel != null) {
-            val label = preset.linkLabel
+        } else {
+            val label = preset.linkLabel ?: defaultLinkLabel()
             result = URL_REGEX.replace(result) { label }
         }
 

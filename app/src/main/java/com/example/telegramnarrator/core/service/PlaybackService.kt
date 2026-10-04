@@ -229,7 +229,7 @@ class PlaybackService : Service() {
                 
                 // Media without a caption is announced by its type ("Photo", "Sticker", ...);
                 // content we can't handle has no label and is skipped below
-                val text = MessageCleaner.clean(item.text, getString(R.string.playback_link))
+                val text = MessageCleaner.clean(item.text)
                     .ifBlank { item.contentType.labelRes()?.let { getString(it) } ?: "" }
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {

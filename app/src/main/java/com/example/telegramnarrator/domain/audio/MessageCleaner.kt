@@ -3,9 +3,6 @@ package com.example.telegramnarrator.domain.audio
 import java.util.regex.Pattern
 
 object MessageCleaner {
-    // Used when the caller doesn't supply a localized replacement for URLs
-    const val DEFAULT_LINK_LABEL = "Link"
-
     // Regex for URLs (http/https/www)
     private val URL_PATTERN = Pattern.compile(
         "(https?://\\S+|www\\.\\S+)",
@@ -31,12 +28,13 @@ object MessageCleaner {
     private val STRAY_UNDERSCORE_RUNS = Regex("_{2,}")
 
     /**
-     * @param linkLabel what URLs are replaced with (pass the localized word for "link").
+     * @param linkLabel what URLs are replaced with. By default URLs are removed (not read at all);
+     * pass a word such as "link" to have them read as that word instead.
      */
-    fun clean(text: String, linkLabel: String = DEFAULT_LINK_LABEL): String {
+    fun clean(text: String, linkLabel: String = ""): String {
         var cleaned = text
 
-        // Replace URLs with the link label. Done first so that markdown characters inside URLs are never touched.
+        // Remove URLs (or replace them with the link label). Done first so that markdown characters inside URLs are never touched.
         val urlMatcher = URL_PATTERN.matcher(cleaned)
         cleaned = urlMatcher.replaceAll(java.util.regex.Matcher.quoteReplacement(linkLabel))
 

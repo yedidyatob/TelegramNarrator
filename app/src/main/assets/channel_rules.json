@@ -4,8 +4,8 @@
   "default": {
     "rules": {},
     "options": {
-      "readLinks": true,
-      "removeTelegramLinks": false,
+      "readLinks": false,
+      "removeTelegramLinks": true,
       "numberedLists": "keep"
     }
   },
@@ -26,8 +26,7 @@
         ],
         "cut": [
           "^[ \\t]*\\d+ (?:תגובות|תגובה)[ \\t]*$",
-          "כדי להגיב לכתבה לחצו כאן",
-          "(?i)(?:https?://)?t\\.me/abualiexpress\\S*"
+          "כדי להגיב לכתבה לחצו כאן"
         ],
         "replace": []
       },

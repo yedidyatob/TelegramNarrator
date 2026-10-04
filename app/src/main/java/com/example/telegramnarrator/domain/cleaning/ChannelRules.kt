@@ -28,12 +28,12 @@ data class CleaningPreset(
     val cut: List<Regex> = emptyList(),
     /** Pattern -> replacement (Java regex replacement syntax, e.g. "$1"). */
     val replace: List<ReplaceRule> = emptyList(),
-    /** false: URLs are removed instead of being read as "link". */
-    val readLinks: Boolean = true,
-    /** What a URL is read as when [readLinks] is true; null = the app's localized default. */
+    /** false (the default): URLs are removed, i.e. not read at all. true: they are read as [linkLabel]. */
+    val readLinks: Boolean = false,
+    /** What a URL is read as when [readLinks] is true; null = the app's localized word for "link". */
     val linkLabel: String? = null,
     /** Remove t.me / telegram.me links entirely (including any "?single" style suffix). */
-    val removeTelegramLinks: Boolean = false,
+    val removeTelegramLinks: Boolean = true,
     val numberedLists: NumberedListMode = NumberedListMode.KEEP,
     /** Literal strings removed from the text, e.g. "°". */
     val stripSymbols: List<String> = emptyList()
