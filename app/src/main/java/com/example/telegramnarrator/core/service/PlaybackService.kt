@@ -5,11 +5,19 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.example.telegramnarrator.core.audio.AudioFocusController
+import com.example.telegramnarrator.domain.audio.AudioFocusPolicy
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
 import com.example.telegramnarrator.core.labelRes
@@ -74,6 +82,20 @@ class PlaybackService : Service() {
     
     private lateinit var mediaSession: MediaSessionCompat
 
+    // Audio focus: pause for calls / navigation / other apps, resume afterwards (see AudioFocusPolicy)
+    private val focusPolicy = AudioFocusPolicy()
+    private lateinit var focusController: AudioFocusController
+    // Headphones unplugged / Bluetooth disconnected: pause instead of blasting messages from the speaker
+    private var noisyReceiverRegistered = false
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                focusPolicy.onBecomingNoisy()
+                pausePlayback()
+            }
+        }
+    }
+
     companion object {
         const val ACTION_PLAY_ALL = "ACTION_PLAY_ALL"
         const val ACTION_STOP = "ACTION_STOP"
@@ -90,10 +112,11 @@ class PlaybackService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        focusController = AudioFocusController(this) { handleFocusChange(it) }
         mediaSession = MediaSessionCompat(this, "PlaybackService").apply {
             setCallback(object : MediaSessionCompat.Callback() {
-                override fun onPlay() { resumePlayback() }
-                override fun onPause() { pausePlayback() }
+                override fun onPlay() { userResume() }
+                override fun onPause() { userPause() }
                 override fun onStop() { stopPlayback() }
                 override fun onSkipToNext() { skipMessage() }
                 override fun onSkipToPrevious() { skipChat() }
@@ -134,8 +157,8 @@ class PlaybackService : Service() {
                 }
             }
             ACTION_STOP -> stopPlayback()
-            ACTION_PAUSE -> pausePlayback()
-            ACTION_RESUME -> resumePlayback()
+            ACTION_PAUSE -> userPause()
+            ACTION_RESUME -> userResume()
             ACTION_SKIP_MSG -> skipMessage()
             ACTION_SKIP_CHAT -> skipChat()
         }
@@ -178,6 +201,9 @@ class PlaybackService : Service() {
         
         if (!isPlaying) {
             isPlaying = true
+            focusPolicy.onUserAction()
+            focusController.request()
+            registerNoisyReceiver()
             playbackManager.setPlaying(true)
             statusText = getString(R.string.login_status_initializing)
             updateMediaSessionState()
@@ -306,6 +332,12 @@ class PlaybackService : Service() {
         val player = android.media.MediaPlayer()
         try {
             player.apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
                 setDataSource(path)
                 setOnCompletionListener { 
                     it.release()
@@ -406,8 +438,44 @@ class PlaybackService : Service() {
         refreshNotification()
     }
 
+    // Explicit user requests (notification button, headset button, media controls): they also cancel any
+    // pending automatic resume after an audio-focus interruption
+    private fun userPause() {
+        focusPolicy.onUserAction()
+        pausePlayback()
+    }
+
+    private fun userResume() {
+        focusPolicy.onUserAction()
+        resumePlayback()
+    }
+
+    private fun handleFocusChange(change: AudioFocusPolicy.FocusChange) {
+        when (focusPolicy.onFocusChange(change, userPaused = isPaused || !isPlaying)) {
+            AudioFocusPolicy.Action.PAUSE -> pausePlayback()
+            AudioFocusPolicy.Action.RESUME -> resumePlayback()
+            AudioFocusPolicy.Action.NONE -> Unit
+        }
+    }
+
+    private fun registerNoisyReceiver() {
+        if (noisyReceiverRegistered) return
+        ContextCompat.registerReceiver(
+            this, noisyReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        noisyReceiverRegistered = true
+    }
+
+    private fun unregisterNoisyReceiver() {
+        if (!noisyReceiverRegistered) return
+        noisyReceiverRegistered = false
+        unregisterReceiver(noisyReceiver)
+    }
+
     private fun resumePlayback() {
         if (!isPlaying || !isPaused) return
+        focusController.request()
         isPaused = false
         playbackManager.setPaused(false)
         updateMediaSessionState()
@@ -439,6 +507,9 @@ class PlaybackService : Service() {
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
+            focusPolicy.onUserAction()
+            focusController.abandon()
+            unregisterNoisyReceiver()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
     }
@@ -541,6 +612,8 @@ class PlaybackService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         flushReadCheckpoints()
+        focusController.abandon()
+        unregisterNoisyReceiver()
         job.cancel()
         mediaSession.isActive = false
         mediaSession.release()
