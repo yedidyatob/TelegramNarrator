@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.telegramnarrator.R
+import com.example.telegramnarrator.core.labelRes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -246,8 +247,11 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
+                                    val displayText = msg.text.ifBlank {
+                                        stringResource(msg.contentType.labelRes() ?: R.string.message_unsupported_content)
+                                    }
                                     Text(
-                                        text = msg.text,
+                                        text = displayText,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }

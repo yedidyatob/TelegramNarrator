@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home Screen -->
+    <string name="message_unsupported_content">תוכן לא נתמך</string>
+
+    <!-- Playback Service -->
+    <string name="playback_link">קישור</string>
+    <string name="playback_voice_note">הודעה קולית</string>
+    <string name="playback_content_photo">תמונה</string>
+    <string name="playback_content_video">סרטון</string>
+    <string name="playback_content_video_note">הודעת וידאו</string>
+    <string name="playback_content_sticker">מדבקה</string>
+    <string name="playback_content_animation">אנימציה</string>
+    <string name="playback_content_audio">הודעת שמע</string>
+    <string name="playback_content_document">מסמך</string>
+    <string name="playback_unknown_sender">לא ידוע</string>
+    <string name="playback_pause">השהה</string>
+    <string name="playback_resume">המשך</string>
+    <string name="playback_paused">מושהה</string>
+</resources>
