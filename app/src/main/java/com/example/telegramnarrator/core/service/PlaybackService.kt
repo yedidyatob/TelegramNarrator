@@ -7,10 +7,10 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioManager
+import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -499,6 +499,9 @@ class PlaybackService : Service() {
 
     private fun stopPlayback() {
             isPlaying = false
+            focusPolicy.onUserAction()
+            focusController.abandon()
+            unregisterNoisyReceiver()
             isPaused = false
             itemGeneration.incrementAndGet()
             flushReadCheckpoints()
@@ -507,9 +510,6 @@ class PlaybackService : Service() {
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
-            focusPolicy.onUserAction()
-            focusController.abandon()
-            unregisterNoisyReceiver()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
     }
