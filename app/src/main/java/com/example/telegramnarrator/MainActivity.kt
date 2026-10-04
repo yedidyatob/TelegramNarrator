@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.telegramnarrator.ui.viewmodel.AuthViewModel
 import com.example.telegramnarrator.domain.model.AuthState
+import com.example.telegramnarrator.ui.components.rememberNotificationPermissionGate
 import com.example.telegramnarrator.ui.screens.auth.LoginScreen
 import com.example.telegramnarrator.ui.screens.home.HomeScreen
 import com.example.telegramnarrator.ui.theme.TelegramNarratorTheme
@@ -71,8 +72,7 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
         }
         composable("home") {
             val context = androidx.compose.ui.platform.LocalContext.current
-            HomeScreen(
-                onPlayAll = { chats ->
+            val startPlayback = rememberNotificationPermissionGate<List<com.example.telegramnarrator.domain.model.Chat>> { chats ->
                     val intent = android.content.Intent(context, com.example.telegramnarrator.core.service.PlaybackService::class.java).apply {
                         action = com.example.telegramnarrator.core.service.PlaybackService.ACTION_PLAY_ALL
                         putExtra(com.example.telegramnarrator.core.service.PlaybackService.EXTRA_CHAT_IDS, chats.map { it.id }.toLongArray())
@@ -82,8 +82,8 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                     } else {
                         context.startService(intent)
                     }
-                }
-            )
+            }
+            HomeScreen(onPlayAll = startPlayback)
         }
     }
 }

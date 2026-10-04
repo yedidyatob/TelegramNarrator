@@ -477,9 +477,9 @@ class PlaybackService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Playback",
+                getString(R.string.notification_channel_playback),
                 NotificationManager.IMPORTANCE_LOW
-            )
+            ).apply { setShowBadge(false) }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
@@ -503,10 +503,23 @@ class PlaybackService : Service() {
         val toggleIcon = if (isPaused) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause
         val toggleTitle = getString(if (isPaused) R.string.playback_resume else R.string.playback_pause)
 
+        // Tapping the notification opens the app
+        val openIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val openPendingIntent = PendingIntent.getActivity(
+            this, 4, openIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_narrator)
+            .setContentIntent(openPendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(toggleIcon, toggleTitle, togglePendingIntent)
             .addAction(android.R.drawable.ic_media_next, getString(R.string.playback_skip_msg), skipMsgPendingIntent)
             .addAction(android.R.drawable.ic_media_next, getString(R.string.playback_skip_chat), skipChatPendingIntent)
@@ -521,9 +534,9 @@ class PlaybackService : Service() {
     
     private fun updateNotification(item: PlaybackItem) {
         val text = when(item) {
-             is PlaybackItem.Intro -> "Chat: ${item.chatName}"
-             is PlaybackItem.MessageItem -> "From ${item.sender ?: getString(R.string.playback_unknown_sender)}"
-             else -> "Playing..."
+             is PlaybackItem.Intro -> getString(R.string.notification_chat, item.chatName)
+             is PlaybackItem.MessageItem -> getString(R.string.notification_from, item.sender ?: getString(R.string.playback_unknown_sender))
+             else -> getString(R.string.notification_playing)
         }
         playbackManager.setStatus(text)
         statusText = text
