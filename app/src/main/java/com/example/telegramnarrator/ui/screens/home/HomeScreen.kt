@@ -9,10 +9,14 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -46,6 +50,7 @@ fun HomeScreen(
     val isPaused by viewModel.isPaused.collectAsState()
     val playStatus by viewModel.playStatus.collectAsState()
     val selectedMsgs by viewModel.selectedChatMessages.collectAsState()
+    var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -83,6 +88,12 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    IconButton(onClick = { showVoiceSettings = true }) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_voice_open)
+                        )
+                    }
                     if (isLoading && !pullToRefreshState.isRefreshing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp)
@@ -218,6 +229,10 @@ fun HomeScreen(
                 state = pullToRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+        }
+
+        if (showVoiceSettings) {
+            com.example.telegramnarrator.ui.screens.settings.VoiceSettingsSheet(onDismiss = { showVoiceSettings = false })
         }
 
         val sheetMsgs = selectedMsgs
