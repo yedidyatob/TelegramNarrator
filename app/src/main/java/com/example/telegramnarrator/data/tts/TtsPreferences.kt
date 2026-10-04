@@ -22,6 +22,7 @@ class TtsPreferences @Inject constructor(
         const val FILE = "tts_settings"
         const val KEY_ENGINE = "engine"
         const val KEY_RATE = "rate"
+        const val KEY_MARK_AS_READ = "mark_as_read"
         const val VOICE_PREFIX = "voice."
     }
 
@@ -46,7 +47,8 @@ class TtsPreferences @Inject constructor(
         return TtsSettings(
             enginePackage = prefs.getString(KEY_ENGINE, null),
             speechRate = TtsVoiceLogic.clampRate(prefs.getFloat(KEY_RATE, TtsVoiceLogic.DEFAULT_RATE)),
-            voices = voices
+            voices = voices,
+            markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null
         )
     }
 
@@ -54,6 +56,7 @@ class TtsPreferences @Inject constructor(
         val editor = prefs.edit().clear()
         settings.enginePackage?.let { editor.putString(KEY_ENGINE, it) }
         editor.putFloat(KEY_RATE, settings.speechRate)
+        settings.markAsReadOverride?.let { editor.putBoolean(KEY_MARK_AS_READ, it) }
         settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }
         editor.apply()
     }

@@ -3,6 +3,7 @@ package com.example.telegramnarrator.ui.viewmodel
 import android.content.Context
 import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.ViewModel
+import com.example.telegramnarrator.BuildConfig
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.audio.PlaybackManager
@@ -36,7 +37,9 @@ data class TtsSettingsUiState(
     /** Engine the user picked; null = the system default engine. */
     val selectedEngine: String? = null,
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
-    val groups: List<VoiceGroup> = emptyList()
+    val groups: List<VoiceGroup> = emptyList(),
+    /** Mark played messages as read in Telegram. */
+    val markAsRead: Boolean = true
 )
 
 @HiltViewModel
@@ -57,7 +60,7 @@ class TtsSettingsViewModel @Inject constructor(
     fun reload() {
         val settings = preferences.settings.value
         if (!ttsManager.isInitialized.value) {
-            _state.value = TtsSettingsUiState(loading = true, speechRate = settings.speechRate)
+            _state.value = TtsSettingsUiState(loading = true, speechRate = settings.speechRate, markAsRead = markAsReadNow())
             return
         }
         val deviceLanguages = ConfigurationCompat.getLocales(context.resources.configuration).let { list ->
@@ -71,6 +74,7 @@ class TtsSettingsViewModel @Inject constructor(
             activeEngine = ttsManager.activeEngine(),
             selectedEngine = settings.enginePackage,
             speechRate = settings.speechRate,
+            markAsRead = markAsReadNow(),
             groups = byLanguage.map { (language, voices) ->
                 VoiceGroup(
                     language = language,
@@ -85,6 +89,13 @@ class TtsSettingsViewModel @Inject constructor(
 
     /** Whether the engine finished (re)starting; the sheet calls [reload] when this becomes true. */
     val ttsReady: StateFlow<Boolean> = ttsManager.isInitialized
+
+    private fun markAsReadNow() = preferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
+
+    fun setMarkAsRead(enabled: Boolean) {
+        preferences.update { it.copy(markAsReadOverride = enabled) }
+        _state.value = _state.value.copy(markAsRead = enabled)
+    }
 
     fun setSpeechRate(rate: Float) {
         preferences.update { TtsVoiceLogic.withRate(it, rate) }

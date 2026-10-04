@@ -27,8 +27,16 @@ data class EngineOption(val packageName: String, val label: String)
 data class TtsSettings(
     val enginePackage: String? = null,
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
-    val voices: Map<String, String> = emptyMap()
-)
+    val voices: Map<String, String> = emptyMap(),
+    /** User's choice for "mark messages as read in Telegram"; null = not chosen, use the build default. */
+    val markAsReadOverride: Boolean? = null
+) {
+    /**
+     * Whether played messages are marked as read in Telegram. Defaults to on for release builds and off for
+     * debug builds (so testing does not mark real chats as read), unless the user chose explicitly.
+     */
+    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean = markAsReadOverride ?: !isDebugBuild
+}
 
 /** Pure helpers behind the TTS settings (no Android dependencies, unit tested). */
 object TtsVoiceLogic {

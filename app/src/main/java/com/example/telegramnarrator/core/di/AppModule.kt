@@ -52,9 +52,10 @@ object AppModule {
     @Singleton
     fun provideChatRepository(
         client: TdLibClient,
-        userCache: TdLibUserCache
+        userCache: TdLibUserCache,
+        ttsPreferences: TtsPreferences
     ): ChatRepository {
-        return TdLibChatRepository(client, userCache)
+        return TdLibChatRepository(client, userCache, ttsPreferences)
     }
 
     @Provides
