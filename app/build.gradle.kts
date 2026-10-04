@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.tdlib)
 
     testImplementation(libs.junit)
+    // Unit tests run on the JVM, where the Android org.json stubs do nothing (used for the channel rules JSON)
+    testImplementation("org.json:json:20231013")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
