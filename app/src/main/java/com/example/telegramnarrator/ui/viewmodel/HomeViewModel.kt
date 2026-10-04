@@ -74,9 +74,8 @@ class HomeViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                // Fetch up to 20 unread messages for the scrub UI
-                val msgs = chatRepository.getChatMessages(chatId, 20)
-                _selectedChatMessages.value = msgs.reversed()
+                // The chat's unread messages (oldest first) for the scrub UI
+                _selectedChatMessages.value = chatRepository.getChatMessages(chatId)
             } catch (e: Exception) {
                 _selectedChatMessages.value = emptyList()
             }

@@ -56,6 +56,7 @@ class TdLibChatRepository @Inject constructor(
                     is TdApi.UpdateChatReadInbox -> {
                         chatCache[u.chatId]?.let {
                             it.unreadCount = u.unreadCount
+                            it.lastReadInboxMessageId = u.lastReadInboxMessageId
                             refreshUnreadList()
                         } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
                     }
@@ -132,49 +133,62 @@ class TdLibChatRepository @Inject constructor(
     }
 
     override suspend fun getChatMessages(chatId: Long, limit: Int): List<Message> {
-        // offset 0, 0 means explicit from-to logic, usually fromLastMessage
-        val history = client.send<TdApi.Messages>(
-            TdApi.GetChatHistory(chatId, 0, 0, limit, false)
-        )
-        
-        return history.messages.map { tdMessage ->
-            val content = tdMessage.content
-            var voiceFileId: Int? = null
-            // text is only the text / caption; the content type tells the player what to announce
-            // for media without a caption (and unsupported content has no text at all)
-            val (contentType, text) = when (content) {
-                is TdApi.MessageText -> MessageContentType.TEXT to content.text.text
-                is TdApi.MessagePhoto -> MessageContentType.PHOTO to content.caption.text
-                is TdApi.MessageVideo -> MessageContentType.VIDEO to content.caption.text
-                is TdApi.MessageVoiceNote -> {
-                    voiceFileId = content.voiceNote.voice.id
-                    MessageContentType.VOICE_NOTE to content.caption.text
-                }
-                is TdApi.MessageVideoNote -> MessageContentType.VIDEO_NOTE to ""
-                is TdApi.MessageSticker -> MessageContentType.STICKER to ""
-                is TdApi.MessageAnimation -> MessageContentType.ANIMATION to content.caption.text
-                is TdApi.MessageAudio -> MessageContentType.AUDIO to content.caption.text
-                is TdApi.MessageDocument -> MessageContentType.DOCUMENT to content.caption.text
-                else -> MessageContentType.UNSUPPORTED to ""
-            }
-            
-            val senderName = when (val s = tdMessage.senderId) {
-                is TdApi.MessageSenderUser -> userCache.getUserName(s.userId)
-                is TdApi.MessageSenderChat -> getChat(s.chatId)?.title ?: "Channel"
-                else -> "System"
-            }
-            
-            Message(
-                id = tdMessage.id,
-                chatId = tdMessage.chatId,
-                senderName = senderName,
-                text = text,
-                timestamp = tdMessage.date.toLong(),
-                isOutgoing = tdMessage.isOutgoing,
-                voiceNoteFileId = voiceFileId,
-                contentType = contentType
-            )
+        val tdChat = getOrFetchChat(chatId) ?: return emptyList()
+
+        // The oldest unread messages first: a chat with more unread messages than the cap is read
+        // from its first unread message forward, the rest is left for the next run
+        val unread = UnreadHistoryPager.collectOldestUnread(
+            unreadCount = tdChat.unreadCount,
+            lastReadId = tdChat.lastReadInboxMessageId,
+            maxResults = minOf(limit, ChatRepository.MAX_UNREAD_MESSAGES),
+            idOf = { it.id },
+            isOutgoing = { it.isOutgoing }
+        ) { fromMessageId, pageSize ->
+            client.send<TdApi.Messages>(
+                TdApi.GetChatHistory(chatId, fromMessageId, 0, pageSize, false)
+            ).messages.toList()
         }
+
+        return unread.map { toDomainMessage(it) }
+    }
+
+    private suspend fun toDomainMessage(tdMessage: TdApi.Message): Message {
+        val content = tdMessage.content
+        var voiceFileId: Int? = null
+        // text is only the text / caption; the content type tells the player what to announce
+        // for media without a caption (and unsupported content has no text at all)
+        val (contentType, text) = when (content) {
+            is TdApi.MessageText -> MessageContentType.TEXT to content.text.text
+            is TdApi.MessagePhoto -> MessageContentType.PHOTO to content.caption.text
+            is TdApi.MessageVideo -> MessageContentType.VIDEO to content.caption.text
+            is TdApi.MessageVoiceNote -> {
+                voiceFileId = content.voiceNote.voice.id
+                MessageContentType.VOICE_NOTE to content.caption.text
+            }
+            is TdApi.MessageVideoNote -> MessageContentType.VIDEO_NOTE to ""
+            is TdApi.MessageSticker -> MessageContentType.STICKER to ""
+            is TdApi.MessageAnimation -> MessageContentType.ANIMATION to content.caption.text
+            is TdApi.MessageAudio -> MessageContentType.AUDIO to content.caption.text
+            is TdApi.MessageDocument -> MessageContentType.DOCUMENT to content.caption.text
+            else -> MessageContentType.UNSUPPORTED to ""
+        }
+        
+        val senderName = when (val s = tdMessage.senderId) {
+            is TdApi.MessageSenderUser -> userCache.getUserName(s.userId)
+            is TdApi.MessageSenderChat -> getChat(s.chatId)?.title ?: "Channel"
+            else -> "System"
+        }
+
+        return Message(
+            id = tdMessage.id,
+            chatId = tdMessage.chatId,
+            senderName = senderName,
+            text = text,
+            timestamp = tdMessage.date.toLong(),
+            isOutgoing = tdMessage.isOutgoing,
+            voiceNoteFileId = voiceFileId,
+            contentType = contentType
+        )
     }
 
     override suspend fun markChatAsRead(chatId: Long) {

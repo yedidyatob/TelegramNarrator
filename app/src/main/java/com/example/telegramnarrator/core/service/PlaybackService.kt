@@ -134,10 +134,11 @@ class PlaybackService : Service() {
         chatIds.forEach { chatId ->
             val chat = chatRepository.getChat(chatId)
             val title = chat?.title ?: "Chat $chatId"
-            val messages = chatRepository.getChatMessages(chatId, 20)
+            // Unread incoming messages, oldest first
+            val messages = chatRepository.getChatMessages(chatId)
             if (messages.isNotEmpty()) {
                 audioQueue.add(PlaybackItem.Intro(title))
-                messages.reversed().forEach { msg ->
+                messages.forEach { msg ->
                     audioQueue.add(PlaybackItem.MessageItem(msg.senderName, msg.text, msg.id, msg.voiceNoteFileId, msg.contentType))
                 }
                 audioQueue.add(PlaybackItem.MarkAsRead(chatId))
