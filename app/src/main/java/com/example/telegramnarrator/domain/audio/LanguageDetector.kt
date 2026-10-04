@@ -20,7 +20,11 @@ object LanguageDetector {
     // A non-Hebrew script has to have at least this many times more letters than Hebrew to win
     private const val DOMINANCE_FACTOR = 3
 
-    fun detect(text: String): Locale {
+    fun detect(text: String): Locale = detectOrNull(text) ?: DEFAULT
+
+    /** Like [detect], but null when the text has no letters of a script we know (so nothing to go on). */
+    fun detectOrNull(text: String?): Locale? {
+        if (text == null) return null
         var hebrew = 0
         var latin = 0
         var cyrillic = 0
@@ -40,6 +44,7 @@ object LanguageDetector {
             }
         }
 
+        if (hebrew + latin + cyrillic + arabic == 0) return null
         val candidates = listOf(ENGLISH to latin, RUSSIAN to cyrillic, ARABIC to arabic)
         val (locale, count) = candidates.maxByOrNull { it.second } ?: return DEFAULT
         return if (count > 0 && count >= hebrew * DOMINANCE_FACTOR) locale else DEFAULT

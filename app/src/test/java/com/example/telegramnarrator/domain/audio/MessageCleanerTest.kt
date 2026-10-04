@@ -12,9 +12,10 @@ class MessageCleanerTest {
     }
 
     @Test
-    fun `urls are replaced with the default label`() {
-        assertEquals("see Link now", MessageCleaner.clean("see https://example.com/a_b*c now"))
-        assertEquals("Link", MessageCleaner.clean("www.example.com"))
+    fun `urls are removed by default`() {
+        assertEquals("see now", MessageCleaner.clean("see https://example.com/a_b*c now"))
+        assertEquals("", MessageCleaner.clean("www.example.com"))
+        assertEquals("a b", MessageCleaner.clean("a https://t.me/chan/1?single b"))
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.example.telegramnarrator.data.repository.TdLibAuthRepository
 import com.example.telegramnarrator.data.repository.TdLibChatRepository
 import com.example.telegramnarrator.data.repository.TdLibUserCache
 import com.example.telegramnarrator.data.tdlib.TdLibClient
+import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import dagger.Module
@@ -58,7 +59,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideTtsManager(@ApplicationContext context: Context): TtsManager {
-        return TtsManager(context)
+    fun provideTtsManager(@ApplicationContext context: Context, ttsPreferences: TtsPreferences): TtsManager {
+        return TtsManager(context, ttsPreferences)
     }
 }

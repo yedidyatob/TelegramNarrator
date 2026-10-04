@@ -1,0 +1,39 @@
+{
+  "version": 1,
+
+  "default": {
+    "rules": {},
+    "options": {
+      "readLinks": false,
+      "removeTelegramLinks": true,
+      "numberedLists": "keep"
+    }
+  },
+
+  "channels": [
+    {
+      "name": "Abu Ali Express",
+      "match": { "titleEquals": "אבו עלי אקספרס" },
+      "inheritDefault": true,
+      "rules": {
+        "dropMessage": [
+          "\\A\\s*°\\s*תוכן שיווקי",
+          "(?i)givechak\\.co\\.il",
+          "(?i)https?://\\S*(?:donate|donation)\\S*"
+        ],
+        "dropNext": [
+          { "pattern": "\\A\\s*°\\s*תוכן שיווקי\\s*\\z", "count": 1 }
+        ],
+        "cut": [
+          "^[ \\t]*\\d+ (?:תגובות|תגובה)[ \\t]*$",
+          "כדי להגיב לכתבה לחצו כאן"
+        ],
+        "replace": []
+      },
+      "options": {
+        "numberedLists": "natural",
+        "stripSymbols": ["°"]
+      }
+    }
+  ]
+}

@@ -44,4 +44,20 @@
     <string name="playback_pause">Pause</string>
     <string name="playback_resume">Resume</string>
     <string name="playback_paused">Paused</string>
+
+    <!-- Voice settings (English only: the app UI is not translated) -->
+    <string name="settings_voice_title">Voice settings</string>
+    <string name="settings_voice_open">Voice settings</string>
+    <string name="settings_voice_engine">Speech engine</string>
+    <string name="settings_voice_engine_default">System default</string>
+    <string name="settings_voice_rate">Speech rate: %1$s</string>
+    <string name="settings_voice_voices">Voices</string>
+    <string name="settings_voice_default">Default voice</string>
+    <string name="settings_voice_none_installed">No offline voice installed for this language</string>
+    <string name="settings_voice_test">Test voice</string>
+    <string name="settings_voice_system">Open system text-to-speech settings</string>
+    <string name="settings_voice_system_unavailable">Could not open the system text-to-speech settings</string>
+    <string name="settings_voice_playing_note">Voice choices can be tested when the reading is stopped</string>
+    <string name="settings_voice_offline_note">Only offline voices of the installed engines are listed; install more voices in the system text-to-speech settings</string>
+    <string name="settings_voice_loading">Loading voices…</string>
 </resources>
