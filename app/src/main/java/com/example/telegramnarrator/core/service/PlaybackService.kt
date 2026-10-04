@@ -16,7 +16,9 @@ import com.example.telegramnarrator.core.labelRes
 import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.domain.audio.AudioQueue
+import com.example.telegramnarrator.core.SpokenStrings
 import com.example.telegramnarrator.domain.audio.MessageCleaner
+import com.example.telegramnarrator.domain.audio.SpokenPhraseLanguage
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
 import com.example.telegramnarrator.domain.audio.ReadCheckpointer
@@ -64,6 +66,9 @@ class PlaybackService : Service() {
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
     private var lastSender: String? = null
+    // Title of the chat being read (the language of the spoken phrases can depend on it)
+    private var currentChatTitle: String? = null
+    private val spokenStrings by lazy { SpokenStrings(this) }
     // Value of lastSender before currentItem updated it (restored if the item is replayed after a pause)
     private var senderBeforeCurrentItem: String? = null
     
@@ -212,10 +217,13 @@ class PlaybackService : Service() {
         when (item) {
             is PlaybackItem.Intro -> {
                 lastSender = null
+                currentChatTitle = item.chatName
                 if (item.silent) {
                     processQueue()
                 } else {
-                    ttsManager.speak(getString(R.string.playback_new_chat, item.chatName)) { processQueue() }
+                    // The phrase is said in Hebrew only if the chat title is Hebrew (not by device locale)
+                    val phrases = SpokenPhraseLanguage.choose(item.chatName)
+                    ttsManager.speak(spokenStrings.get(phrases, R.string.playback_new_chat, item.chatName)) { processQueue() }
                 }
             }
             is PlaybackItem.MessageItem -> {
@@ -225,12 +233,16 @@ class PlaybackService : Service() {
                     processQueue()
                     return
                 }
-                val sender = item.sender ?: getString(R.string.playback_unknown_sender)
-                
+                // Language of the app's own phrases ("Message from", "Photo", ...): decided by the content,
+                // not the device locale - the message text first, then the sender, then the chat title
+                val cleanedText = MessageCleaner.clean(item.text)
+                val phrases = SpokenPhraseLanguage.choose(cleanedText, item.sender, currentChatTitle)
+                val sender = item.sender ?: spokenStrings.get(phrases, R.string.playback_unknown_sender)
+
                 // Media without a caption is announced by its type ("Photo", "Sticker", ...);
                 // content we can't handle has no label and is skipped below
-                val text = MessageCleaner.clean(item.text)
-                    .ifBlank { item.contentType.labelRes()?.let { getString(it) } ?: "" }
+                val text = cleanedText
+                    .ifBlank { item.contentType.labelRes()?.let { spokenStrings.get(phrases, it) } ?: "" }
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {
                     // Nothing to say (unsupported content, emoji only, ...): handled, so mark it read
@@ -241,19 +253,20 @@ class PlaybackService : Service() {
 
                 // Announce the sender only when it changes. This must be decided once, before lastSender
                 // is updated, and is used for both the text and the voice note intro below.
-                val isNewSender = sender != lastSender
+                val senderKey = item.sender.orEmpty()
+                val isNewSender = senderKey != lastSender
                 senderBeforeCurrentItem = lastSender
-                lastSender = sender
+                lastSender = senderKey
 
                 val speechText = if (isNewSender) {
-                    getString(R.string.playback_from, sender, text)
+                    spokenStrings.get(phrases, R.string.playback_from, sender, text)
                 } else {
                     text
                 }
 
                 if (item.voiceNoteFileId != null) {
-                    val voiceNoteLabel = getString(R.string.playback_voice_note)
-                    val introText = if (isNewSender) getString(R.string.playback_from, sender, voiceNoteLabel) else voiceNoteLabel
+                    val voiceNoteLabel = spokenStrings.get(phrases, R.string.playback_voice_note)
+                    val introText = if (isNewSender) spokenStrings.get(phrases, R.string.playback_from, sender, voiceNoteLabel) else voiceNoteLabel
                     scope.launch {
                         val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
                         // Paused / skipped / stopped while the file was downloading
@@ -274,7 +287,8 @@ class PlaybackService : Service() {
                 processQueue()
             }
             is PlaybackItem.Outro -> {
-                  ttsManager.speak(getString(R.string.playback_end)) { stopPlayback() }
+                  val phrases = SpokenPhraseLanguage.choose(currentChatTitle)
+                  ttsManager.speak(spokenStrings.get(phrases, R.string.playback_end)) { stopPlayback() }
             }
         }
     }
