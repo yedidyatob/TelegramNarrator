@@ -10,6 +10,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.example.telegramnarrator.domain.model.AuthState
 import com.example.telegramnarrator.ui.viewmodel.AuthViewModel
@@ -20,8 +21,8 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val authState by viewModel.authState.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
@@ -29,7 +30,7 @@ fun LoginScreen(
         }
     }
 
-    val authError by viewModel.error.collectAsState()
+    val authError by viewModel.error.collectAsStateWithLifecycle()
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
