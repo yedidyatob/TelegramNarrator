@@ -3,6 +3,7 @@ package com.example.telegramnarrator.core.audio
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.example.telegramnarrator.domain.audio.LanguageDetector
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,24 +20,30 @@ class TtsManager @Inject constructor(
     private val _isInitialized = MutableStateFlow(false)
     val isInitialized = _isInitialized.asStateFlow()
 
+    private val lock = Any()
     private var onDoneCallback: (() -> Unit)? = null
+    private var currentUtteranceId: String? = null
+    private var utteranceCounter = 0L
+
+    // Language the engine is currently set to (null = unknown / last attempt failed)
+    private var currentLocale: Locale? = null
 
     init {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("he") // Default to Hebrew as requested, or Locale.getDefault()
-                // tts?.language = Locale.ENGLISH // Fallback
-                
+                // Hebrew is the default; the language is switched per utterance in speak()
+                applyLanguage(LanguageDetector.DEFAULT)
+
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
 
                     override fun onDone(utteranceId: String?) {
-                        onDoneCallback?.invoke()
+                        finishUtterance(utteranceId)
                     }
 
                     override fun onError(utteranceId: String?) {
                         // Handle error, maybe skip to next
-                        onDoneCallback?.invoke()
+                        finishUtterance(utteranceId)
                     }
                 })
                 _isInitialized.value = true
@@ -47,23 +54,74 @@ class TtsManager @Inject constructor(
         }
     }
 
+    /**
+     * Speaks [text] in the language it appears to be written in (see [LanguageDetector]),
+     * then calls [onDone] (also right away if there is nothing to say).
+     */
     fun speak(text: String, onDone: () -> Unit) {
-        if (!_isInitialized.value || tts == null) {
+        if (!_isInitialized.value || tts == null || text.isBlank()) {
             onDone()
             return
         }
-        
-        onDoneCallback = onDone
+
+        val utteranceId = synchronized(lock) {
+            onDoneCallback = onDone
+            "utterance_${++utteranceCounter}".also { currentUtteranceId = it }
+        }
+
+        applyLanguage(LanguageDetector.detect(text))
+
         val params = android.os.Bundle()
-        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "id")
-        
-        val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "id")
+        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+
+        val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
         if (result == TextToSpeech.ERROR) {
-            onDone()
+            finishUtterance(utteranceId)
         }
     }
 
+    private fun finishUtterance(utteranceId: String?) {
+        val callback = synchronized(lock) {
+            // Ignore callbacks of utterances that were cancelled by stop() or replaced by a newer speak()
+            if (utteranceId == null || utteranceId != currentUtteranceId) return
+            val pending = onDoneCallback
+            onDoneCallback = null
+            currentUtteranceId = null
+            pending
+        }
+        callback?.invoke()
+    }
+
+    /**
+     * Switches the engine to [target]. If the voice data for it isn't installed, falls back to
+     * the Hebrew default, then to the device language, and finally keeps whatever is set.
+     */
+    private fun applyLanguage(target: Locale) {
+        val engine = tts ?: return
+        if (currentLocale == target) return
+
+        val fallbacks = listOf(target, LanguageDetector.DEFAULT, Locale.getDefault()).distinct()
+        for (candidate in fallbacks) {
+            val result = try {
+                engine.setLanguage(candidate)
+            } catch (e: Exception) {
+                TextToSpeech.LANG_NOT_SUPPORTED
+            }
+            if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
+                currentLocale = candidate
+                return
+            }
+            android.util.Log.w("TtsManager", "TTS language not available: $candidate")
+        }
+        currentLocale = null
+    }
+
     fun stop() {
+        // Drop the callback first so a late onDone of the interrupted utterance can't fire it
+        synchronized(lock) {
+            onDoneCallback = null
+            currentUtteranceId = null
+        }
         tts?.stop()
     }
 
