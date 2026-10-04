@@ -157,7 +157,7 @@ class PlaybackService : Service() {
             is PlaybackItem.MessageItem -> {
                 val sender = item.sender ?: "Unknown"
                 
-                val text = MessageCleaner.clean(item.text)
+                val text = MessageCleaner.clean(item.text, getString(R.string.playback_link))
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {
                     processQueue()
