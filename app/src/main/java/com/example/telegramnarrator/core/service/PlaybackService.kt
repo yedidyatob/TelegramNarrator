@@ -51,6 +51,8 @@ class PlaybackService : Service() {
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
     private var lastSender: String? = null
+    // Value of lastSender before currentItem updated it (restored if the item is replayed after a pause)
+    private var senderBeforeCurrentItem: String? = null
     
     private lateinit var mediaSession: MediaSessionCompat
 
@@ -186,7 +188,7 @@ class PlaybackService : Service() {
                 ttsManager.speak(getString(R.string.playback_new_chat, item.chatName)) { processQueue() }
             }
             is PlaybackItem.MessageItem -> {
-                val sender = item.sender ?: "Unknown"
+                val sender = item.sender ?: getString(R.string.playback_unknown_sender)
                 
                 val text = MessageCleaner.clean(item.text, getString(R.string.playback_link))
                 // Filter if blank to not pause
@@ -195,25 +197,33 @@ class PlaybackService : Service() {
                     return
                 }
 
-                val speechText = if (sender == lastSender) {
-                    text
-                } else {
-                    lastSender = sender
+                // Announce the sender only when it changes. This must be decided once, before lastSender
+                // is updated, and is used for both the text and the voice note intro below.
+                val isNewSender = sender != lastSender
+                senderBeforeCurrentItem = lastSender
+                lastSender = sender
+
+                val speechText = if (isNewSender) {
                     getString(R.string.playback_from, sender, text)
+                } else {
+                    text
                 }
 
                 if (item.voiceNoteFileId != null) {
+                    val voiceNoteLabel = getString(R.string.playback_voice_note)
+                    val introText = if (isNewSender) getString(R.string.playback_from, sender, voiceNoteLabel) else voiceNoteLabel
+                    // If the file can't be fetched, fall back to the caption (or just say it was a voice note)
+                    val fallbackText = if (text.isBlank()) introText else speechText
                     scope.launch {
                         val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
                         // Paused / skipped / stopped while the file was downloading
                         if (generation != itemGeneration.get()) return@launch
                         if (path != null) {
-                            val introText = if (sender == lastSender) "Voice Note" else getString(R.string.playback_from, sender, "Voice Note")
                             ttsManager.speak(introText) { 
                                 playAudioFile(path, generation)
                             }
                         } else {
-                            ttsManager.speak(speechText) { processQueue() }
+                            ttsManager.speak(fallbackText) { processQueue() }
                         }
                     }
                 } else {
@@ -322,6 +332,8 @@ class PlaybackService : Service() {
             currentItem?.let {
                 audioQueue.addFirst(it)
                 currentItem = null
+                // The message will be announced again from its start, including its sender
+                if (it is PlaybackItem.MessageItem) lastSender = senderBeforeCurrentItem
             }
         }
 
@@ -414,7 +426,7 @@ class PlaybackService : Service() {
     private fun updateNotification(item: PlaybackItem) {
         val text = when(item) {
              is PlaybackItem.Intro -> "Chat: ${item.chatName}"
-             is PlaybackItem.MessageItem -> "From ${item.sender ?: "Unknown"}"
+             is PlaybackItem.MessageItem -> "From ${item.sender ?: getString(R.string.playback_unknown_sender)}"
              else -> "Playing..."
         }
         playbackManager.setStatus(text)
