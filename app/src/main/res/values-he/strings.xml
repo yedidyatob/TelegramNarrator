@@ -2,4 +2,7 @@
 <resources>
     <!-- Playback Service -->
     <string name="playback_link">קישור</string>
+    <string name="playback_pause">השהה</string>
+    <string name="playback_resume">המשך</string>
+    <string name="playback_paused">מושהה</string>
 </resources>
