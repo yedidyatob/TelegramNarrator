@@ -44,6 +44,7 @@
     <string name="playback_pause">Pause</string>
     <string name="playback_resume">Resume</string>
     <string name="playback_paused">Paused</string>
+    <string name="playback_preparing">Preparing your unread messages…</string>
 
     <!-- Voice settings (English only: the app UI is not translated) -->
     <string name="settings_voice_title">Voice settings</string>

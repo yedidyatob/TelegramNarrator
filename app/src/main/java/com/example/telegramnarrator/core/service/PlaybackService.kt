@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -25,6 +26,7 @@ import com.example.telegramnarrator.domain.audio.ReadCheckpointer
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -57,6 +59,8 @@ class PlaybackService : Service() {
     private val audioQueue = AudioQueue()
     @Volatile private var isPlaying = false
     @Volatile private var isPaused = false
+    // True once startForeground() was called for the current run
+    @Volatile private var foregroundStarted = false
     private var mediaPlayer: android.media.MediaPlayer? = null
     // True when pause() paused a voice note in place (so resume continues it instead of replaying the item)
     private var voiceNotePaused = false
@@ -129,8 +133,18 @@ class PlaybackService : Service() {
         when (intent?.action) {
             ACTION_PLAY_ALL -> {
                 val chatIds = intent.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf()
+                // startForegroundService() requires startForeground() within ~5 s, so go to the foreground
+                // right away - loading chats/messages from TDLib below can take longer than that
+                enterForeground()
                 scope.launch {
-                    startPlayback(chatIds)
+                    try {
+                        startPlayback(chatIds)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        android.util.Log.e("PlaybackService", "Could not start playback", e)
+                        stopPlayback()
+                    }
                 }
             }
             ACTION_STOP -> stopPlayback()
@@ -140,6 +154,19 @@ class PlaybackService : Service() {
             ACTION_SKIP_CHAT -> skipChat()
         }
         return START_NOT_STICKY
+    }
+
+    /** Shows the "preparing" foreground notification once (idempotent while the service stays in the foreground). */
+    private fun enterForeground() {
+        if (foregroundStarted) return
+        foregroundStarted = true
+        statusText = getString(R.string.playback_preparing)
+        val notification = buildNotification(statusText)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private suspend fun startPlayback(chatIds: LongArray) {
@@ -179,9 +206,7 @@ class PlaybackService : Service() {
         if (!isPlaying) {
             isPlaying = true
             playbackManager.setPlaying(true)
-            statusText = getString(R.string.login_status_initializing)
             updateMediaSessionState()
-            startForeground(NOTIFICATION_ID, buildNotification(statusText))
             processQueue()
         } else {
             // Already playing, but we cleared the queue and added new items, so stop current TTS
@@ -439,6 +464,7 @@ class PlaybackService : Service() {
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
+            foregroundStarted = false
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
     }
