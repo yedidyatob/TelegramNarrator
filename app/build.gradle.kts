@@ -11,7 +11,6 @@ plugins {
 android {
     namespace = "com.example.telegramnarrator"
     compileSdk = 34
-    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         applicationId = "com.example.telegramnarrator"
