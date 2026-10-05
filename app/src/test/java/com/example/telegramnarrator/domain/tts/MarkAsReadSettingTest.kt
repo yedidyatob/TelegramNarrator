@@ -6,15 +6,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MarkAsReadSettingTest {
-    @Test fun `default is off in debug builds and on in release builds`() {
+    @Test fun `default is on for both debug and release builds`() {
         val settings = TtsSettings()
-        assertFalse(settings.markAsReadEnabled(isDebugBuild = true))
+        assertTrue(settings.markAsReadEnabled(isDebugBuild = true))
         assertTrue(settings.markAsReadEnabled(isDebugBuild = false))
     }
 
     @Test fun `explicit choice wins over the build type`() {
         assertTrue(TtsSettings(markAsReadOverride = true).markAsReadEnabled(isDebugBuild = true))
         assertFalse(TtsSettings(markAsReadOverride = false).markAsReadEnabled(isDebugBuild = false))
+        assertFalse(TtsSettings(markAsReadOverride = false).markAsReadEnabled(isDebugBuild = true))
     }
 
     @Test fun `changing other settings keeps the choice`() {
