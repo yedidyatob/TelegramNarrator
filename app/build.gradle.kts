@@ -66,6 +66,13 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // 16 KB page-size (Android 15+ / Play): store native libs compressed and extract at install.
+        // That avoids the APK mmap ZIP-alignment requirement. ELF LOAD alignment of the .so itself
+        // still matters — see README "TDLib / 16 KB page size". arm64-v8a and x86_64 from tdlibx
+        // 1.8.56 are already 16 KB; 32-bit ABIs remain 4 KB (tracked in the GitHub issue).
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 

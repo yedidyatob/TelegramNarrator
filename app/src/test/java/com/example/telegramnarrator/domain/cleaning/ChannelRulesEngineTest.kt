@@ -45,8 +45,29 @@ class ChannelRulesEngineTest {
         for (n in listOf(1, 3, 4, 7, 9, 12, 120)) {
             assertEquals("outro with $n", expected, spoken(abuAliTitle, text.replace("3 תגובות", "$n תגובות")))
         }
-        // singular
+        // singular with digit
         assertEquals(expected, spoken(abuAliTitle, text.replace("3 תגובות", "1 תגובה")))
+        // natural Hebrew singular ("one comment") — device-reported missing form
+        assertEquals(expected, spoken(abuAliTitle, text.replace("3 תגובות", "תגובה אחת")))
+    }
+
+    @Test
+    fun `Hebrew comment footers singular and plural are stripped from real-ish posts`() {
+        val body = "כותרת החדשות על המבצע בלילה\n\nעוד משפט חשוב."
+        val expected = MessageCleaner.clean(body)
+        for (footer in listOf(
+            "תגובה אחת",
+            "1 תגובה",
+            "2 תגובות",
+            "12 תגובות",
+            "  תגובה אחת  ",
+            "\t7 תגובות\t",
+        )) {
+            val raw = "$body\n\n$footer"
+            assertEquals("footer='$footer'", expected, spoken(abuAliTitle, raw))
+        }
+        // numbers inside the article must stay
+        assertTrue(spoken(abuAliTitle, "דירוג 9 מתוך 10\n\nתגובה אחת").contains("9 מתוך 10"))
     }
 
     @Test

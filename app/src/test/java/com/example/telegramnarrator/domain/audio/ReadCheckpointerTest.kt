@@ -94,4 +94,15 @@ class ReadCheckpointerTest {
         c.messagePlayed(1, 13, 200)
         assertEquals(listOf(Batch(1, listOf(13))), c.flush())
     }
+
+    @Test
+    fun `flush on pause sends finished messages only`() {
+        // Two messages finished; the third is interrupted by pause (never messagePlayed).
+        val c = ReadCheckpointer(maxPending = 5, maxDelayMs = 60_000)
+        assertEquals(emptyList<Batch>(), c.messagePlayed(7, 100, 0))
+        assertEquals(emptyList<Batch>(), c.messagePlayed(7, 101, 50))
+        // pause -> flush
+        assertEquals(listOf(Batch(7, listOf(100, 101))), c.flush())
+        assertNull(c.nextDueAtMs())
+    }
 }
