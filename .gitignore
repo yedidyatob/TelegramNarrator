@@ -30,14 +30,16 @@ captures/
 # Local configuration
 local.properties
 
+# Kotlin compiler / daemon data
+.kotlin/
+
+# Signing (never commit keystores or their passwords)
+*.keystore
+*.jks
+keystore.properties
+
 # Log files
 *.log
-build_errors.txt
-build_errors_2.txt
-build_errors_3.txt
-build_output.txt
-build_plain.txt
-final_build.txt
 
 # OS-specific
 .DS_Store
