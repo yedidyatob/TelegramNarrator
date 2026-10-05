@@ -45,6 +45,22 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
    ```
 
+
+## Install on phone without USB
+
+Every green CI run on `main` (and on pull requests) uploads a debug APK as a workflow artifact.
+
+1. Open the repo on GitHub → **Actions**.
+2. Open the latest successful **CI** run on `main` (green check).
+3. Scroll to **Artifacts** → download **TelegramNarrator-debug**.
+4. Unzip the download; you get `TelegramNarrator-debug.apk`.
+5. Copy the APK to the phone (Drive, Nearby Share, email, etc.) and open it to install.
+6. If Android blocks the install, enable **Install unknown apps** for the app you used to open the APK (Files, Chrome, Drive, …).
+
+Artifacts are kept for about **14 days**.
+
+For a working login, set repository Actions secrets `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` (from <https://my.telegram.org>). CI writes them into `local.properties` before `assembleDebug`. Without those secrets the APK still builds, but the login screen shows an API-credentials error.
+
 ### Mark as read
 
 Played (or deliberately skipped) messages are marked as read in Telegram by default in **both** debug and
