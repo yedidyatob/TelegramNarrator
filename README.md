@@ -44,10 +44,6 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
    ```
 
-> `gradle.properties` currently contains a Windows-specific `org.gradle.java.home` and trust-store setting.
-> On other machines/CI override them on the command line:
-> `./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8"`.
-
 ### Debug vs release behaviour
 
 Debug builds **do not mark messages as read** in Telegram by default, so testing does not touch real chats.
