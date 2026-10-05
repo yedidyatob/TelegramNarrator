@@ -72,8 +72,11 @@ Pure logic (URL / token / SSML builders, text splitting, frame parsing, cache ke
 `domain/edge/EdgeTts.kt` and unit tested (`EdgeTtsTest`). An opt-in live smoke test hits the real service:
 `EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest --tests '*EdgeTtsClientLiveTest*'`.
 
-Known limitations: audio is fetched before playback starts (no streaming), so a very long message waits for the
-whole synthesis (roughly 4-5x faster than real time); the next message is not prefetched yet.
+Known limitations: audio is fetched before playback starts (no streaming), so a very long *first* message still
+waits for its own synthesis (roughly 4-5x faster than real time). While a cloud (OpenAI / Edge) item plays, the
+next `CloudTtsPrefetch.COUNT` (default 2) speakable messages are synthesized into the existing disk cache so the
+queue does not stall on each subsequent item. Prefetch is cancelled on skip / stop / pause / engine change and
+is not used for the system-TTS path; network failures still fall back to system TTS as before.
 
 ## How it is applied
 

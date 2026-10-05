@@ -33,6 +33,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import com.example.telegramnarrator.domain.audio.AudioQueue
+import com.example.telegramnarrator.domain.audio.CloudTtsPrefetch
 import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
@@ -87,6 +88,8 @@ class PlaybackService : Service() {
     // Bumped whenever the item being processed is superseded (next item, pause, skip, stop), so that
     // late callbacks / coroutines of the old item know they must not start any audio
     private val itemGeneration = AtomicInteger(0)
+    // Warms the next CLOUD_TTS_PREFETCH_COUNT cloud-TTS messages into the disk cache while current audio plays
+    private var prefetchJob: Job? = null
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
     
@@ -118,6 +121,8 @@ class PlaybackService : Service() {
         const val CHANNEL_ID = "PlaybackChannel"
         const val NOTIFICATION_ID = 1
         private const val TOAST_THROTTLE_MS = 30_000L
+        /** Upcoming speakable messages to synthesize into the disk cache while the current cloud TTS item plays. */
+        const val CLOUD_TTS_PREFETCH_COUNT = CloudTtsPrefetch.COUNT
     }
 
     override fun onCreate() {
@@ -252,6 +257,7 @@ class PlaybackService : Service() {
             // and let the next loop run, or force processQueue()
             // (the interrupted message is not marked as read)
             flushReadCheckpoints()
+            cancelPrefetch()
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
@@ -356,7 +362,9 @@ class PlaybackService : Service() {
             // Paused / skipped / stopped while the audio was being fetched
             if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
             when (outcome) {
-                is SpeechSynthesisOutcome.Ready ->
+                is SpeechSynthesisOutcome.Ready -> {
+                    // Warm the next few messages into the disk cache while this one plays
+                    scheduleCloudPrefetch(generation)
                     playAudioFile(
                         outcome.file.absolutePath, generation, item,
                         speed = outcome.playbackSpeed,
@@ -368,6 +376,7 @@ class PlaybackService : Service() {
                             speakWithSystemTts(item, speechText)
                         }
                     )
+                }
                 SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(item, speechText)
                 is SpeechSynthesisOutcome.Fallback -> {
                     showFallbackToast(outcome.reason)
@@ -382,6 +391,46 @@ class PlaybackService : Service() {
             if (completed) onMessageFullyPlayed(item)
             processQueue()
         }
+    }
+
+    /**
+     * While cloud TTS audio plays, synthesize the next [CLOUD_TTS_PREFETCH_COUNT] speakable queue items
+     * into the existing disk cache (cache hits are cheap). Outcomes are ignored — no toast on prefetch
+     * failure; playback still falls back per message when its turn comes. Cancelled on skip/stop/pause
+     * or when [generation] is superseded / the engine is no longer a cloud provider.
+     */
+    private fun scheduleCloudPrefetch(generation: Int) {
+        cancelPrefetch()
+        val provider = ttsPreferences.settings.value.provider
+        if (provider != SpeechProvider.OPENAI && provider != SpeechProvider.EDGE) return
+        val synthesize: (String) -> SpeechSynthesisOutcome = when (provider) {
+            SpeechProvider.OPENAI -> openAiSpeech::synthesize
+            SpeechProvider.EDGE -> edgeSpeech::synthesize
+            SpeechProvider.SYSTEM -> return
+        }
+        val texts = CloudTtsPrefetch.upcomingSpeechTexts(audioQueue.snapshot(), CLOUD_TTS_PREFETCH_COUNT)
+        if (texts.isEmpty()) return
+        prefetchJob = scope.launch {
+            for (text in texts) {
+                if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+                if (ttsPreferences.settings.value.provider != provider) return@launch
+                try {
+                    synthesize(text)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.w(
+                        "PlaybackService",
+                        "Cloud TTS prefetch failed: ${e.javaClass.simpleName}: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun cancelPrefetch() {
+        prefetchJob?.cancel()
+        prefetchJob = null
     }
 
     // At most one fallback toast per TOAST_THROTTLE_MS, so a dead network does not toast on every message
@@ -541,6 +590,7 @@ class PlaybackService : Service() {
     }
 
     private fun skipMessage() {
+        cancelPrefetch()
         ttsManager.stop()
         releaseMediaPlayer()
         // Paused in the middle of a message: that message was pushed back to the front of the queue
@@ -558,6 +608,7 @@ class PlaybackService : Service() {
     private fun skipChat() {
         // The message being played and the rest of the chat are NOT marked as read
         flushReadCheckpoints()
+        cancelPrefetch()
         ttsManager.stop()
         releaseMediaPlayer()
         currentItem = null
@@ -571,6 +622,7 @@ class PlaybackService : Service() {
         playbackManager.setPaused(true)
         // Invalidate in-flight audio first so late callbacks cannot start the next item
         itemGeneration.incrementAndGet()
+        cancelPrefetch()
 
         val player = mediaPlayer
         if (player != null) {
@@ -644,11 +696,18 @@ class PlaybackService : Service() {
 
         val player = mediaPlayer
         if (voiceNotePaused && player != null) {
-            // Continue the voice note where it was paused
+            // Continue the voice note / synthesized file where it was paused
             voiceNotePaused = false
             try {
                 player.start()
                 refreshNotification()
+                // Resume warming the next cloud-TTS items for the remaining playback time
+                if (currentItem is PlaybackItem.MessageItem &&
+                    (ttsPreferences.settings.value.provider == SpeechProvider.OPENAI ||
+                        ttsPreferences.settings.value.provider == SpeechProvider.EDGE)
+                ) {
+                    scheduleCloudPrefetch(itemGeneration.get())
+                }
             } catch (e: IllegalStateException) {
                 releaseMediaPlayer()
                 processQueue()
@@ -666,6 +725,7 @@ class PlaybackService : Service() {
             unregisterNoisyReceiver()
             isPaused = false
             itemGeneration.incrementAndGet()
+            cancelPrefetch()
             flushReadCheckpoints()
             playbackManager.setPlaying(false)
             updateMediaSessionState()
