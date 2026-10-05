@@ -12,7 +12,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,12 +44,12 @@ fun HomeScreen(
     onPlayAll: (List<Chat>) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val chats by viewModel.unreadChats.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isPlaying by viewModel.isPlaying.collectAsState()
-    val isPaused by viewModel.isPaused.collectAsState()
-    val playStatus by viewModel.playStatus.collectAsState()
-    val selectedMsgs by viewModel.selectedChatMessages.collectAsState()
+    val chats by viewModel.unreadChats.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
+    val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
+    val playStatus by viewModel.playStatus.collectAsStateWithLifecycle()
+    val selectedMsgs by viewModel.selectedChatMessages.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
