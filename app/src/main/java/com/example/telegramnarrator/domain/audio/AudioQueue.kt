@@ -1,11 +1,20 @@
 package com.example.telegramnarrator.domain.audio
 
-import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
-    // silent: every message of the chat is dropped by the channel rules, so the chat isn't announced
-    data class Intro(val chatName: String, val chatId: Long, val silent: Boolean = false) : PlaybackItem()
+    /**
+     * @param silent every message of the chat is dropped by the channel rules, so the chat isn't announced
+     * @param languageHintTexts message texts/captions queued after this intro (for phrase language)
+     * @param languageHintSenders sender names for those messages (fallback after texts)
+     */
+    data class Intro(
+        val chatName: String,
+        val chatId: Long,
+        val silent: Boolean = false,
+        val languageHintTexts: List<String> = emptyList(),
+        val languageHintSenders: List<String> = emptyList()
+    ) : PlaybackItem()
     data class MessageItem(
         val sender: String?,
         val text: String,

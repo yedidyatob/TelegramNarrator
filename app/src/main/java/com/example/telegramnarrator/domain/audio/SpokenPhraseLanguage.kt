@@ -12,7 +12,8 @@ import java.util.Locale
  *  - if none of the texts has letters there is nothing Hebrew to go on, so English is used.
  *
  * Priority used by the playback service:
- *  - chat announcement: the chat title;
+ *  - chat announcement ("New chat"): upcoming message texts / captions first, then senders, then the
+ *    chat title — so a Latin title with Hebrew messages gets Hebrew "שיחה חדשה", not English "New chat";
  *  - message: the message text (or caption), then the sender name, then the chat title;
  *  - end of messages: the title of the last chat that was read.
  */
@@ -27,4 +28,11 @@ object SpokenPhraseLanguage {
         }
         return ENGLISH
     }
+
+    /**
+     * Language for the "New chat: ..." intro: prefer the language of the messages about to be read,
+     * not the device locale and not the chat title alone (titles are often Latin brand names).
+     */
+    fun forIntro(chatTitle: String?, upcomingTexts: List<String?>, upcomingSenders: List<String?> = emptyList()): Locale =
+        choose(*(upcomingTexts + upcomingSenders + listOf(chatTitle)).toTypedArray())
 }
