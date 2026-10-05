@@ -5,7 +5,7 @@ import com.example.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
     // silent: every message of the chat is dropped by the channel rules, so the chat isn't announced
-    data class Intro(val chatName: String, val silent: Boolean = false) : PlaybackItem()
+    data class Intro(val chatName: String, val chatId: Long, val silent: Boolean = false) : PlaybackItem()
     data class MessageItem(
         val sender: String?,
         val text: String,

@@ -2,15 +2,21 @@ package com.example.telegramnarrator.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.telegramnarrator.core.audio.TtsManager
+import com.example.telegramnarrator.data.tts.TtsPreferences
+import com.example.telegramnarrator.domain.audio.PlaybackManager
+import com.example.telegramnarrator.domain.audio.PlaybackSpeedCycle
 import com.example.telegramnarrator.domain.model.Chat
+import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import com.example.telegramnarrator.domain.repository.ChatRepository
-import com.example.telegramnarrator.domain.audio.PlaybackManager
+import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,7 +25,9 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
-    private val playbackManager: PlaybackManager
+    private val playbackManager: PlaybackManager,
+    private val ttsPreferences: TtsPreferences,
+    private val ttsManager: TtsManager
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -31,9 +39,27 @@ class HomeViewModel @Inject constructor(
     val isPlaying: StateFlow<Boolean> = playbackManager.isPlaying
     val isPaused: StateFlow<Boolean> = playbackManager.isPaused
     val playStatus: StateFlow<String?> = playbackManager.currentStatus
+    val selectedChatIds: StateFlow<Set<Long>> = playbackManager.selectedChatIds
+    val currentPlayingChatId: StateFlow<Long?> = playbackManager.currentPlayingChatId
+
+    /** Live speech rate (same preference as the voice-settings slider). */
+    val speechRate: StateFlow<Float> = ttsPreferences.settings
+        .map { it.speechRate }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TtsVoiceLogic.DEFAULT_RATE)
+
+    private val _selectedChat = MutableStateFlow<Chat?>(null)
+    val selectedChat: StateFlow<Chat?> = _selectedChat.asStateFlow()
+
+    private val _selectedChatMessages = MutableStateFlow<List<Message>?>(null)
+    val selectedChatMessages: StateFlow<List<Message>?> = _selectedChatMessages.asStateFlow()
 
     init {
         refresh()
+        viewModelScope.launch {
+            unreadChats.collect { chats ->
+                playbackManager.syncSelectionWithUnreadChats(chats.map { it.id })
+            }
+        }
     }
 
     fun logout() {
@@ -41,8 +67,8 @@ class HomeViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 authRepository.logOut()
-            } catch (e: Exception) {
-                // We'll ignore logout errors for now, as typical error is that client is already closing
+            } catch (_: Exception) {
+                // Typical when the client is already closing
             } finally {
                 _isLoading.value = false
             }
@@ -54,31 +80,73 @@ class HomeViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 chatRepository.loadChats()
-                // Wait a bit to show the spinner if it's too fast
                 kotlinx.coroutines.delay(500)
-            } catch (e: Exception) {
-                // Handle error
+            } catch (_: Exception) {
+                // Surface via empty list / pull-to-refresh ending
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    private val _selectedChatMessages = MutableStateFlow<List<com.example.telegramnarrator.domain.model.Message>?>(null)
-    val selectedChatMessages: StateFlow<List<com.example.telegramnarrator.domain.model.Message>?> = _selectedChatMessages.asStateFlow()
-    
-    fun selectChat(chatId: Long?) {
-        if (chatId == null) {
+    fun selectChat(chat: Chat?) {
+        _selectedChat.value = chat
+        if (chat == null) {
             _selectedChatMessages.value = null
             return
         }
         viewModelScope.launch {
             try {
-                // The chat's unread messages (oldest first) for the scrub UI
-                _selectedChatMessages.value = chatRepository.getChatMessages(chatId)
-            } catch (e: Exception) {
+                // Oldest-first batch from the repository; reverse only for reading convenience in the sheet
+                val oldestFirst = chatRepository.getChatMessages(chat.id)
+                _selectedChatMessages.value = oldestFirst.asReversed()
+            } catch (_: Exception) {
                 _selectedChatMessages.value = emptyList()
             }
         }
+    }
+
+    fun toggleChatSelection(chatId: Long) {
+        playbackManager.toggleSelection(chatId)
+    }
+
+    fun selectAll() {
+        playbackManager.selectAll(unreadChats.value.map { it.id })
+    }
+
+    fun deselectAll() {
+        playbackManager.deselectAll()
+    }
+
+    /** Cycles 1.0 → 1.25 → 1.5 → 2.0 → 1.0 and writes the shared speech-rate preference. */
+    fun cyclePlaybackSpeed() {
+        val next = PlaybackSpeedCycle.next(ttsPreferences.settings.value.speechRate)
+        ttsPreferences.update { TtsVoiceLogic.withRate(it, next) }
+        ttsManager.refreshSettings()
+    }
+
+    /**
+     * Marks the unread messages currently shown in the preview sheet as read in Telegram.
+     * Respects [ChatRepository.markAsReadEnabled] (the Voice-settings switch / debug default).
+     */
+    fun markSelectedChatAsRead() {
+        val chat = _selectedChat.value ?: return
+        val messages = _selectedChatMessages.value.orEmpty()
+        if (messages.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                chatRepository.markChatAsRead(chat.id, messages.map { it.id })
+                selectChat(null)
+                refresh()
+            } catch (_: Exception) {
+                // Leave the sheet open; the user can retry
+            }
+        }
+    }
+
+    /** Chats that Play All / the FAB should narrate (intersection of unread × selected). */
+    fun selectedChatsForPlayback(): List<Chat> {
+        val selected = selectedChatIds.value
+        return unreadChats.value.filter { it.id in selected }
     }
 }

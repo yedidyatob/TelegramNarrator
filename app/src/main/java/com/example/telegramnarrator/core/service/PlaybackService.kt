@@ -30,6 +30,7 @@ import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.SpokenPhraseLanguage
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
+import com.example.telegramnarrator.domain.audio.SenderAnnouncement
 import com.example.telegramnarrator.domain.audio.ReadCheckpointer
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.repository.ChatRepository
@@ -78,11 +79,14 @@ class PlaybackService : Service() {
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
     private var lastSender: String? = null
+    // True until the first spoken message of the current chat (its sender is not announced)
+    private var isFirstMessageInChat = false
     // Title of the chat being read (the language of the spoken phrases can depend on it)
     private var currentChatTitle: String? = null
     private val spokenStrings by lazy { SpokenStrings(this) }
-    // Value of lastSender before currentItem updated it (restored if the item is replayed after a pause)
+    // Values before currentItem updated them (restored if the item is replayed after a pause)
     private var senderBeforeCurrentItem: String? = null
+    private var firstMessageBeforeCurrentItem = false
     
     private lateinit var mediaSession: MediaSessionCompat
 
@@ -210,7 +214,7 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
-                audioQueue.add(PlaybackItem.Intro(title, silent = decisions.all { it.dropped }))
+                audioQueue.add(PlaybackItem.Intro(title, chatId, silent = decisions.all { it.dropped }))
                 decisions.forEach { decision ->
                     val msg = decision.message
                     audioQueue.add(
@@ -268,7 +272,9 @@ class PlaybackService : Service() {
         when (item) {
             is PlaybackItem.Intro -> {
                 lastSender = null
+                isFirstMessageInChat = true
                 currentChatTitle = item.chatName
+                playbackManager.setPlayingChatId(item.chatId)
                 if (item.silent) {
                     processQueue()
                 } else {
@@ -302,14 +308,17 @@ class PlaybackService : Service() {
                     return
                 }
 
-                // Announce the sender only when it changes. This must be decided once, before lastSender
-                // is updated, and is used for both the text and the voice note intro below.
+                // Announce the sender only when it changes, and never on the first spoken message of a
+                // chat (the "New chat: ..." intro already named it). Decided once, before lastSender /
+                // isFirstMessageInChat are updated, and reused for text and voice-note intros.
                 val senderKey = item.sender.orEmpty()
-                val isNewSender = senderKey != lastSender
-                senderBeforeCurrentItem = lastSender
-                lastSender = senderKey
+                val decision = SenderAnnouncement.decide(senderKey, lastSender, isFirstMessageInChat)
+                senderBeforeCurrentItem = decision.previousLastSender
+                firstMessageBeforeCurrentItem = decision.previousIsFirstMessageInChat
+                lastSender = decision.nextLastSender
+                isFirstMessageInChat = decision.nextIsFirstMessageInChat
 
-                val speechText = if (isNewSender) {
+                val speechText = if (decision.announceSender) {
                     spokenStrings.get(phrases, R.string.playback_from, sender, text)
                 } else {
                     text
@@ -317,7 +326,11 @@ class PlaybackService : Service() {
 
                 if (item.voiceNoteFileId != null) {
                     val voiceNoteLabel = spokenStrings.get(phrases, R.string.playback_voice_note)
-                    val introText = if (isNewSender) spokenStrings.get(phrases, R.string.playback_from, sender, voiceNoteLabel) else voiceNoteLabel
+                    val introText = if (decision.announceSender) {
+                        spokenStrings.get(phrases, R.string.playback_from, sender, voiceNoteLabel)
+                    } else {
+                        voiceNoteLabel
+                    }
                     scope.launch {
                         val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
                         // Paused / skipped / stopped while the file was downloading
@@ -426,6 +439,8 @@ class PlaybackService : Service() {
         ttsManager.stop()
         releaseMediaPlayer()
         currentItem = null
+        lastSender = null
+        isFirstMessageInChat = false
         audioQueue.skipToNextChat()
         processQueue()
     }
@@ -455,7 +470,10 @@ class PlaybackService : Service() {
                 audioQueue.addFirst(it)
                 currentItem = null
                 // The message will be announced again from its start, including its sender
-                if (it is PlaybackItem.MessageItem) lastSender = senderBeforeCurrentItem
+                if (it is PlaybackItem.MessageItem) {
+                    lastSender = senderBeforeCurrentItem
+                    isFirstMessageInChat = firstMessageBeforeCurrentItem
+                }
             }
         }
 

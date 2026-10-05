@@ -10,7 +10,7 @@ class AudioQueueTest {
     private fun message(chatId: Long, id: Long) = PlaybackItem.MessageItem("sender", "text $id", id, chatId)
 
     private fun chat(id: Long, vararg messageIds: Long): List<PlaybackItem> =
-        listOf<PlaybackItem>(PlaybackItem.Intro("chat $id")) +
+        listOf<PlaybackItem>(PlaybackItem.Intro("chat $id", id)) +
             messageIds.map { message(id, it) } +
             listOf(PlaybackItem.Silence(1000))
 
@@ -35,7 +35,7 @@ class AudioQueueTest {
         assertEquals(second, queue.peek())
         assertEquals(second, queue.next())
         assertEquals(message(1, 11), queue.next())
-        assertEquals(PlaybackItem.Intro("chat 1"), first)
+        assertEquals(PlaybackItem.Intro("chat 1", 1L), first)
     }
 
     @Test
@@ -48,7 +48,7 @@ class AudioQueueTest {
         queue.next() // Intro of chat 1 is playing
         queue.skipToNextChat()
 
-        assertEquals(PlaybackItem.Intro("chat 2"), queue.next())
+        assertEquals(PlaybackItem.Intro("chat 2", 2L), queue.next())
         assertEquals(message(2, 20), queue.next())
         assertEquals(PlaybackItem.Silence(1000), queue.next())
         assertEquals(PlaybackItem.Outro, queue.next())
@@ -74,7 +74,8 @@ class AudioQueueTest {
     @Test
     fun `dropped and silent flags default to false`() {
         assertEquals(false, message(1, 2).dropped)
-        assertEquals(false, PlaybackItem.Intro("chat").silent)
+        assertEquals(false, PlaybackItem.Intro("chat", 1L).silent)
+        assertEquals(1L, PlaybackItem.Intro("chat", 1L).chatId)
         assertEquals(true, PlaybackItem.MessageItem("s", "", 2, 1, dropped = true).dropped)
     }
 }

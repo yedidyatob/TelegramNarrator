@@ -4,6 +4,7 @@ import com.example.telegramnarrator.data.tdlib.TdLibClient
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.model.MessageContentType
+import com.example.telegramnarrator.domain.home.UnreadChatFilter
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import com.example.telegramnarrator.BuildConfig
 import com.example.telegramnarrator.data.tts.TtsPreferences
@@ -93,8 +94,14 @@ class TdLibChatRepository @Inject constructor(
     }
 
     private fun refreshUnreadList() {
+        // Muted = Telegram mute (notificationSettings.muteFor != 0); silenced spam channels stay out
         val newList = chatCache.values
-            .filter { it.unreadCount > 0 }
+            .filter {
+                UnreadChatFilter.shouldIncludeInUnreadList(
+                    unreadCount = it.unreadCount,
+                    muteFor = it.notificationSettings?.muteFor
+                )
+            }
             .map { mapChat(it) }
             .sortedByDescending { it.order }
         _unreadChats.value = newList
