@@ -90,4 +90,18 @@
     <string name="settings_mark_read">Mark messages as read in Telegram</string>
     <string name="settings_mark_read_desc">On by default. Messages are marked as read in Telegram only after they were fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
     <string name="settings_voice_loading">Loading voices…</string>
+
+    <!-- Optional OpenAI TTS (Bring-Your-Own-Key) -->
+    <string name="settings_openai_title">OpenAI text-to-speech (optional)</string>
+    <string name="settings_openai_desc">Uses your own OpenAI API key. System TTS stays the default until you enable this. Audio is cached on device so the same message is not billed twice.</string>
+    <string name="settings_openai_enable">Use OpenAI TTS</string>
+    <string name="settings_openai_api_key">OpenAI API key</string>
+    <string name="settings_openai_api_key_hint">sk-…</string>
+    <string name="settings_openai_save_key">Save key</string>
+    <string name="settings_openai_clear_key">Clear key</string>
+    <string name="settings_openai_privacy">Your key leaves this device only to api.openai.com when synthesizing speech. It is stored encrypted on device and never logged.</string>
+    <string name="settings_openai_model">OpenAI model</string>
+    <string name="settings_openai_model_tts1">tts-1 (default, cheaper)</string>
+    <string name="settings_openai_model_tts1_hd">tts-1-hd (higher quality)</string>
+    <string name="settings_openai_voice">OpenAI voice</string>
 </resources>

@@ -18,6 +18,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
+- Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device; system TTS remains default) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
 The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
@@ -44,6 +45,15 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew lintDebug              # Android lint (existing findings are in app/lint-baseline.xml)
    ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
    ```
+
+### Optional: OpenAI TTS (Bring-Your-Own-Key)
+
+System TTS is the default. No OpenAI key is required or shipped in the repo.
+
+1. Create an API key at <https://platform.openai.com/api-keys> (you pay OpenAI directly).
+2. In the app: **Voice settings** → enable **Use OpenAI TTS** → paste the key → choose model (`tts-1` cheaper / `tts-1-hd`) and voice.
+3. Pricing: <https://openai.com/api/pricing/> (tts-1 ≈ $15 per 1M characters, tts-1-hd ≈ $30 per 1M).
+4. **Warning:** when synthesizing, the key and cleaned message text leave the device to `api.openai.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache so they are not billed again.
 
 
 ## Install on phone without USB
@@ -91,12 +101,17 @@ database, no use-case layer yet, no dedicated Player screen). The open polish wo
 
 ## Privacy & security
 
-- Everything runs on the device: messages are read through TDLib and spoken by the local TTS engine; the app has
+- By default everything runs on the device: messages are read through TDLib and spoken by the local TTS engine; the app has
   no server and sends no analytics. Only Telegram itself is contacted.
+- **Optional OpenAI TTS**: if you enable it and paste your own API key, cleaned message text is sent to
+  `api.openai.com` to synthesize speech. The key is stored in EncryptedSharedPreferences on device and is never
+  logged or shipped in the repo. Get a key at <https://platform.openai.com/api-keys>. Pricing:
+  <https://openai.com/api/pricing/> (tts-1 ≈ $15/1M characters, tts-1-hd ≈ $30/1M). Synthesized audio is cached
+  on disk by hash of text+voice+model so the same message is not billed twice.
 - The Telegram session and message cache live in the app's private storage (`filesDir/tdlib`). Android backup is
   disabled, so the session is never uploaded or transferred; after a reinstall you log in again.
 - The TDLib database is **not** encrypted at rest yet (tracked in the roadmap).
-- Message text is never written to the log; debug logging is stripped from release builds.
+- Message text is never written to the log; debug logging is stripped from release builds. The OpenAI API key is never logged.
 
 ## Publishing status
 

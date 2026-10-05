@@ -5,7 +5,9 @@ import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.ViewModel
 import com.example.telegramnarrator.BuildConfig
 import com.example.telegramnarrator.core.audio.TtsManager
+import com.example.telegramnarrator.data.openai.OpenAiKeyStore
 import com.example.telegramnarrator.data.tts.TtsPreferences
+import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.audio.PlaybackManager
 import com.example.telegramnarrator.domain.tts.EngineOption
 import com.example.telegramnarrator.domain.tts.TtsSettings
@@ -39,13 +41,22 @@ data class TtsSettingsUiState(
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     val groups: List<VoiceGroup> = emptyList(),
     /** Mark played messages as read in Telegram. */
-    val markAsRead: Boolean = true
+    val markAsRead: Boolean = true,
+    /** Bring-Your-Own-Key OpenAI TTS (optional; system TTS remains default). */
+    val openAiEnabled: Boolean = false,
+    val openAiModel: String = OpenAiTts.DEFAULT_MODEL,
+    val openAiVoice: String = OpenAiTts.DEFAULT_VOICE,
+    /** Whether a key is stored (never expose the key itself in UI state). */
+    val openAiHasKey: Boolean = false,
+    /** Masked preview for the key field (empty when none). */
+    val openAiKeyMasked: String = ""
 )
 
 @HiltViewModel
 class TtsSettingsViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val preferences: TtsPreferences,
+    private val openAiKeyStore: OpenAiKeyStore,
     playbackManager: PlaybackManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -60,7 +71,16 @@ class TtsSettingsViewModel @Inject constructor(
     fun reload() {
         val settings = preferences.settings.value
         if (!ttsManager.isInitialized.value) {
-            _state.value = TtsSettingsUiState(loading = true, speechRate = settings.speechRate, markAsRead = markAsReadNow())
+            _state.value = TtsSettingsUiState(
+                loading = true,
+                speechRate = settings.speechRate,
+                markAsRead = markAsReadNow(),
+                openAiEnabled = settings.openAi.enabled,
+                openAiModel = settings.openAi.model,
+                openAiVoice = settings.openAi.voice,
+                openAiHasKey = openAiKeyStore.hasApiKey(),
+                openAiKeyMasked = maskKey(openAiKeyStore.getApiKey())
+            )
             return
         }
         val deviceLanguages = ConfigurationCompat.getLocales(context.resources.configuration).let { list ->
@@ -75,6 +95,11 @@ class TtsSettingsViewModel @Inject constructor(
             selectedEngine = settings.enginePackage,
             speechRate = settings.speechRate,
             markAsRead = markAsReadNow(),
+            openAiEnabled = settings.openAi.enabled,
+            openAiModel = settings.openAi.model,
+            openAiVoice = settings.openAi.voice,
+            openAiHasKey = openAiKeyStore.hasApiKey(),
+            openAiKeyMasked = maskKey(openAiKeyStore.getApiKey()),
             groups = byLanguage.map { (language, voices) ->
                 VoiceGroup(
                     language = language,
@@ -85,6 +110,43 @@ class TtsSettingsViewModel @Inject constructor(
                 )
             }
         )
+    }
+
+    private fun maskKey(key: String?): String {
+        if (key.isNullOrBlank()) return ""
+        if (key.length <= 8) return "••••"
+        return key.take(3) + "…" + key.takeLast(4)
+    }
+
+    fun setOpenAiEnabled(enabled: Boolean) {
+        preferences.update { it.copy(openAi = it.openAi.copy(enabled = enabled)) }
+        _state.value = _state.value.copy(openAiEnabled = enabled)
+    }
+
+    fun setOpenAiModel(model: String) {
+        val normalized = OpenAiTts.normalizeModel(model)
+        preferences.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
+        _state.value = _state.value.copy(openAiModel = normalized)
+    }
+
+    fun setOpenAiVoice(voice: String) {
+        val normalized = OpenAiTts.normalizeVoice(voice)
+        preferences.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
+        _state.value = _state.value.copy(openAiVoice = normalized)
+    }
+
+    /** Saves the pasted API key (encrypted). Pass blank to clear. Never log [key]. */
+    fun setOpenAiApiKey(key: String) {
+        openAiKeyStore.setApiKey(key)
+        _state.value = _state.value.copy(
+            openAiHasKey = openAiKeyStore.hasApiKey(),
+            openAiKeyMasked = maskKey(openAiKeyStore.getApiKey())
+        )
+    }
+
+    fun clearOpenAiApiKey() {
+        openAiKeyStore.clear()
+        _state.value = _state.value.copy(openAiHasKey = false, openAiKeyMasked = "")
     }
 
     /** Whether the engine finished (re)starting; the sheet calls [reload] when this becomes true. */
