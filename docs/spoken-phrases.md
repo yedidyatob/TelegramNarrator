@@ -1,23 +1,16 @@
-# Language of the spoken phrases
+# Playback cues (spoken and sonic)
 
-The app says a few phrases of its own around the messages: "New chat: X", "Message from X: ...",
-"Voice note", and "End of messages." These are **not** chosen by the device language and
-the app UI stays English. The language is decided per utterance from the content
-(`SpokenPhraseLanguage`, based on `LanguageDetector`):
+Most chrome around messages is **not** spoken anymore. The queue uses short language-neutral dings
+and silent skips instead of TTS announcements.
 
-| Phrase | Decided by (first text that has letters wins) |
-|--------|-----------------------------------------------|
-| New chat | upcoming message texts/captions, then sender names, then chat title |
-| Message from / Voice note | message text (or caption), then sender name, then chat title |
-| End of messages | title of the last chat read |
+| Cue | Behavior |
+|-----|----------|
+| Chat boundary | Short ding (`R.raw.chat_boundary_ding`). Silent intros (every message dropped by channel rules) skip the ding. Notification still shows the chat title. |
+| Sender ("Message from X") | **Removed.** Message body is spoken as-is; the notification can still show the sender. |
+| Voice note | **No** spoken "Voice note" label. If a downloadable file is available, MediaPlayer plays it in the queue. If not, skip silently (still mark read), like a caption-less photo. |
+| End of messages | Distinct ding (`R.raw.end_of_messages_ding`) — not speech, not the chat-boundary tone — then stop. |
+| Media-only / symbol-only | Photos, videos, stickers, … with no caption, and rows that are only symbols (`####`, `****`, `———`), are skipped silently but still marked read with the next spoken text (`ReadCheckpointer`). |
 
-Hebrew text -> the Hebrew phrases (`values-he/strings.xml`); anything else (English, Russian, Arabic) or no
-letters at all -> the English phrases (`values/strings.xml`). Only spoken strings have a Hebrew translation.
-The text itself is then spoken with the TTS voice for its own language (per-utterance detection in `TtsManager`).
+Message **body** language is still detected per utterance for TTS voice selection (`LanguageDetector` in `TtsManager`). The UI stays English; a few UI/link strings have Hebrew overrides in `values-he/` when the device locale is Hebrew (e.g. link replacement "Link" / "קישור").
 
-## Media-only messages
-
-Photos, videos, stickers, GIFs, documents, and similar items **with no caption** are not spoken as
-"Photo" / "Video" placeholders. Playback skips them silently and still marks their message ids as read
-when it passes them in the queue (batched with the next spoken text via `ReadCheckpointer`). Captioned
-media are spoken normally (the caption). Voice notes are still announced and played as audio.
+See also [VoiceNotePlayback](../app/src/main/java/com/example/telegramnarrator/domain/audio/VoiceNotePlayback.kt) and [MessageSpeechBody](../app/src/main/java/com/example/telegramnarrator/domain/audio/MessageSpeechBody.kt).

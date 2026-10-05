@@ -1,6 +1,7 @@
 package com.example.telegramnarrator.domain.audio
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LanguageDetectorTest {
@@ -43,5 +44,15 @@ class LanguageDetectorTest {
     @Test
     fun `default is hebrew`() {
         assertEquals("he", LanguageDetector.DEFAULT.language)
+    }
+
+    @Test
+    fun `detectOrNull returns null without letters and agrees with detect otherwise`() {
+        assertNull(LanguageDetector.detectOrNull(null))
+        assertNull(LanguageDetector.detectOrNull(""))
+        assertNull(LanguageDetector.detectOrNull("123 😀 !!"))
+        assertEquals(LanguageDetector.DEFAULT, LanguageDetector.detect("123 😀"))
+        assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detectOrNull("hello"))
+        assertEquals(LanguageDetector.HEBREW, LanguageDetector.detectOrNull("שלום"))
     }
 }
