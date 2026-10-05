@@ -29,7 +29,7 @@ object MessageCleaner {
 
     /**
      * Telegram-style hashtags: `#foo_bar_baz`, `#שלום_עולם`.
-     * Leading `#` is stripped (TTS should not say "hash" / "number sign"); underscores become spaces
+     * Leading `#` is kept (spoken as "hash" / "number sign"); underscores become spaces
      * so the engine reads words instead of "underscore". Letters and digits of any script are kept.
      */
     private val HASHTAG = Regex("#([${WORD}_]+)")
@@ -60,9 +60,11 @@ object MessageCleaner {
         return cleaned.trim()
     }
 
-    /** `#foo_bar` → `foo bar`; `#tag` → `tag`. Non-hashtag snake_case is unchanged. */
+    /** `#foo_bar` → `# foo bar`; `#tag` → `# tag`. Non-hashtag snake_case is unchanged. */
     internal fun expandHashtags(text: String): String =
-        HASHTAG.replace(text) { match -> match.groupValues[1].replace('_', ' ') }
+        HASHTAG.replace(text) { match ->
+            "# " + match.groupValues[1].replace('_', ' ')
+        }
 
     private fun stripMarkdown(text: String): String {
         var result = text
