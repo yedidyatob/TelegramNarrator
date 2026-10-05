@@ -53,6 +53,14 @@
     <string name="playback_content_audio">Audio</string>
     <string name="playback_content_document">Document</string>
     <string name="playback_unknown_sender">Unknown</string>
+    <string name="notification_channel_playback">Playback</string>
+    <string name="notification_chat">Chat: %1$s</string>
+    <string name="notification_from">From %1$s</string>
+    <string name="notification_playing">Playing…</string>
+    <string name="permission_notifications_title">Show playback controls?</string>
+    <string name="permission_notifications_message">Allow notifications so you can pause, skip and stop the reading from the notification and the lock screen. Reading works without it, but you will not see the controls.</string>
+    <string name="permission_notifications_allow">Allow</string>
+    <string name="permission_notifications_skip">Not now</string>
     <string name="playback_pause">Pause</string>
     <string name="playback_resume">Resume</string>
     <string name="playback_paused">Paused</string>
