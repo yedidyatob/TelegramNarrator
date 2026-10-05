@@ -31,9 +31,18 @@ class HomeViewModel @Inject constructor(
     val isPlaying: StateFlow<Boolean> = playbackManager.isPlaying
     val isPaused: StateFlow<Boolean> = playbackManager.isPaused
     val playStatus: StateFlow<String?> = playbackManager.currentStatus
+    val selectedChatIds: StateFlow<Set<Long>> = playbackManager.selectedChatIds
+    val currentPlayingChatId: StateFlow<Long?> = playbackManager.currentPlayingChatId
+    val shouldMarkAsRead: StateFlow<Boolean> = playbackManager.shouldMarkAsRead
+    val playbackSpeed: StateFlow<Float> = playbackManager.playbackSpeed
 
     init {
         refresh()
+        viewModelScope.launch {
+            unreadChats.collect { chats ->
+                playbackManager.initializeSelection(chats.map { it.id })
+            }
+        }
     }
 
     fun logout() {
@@ -64,21 +73,61 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private val _selectedChat = MutableStateFlow<Chat?>(null)
+    val selectedChat: StateFlow<Chat?> = _selectedChat.asStateFlow()
+
     private val _selectedChatMessages = MutableStateFlow<List<com.example.telegramnarrator.domain.model.Message>?>(null)
     val selectedChatMessages: StateFlow<List<com.example.telegramnarrator.domain.model.Message>?> = _selectedChatMessages.asStateFlow()
     
-    fun selectChat(chatId: Long?) {
-        if (chatId == null) {
+    fun selectChat(chat: Chat?) {
+        _selectedChat.value = chat
+        if (chat == null) {
             _selectedChatMessages.value = null
             return
         }
         viewModelScope.launch {
             try {
-                // Fetch up to 20 unread messages for the scrub UI
-                val msgs = chatRepository.getChatMessages(chatId, 20)
+                val limit = minOf(chat.unreadCount, 50).coerceAtLeast(1)
+                val msgs = chatRepository.getChatMessages(chat.id, limit)
                 _selectedChatMessages.value = msgs.reversed()
             } catch (e: Exception) {
                 _selectedChatMessages.value = emptyList()
+            }
+        }
+    }
+
+    fun toggleChatSelection(chatId: Long) {
+        playbackManager.toggleSelection(chatId)
+    }
+    
+    fun selectAll() {
+        playbackManager.selectAll(unreadChats.value.map { it.id })
+    }
+    
+    fun deselectAll() {
+        playbackManager.deselectAll()
+    }
+
+    fun setShouldMarkAsRead(enabled: Boolean) {
+        playbackManager.setShouldMarkAsRead(enabled)
+    }
+
+    fun cyclePlaybackSpeed() {
+        val nextMode = when (playbackSpeed.value) {
+            1.0f -> 1.25f
+            1.25f -> 1.5f
+            1.5f -> 2.0f
+            else -> 1.0f
+        }
+        playbackManager.setPlaybackSpeed(nextMode)
+    }
+
+    fun markChatAsRead(chatId: Long) {
+        viewModelScope.launch {
+            try {
+                chatRepository.markChatAsRead(chatId)
+            } catch (e: Exception) {
+                // Handle error
             }
         }
     }

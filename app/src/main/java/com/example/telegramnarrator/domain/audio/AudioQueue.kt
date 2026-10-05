@@ -3,7 +3,7 @@ package com.example.telegramnarrator.domain.audio
 import com.example.telegramnarrator.domain.model.Message
 
 sealed class PlaybackItem {
-    data class Intro(val chatName: String) : PlaybackItem()
+    data class Intro(val chatName: String, val chatId: Long) : PlaybackItem()
     data class MessageItem(val sender: String?, val text: String, val messageId: Long, val voiceNoteFileId: Int? = null) : PlaybackItem()
     data class Silence(val durationMs: Long) : PlaybackItem()
     data class MarkAsRead(val chatId: Long) : PlaybackItem()

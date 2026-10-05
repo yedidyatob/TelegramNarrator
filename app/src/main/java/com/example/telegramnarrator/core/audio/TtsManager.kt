@@ -24,7 +24,7 @@ class TtsManager @Inject constructor(
     init {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("he") // Default to Hebrew as requested, or Locale.getDefault()
+                tts?.language = Locale.getDefault() // Uses system language for narration
                 // tts?.language = Locale.ENGLISH // Fallback
                 
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -61,6 +61,10 @@ class TtsManager @Inject constructor(
         if (result == TextToSpeech.ERROR) {
             onDone()
         }
+    }
+
+    fun setSpeechRate(rate: Float) {
+        tts?.setSpeechRate(rate)
     }
 
     fun stop() {

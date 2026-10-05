@@ -88,6 +88,7 @@ class TdLibChatRepository @Inject constructor(
     private fun refreshUnreadList() {
         val newList = chatCache.values
             .filter { it.unreadCount > 0 }
+            .filter { it.notificationSettings?.muteFor == 0 } // Skip muted spam channels!
             .map { mapChat(it) }
             .sortedByDescending { it.order }
         _unreadChats.value = newList
@@ -175,7 +176,13 @@ class TdLibChatRepository @Inject constructor(
         }
         Log.d("ChatRepository", "Marking chat as read: $chatId")
         try {
-            client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, longArrayOf(), null, true))
+            val tdChat = chatCache[chatId]
+            val lastMsgId = tdChat?.lastMessage?.id
+            if (lastMsgId != null) {
+                client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, longArrayOf(lastMsgId), null, true))
+            } else {
+                client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, longArrayOf(), null, true))
+            }
         } catch (e: Exception) {
             Log.e("ChatRepository", "Failed to mark chat as read: $chatId", e)
         }
