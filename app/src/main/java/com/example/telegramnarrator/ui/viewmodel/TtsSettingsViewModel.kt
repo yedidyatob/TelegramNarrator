@@ -2,12 +2,21 @@ package com.example.telegramnarrator.ui.viewmodel
 
 import android.content.Context
 import androidx.core.os.ConfigurationCompat
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.telegramnarrator.BuildConfig
+import com.example.telegramnarrator.R
 import com.example.telegramnarrator.core.audio.TtsManager
+import com.example.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import com.example.telegramnarrator.data.openai.OpenAiKeyStore
 import com.example.telegramnarrator.data.tts.TtsPreferences
+import com.example.telegramnarrator.domain.edge.EdgeTts
 import com.example.telegramnarrator.domain.openai.OpenAiTts
+import com.example.telegramnarrator.domain.tts.SpeechProvider
+import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import com.example.telegramnarrator.domain.audio.PlaybackManager
 import com.example.telegramnarrator.domain.tts.EngineOption
 import com.example.telegramnarrator.domain.tts.TtsSettings
@@ -15,9 +24,12 @@ import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import com.example.telegramnarrator.domain.tts.VoiceOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 
@@ -42,21 +54,30 @@ data class TtsSettingsUiState(
     val groups: List<VoiceGroup> = emptyList(),
     /** Mark played messages as read in Telegram. */
     val markAsRead: Boolean = true,
+    /** Engine that speaks messages (system TTS is the default). */
+    val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** Bring-Your-Own-Key OpenAI TTS (optional; system TTS remains default). */
-    val openAiEnabled: Boolean = false,
     val openAiModel: String = OpenAiTts.DEFAULT_MODEL,
     val openAiVoice: String = OpenAiTts.DEFAULT_VOICE,
     /** Whether a key is stored (never expose the key itself in UI state). */
     val openAiHasKey: Boolean = false,
     /** Masked preview for the key field (empty when none). */
-    val openAiKeyMasked: String = ""
-)
+    val openAiKeyMasked: String = "",
+    /** Experimental Edge TTS voice short name. */
+    val edgeVoice: String = EdgeTts.DEFAULT_VOICE,
+    /** True while the Edge "Test voice" sample is being fetched. */
+    val edgeTesting: Boolean = false
+) {
+    val openAiEnabled: Boolean get() = provider == SpeechProvider.OPENAI
+    val edgeEnabled: Boolean get() = provider == SpeechProvider.EDGE
+}
 
 @HiltViewModel
 class TtsSettingsViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val preferences: TtsPreferences,
     private val openAiKeyStore: OpenAiKeyStore,
+    private val edgeSpeech: EdgeSpeechSynthesizer,
     playbackManager: PlaybackManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -75,7 +96,8 @@ class TtsSettingsViewModel @Inject constructor(
                 loading = true,
                 speechRate = settings.speechRate,
                 markAsRead = markAsReadNow(),
-                openAiEnabled = settings.openAi.enabled,
+                provider = settings.provider,
+                edgeVoice = settings.edge.voice,
                 openAiModel = settings.openAi.model,
                 openAiVoice = settings.openAi.voice,
                 openAiHasKey = openAiKeyStore.hasApiKey(),
@@ -95,7 +117,8 @@ class TtsSettingsViewModel @Inject constructor(
             selectedEngine = settings.enginePackage,
             speechRate = settings.speechRate,
             markAsRead = markAsReadNow(),
-            openAiEnabled = settings.openAi.enabled,
+            provider = settings.provider,
+            edgeVoice = settings.edge.voice,
             openAiModel = settings.openAi.model,
             openAiVoice = settings.openAi.voice,
             openAiHasKey = openAiKeyStore.hasApiKey(),
@@ -118,9 +141,78 @@ class TtsSettingsViewModel @Inject constructor(
         return key.take(3) + "…" + key.takeLast(4)
     }
 
-    fun setOpenAiEnabled(enabled: Boolean) {
-        preferences.update { it.copy(openAi = it.openAi.copy(enabled = enabled)) }
-        _state.value = _state.value.copy(openAiEnabled = enabled)
+    /** System (default) / OpenAI (BYOK) / Edge (experimental). */
+    fun setProvider(provider: SpeechProvider) {
+        preferences.update { it.copy(provider = provider) }
+        _state.value = _state.value.copy(provider = provider)
+    }
+
+    /** Selects an Edge voice; returns false (and changes nothing) when [voice] is not a valid Edge short name. */
+    fun setEdgeVoice(voice: String): Boolean {
+        if (!EdgeTts.isValidVoiceName(voice)) return false
+        val normalized = EdgeTts.normalizeVoice(voice)
+        preferences.update { it.copy(edge = it.edge.copy(voice = normalized)) }
+        _state.value = _state.value.copy(edgeVoice = normalized)
+        return true
+    }
+
+    private var testPlayer: MediaPlayer? = null
+
+    /** Fetches (or reuses the cached) Edge sample for the selected voice and plays it. */
+    fun testEdgeVoice() {
+        if (isPlaying.value || _state.value.edgeTesting) return
+        val voice = _state.value.edgeVoice
+        val language = if (voice.startsWith("he-")) "he" else Locale.forLanguageTag(voice).language
+        _state.value = _state.value.copy(edgeTesting = true)
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                edgeSpeech.synthesizeForTest(TtsVoiceLogic.testSentence(language), voice)
+            }
+            _state.value = _state.value.copy(edgeTesting = false)
+            when (outcome) {
+                is SpeechSynthesisOutcome.Ready -> playTestFile(outcome)
+                is SpeechSynthesisOutcome.Fallback ->
+                    Toast.makeText(context, context.getString(R.string.settings_edge_test_failed), Toast.LENGTH_LONG).show()
+                SpeechSynthesisOutcome.UseSystem -> Unit
+            }
+        }
+    }
+
+    private fun playTestFile(outcome: SpeechSynthesisOutcome.Ready) {
+        stopTestPlayer()
+        val player = MediaPlayer()
+        try {
+            player.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            player.setDataSource(outcome.file.absolutePath)
+            player.setOnCompletionListener { stopTestPlayer() }
+            player.prepare()
+            testPlayer = player
+            player.start()
+            if (outcome.playbackSpeed != 1f) {
+                runCatching { player.playbackParams = player.playbackParams.setSpeed(outcome.playbackSpeed) }
+            }
+        } catch (e: Exception) {
+            player.release()
+            edgeSpeech.discard(outcome.file)
+            Toast.makeText(context, context.getString(R.string.settings_edge_test_failed), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun stopTestPlayer() {
+        val player = testPlayer ?: return
+        testPlayer = null
+        runCatching { player.stop() }
+        player.release()
+    }
+
+    override fun onCleared() {
+        stopTestPlayer()
+        super.onCleared()
     }
 
     fun setOpenAiModel(model: String) {
@@ -187,6 +279,7 @@ class TtsSettingsViewModel @Inject constructor(
 
     /** Stops a running test sentence (not the reading itself). */
     fun stopTest() {
+        stopTestPlayer()
         if (!isPlaying.value) ttsManager.stop()
     }
 }

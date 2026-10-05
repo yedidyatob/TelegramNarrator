@@ -47,6 +47,9 @@ class AudioQueue {
     }
     
     fun peek(): PlaybackItem? = queue.firstOrNull()
+
+    /** Remaining items in order, without removing them (used to prefetch upcoming cloud TTS). */
+    fun snapshot(): List<PlaybackItem> = queue.toList()
     
     fun clear() {
         queue.clear()

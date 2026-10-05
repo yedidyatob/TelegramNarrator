@@ -24,11 +24,16 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.domain.audio.MessageSpeechBody
 import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
+import com.example.telegramnarrator.data.tts.TtsPreferences
+import com.example.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import com.example.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
+import com.example.telegramnarrator.domain.tts.SpeechProvider
+import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import com.example.telegramnarrator.domain.audio.AudioQueue
+import com.example.telegramnarrator.domain.audio.CloudTtsPrefetch
 import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
@@ -59,6 +64,8 @@ class PlaybackService : Service() {
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var channelRules: ChannelRulesRepository
     @Inject lateinit var openAiSpeech: OpenAiSpeechSynthesizer
+    @Inject lateinit var edgeSpeech: EdgeSpeechSynthesizer
+    @Inject lateinit var ttsPreferences: TtsPreferences
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val job = SupervisorJob()
@@ -81,6 +88,8 @@ class PlaybackService : Service() {
     // Bumped whenever the item being processed is superseded (next item, pause, skip, stop), so that
     // late callbacks / coroutines of the old item know they must not start any audio
     private val itemGeneration = AtomicInteger(0)
+    // Warms the next CLOUD_TTS_PREFETCH_COUNT cloud-TTS messages into the disk cache while current audio plays
+    private var prefetchJob: Job? = null
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
     
@@ -111,6 +120,9 @@ class PlaybackService : Service() {
         
         const val CHANNEL_ID = "PlaybackChannel"
         const val NOTIFICATION_ID = 1
+        private const val TOAST_THROTTLE_MS = 30_000L
+        /** Upcoming speakable messages to synthesize into the disk cache while the current cloud TTS item plays. */
+        const val CLOUD_TTS_PREFETCH_COUNT = CloudTtsPrefetch.COUNT
     }
 
     override fun onCreate() {
@@ -245,6 +257,7 @@ class PlaybackService : Service() {
             // and let the next loop run, or force processQueue()
             // (the interrupted message is not marked as read)
             flushReadCheckpoints()
+            cancelPrefetch()
             ttsManager.stop()
             releaseMediaPlayer()
             currentItem = null
@@ -331,27 +344,42 @@ class PlaybackService : Service() {
     }
 
     // Speaks a message; it counts as played (and gets marked as read) only if the speech finished.
-    // Optional OpenAI TTS: synthesize (cached) MP3 and play via MediaPlayer; fall back to system TTS.
+    // Network engines (OpenAI BYOK / experimental Edge) synthesize a cached MP3 that is played via the
+    // MediaPlayer queue path; any failure shows a toast and falls back to system TTS.
     private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
-        if (!openAiSpeech.isOpenAiEnabled()) {
+        val synthesize: ((String) -> SpeechSynthesisOutcome)? = when (ttsPreferences.settings.value.provider) {
+            SpeechProvider.SYSTEM -> null
+            SpeechProvider.OPENAI -> openAiSpeech::synthesize
+            SpeechProvider.EDGE -> edgeSpeech::synthesize
+        }
+        if (synthesize == null) {
             speakWithSystemTts(item, speechText)
             return
         }
         val generation = itemGeneration.get()
-        // OpenAI enabled: synthesize (or cache hit), toast + system TTS on missing key / errors.
         scope.launch {
-            when (val outcome = openAiSpeech.synthesize(speechText)) {
-                is OpenAiSpeechSynthesizer.Outcome.Ready -> {
-                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
-                    playAudioFile(outcome.file.absolutePath, generation, item)
+            val outcome = synthesize(speechText)
+            // Paused / skipped / stopped while the audio was being fetched
+            if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+            when (outcome) {
+                is SpeechSynthesisOutcome.Ready -> {
+                    // Warm the next few messages into the disk cache while this one plays
+                    scheduleCloudPrefetch(generation)
+                    playAudioFile(
+                        outcome.file.absolutePath, generation, item,
+                        speed = outcome.playbackSpeed,
+                        onPlaybackError = {
+                            // Corrupt / unplayable synthesized file: drop it and read the message with system TTS
+                            openAiSpeech.discard(outcome.file)
+                            edgeSpeech.discard(outcome.file)
+                            showFallbackToast(getString(R.string.tts_fallback_unplayable))
+                            speakWithSystemTts(item, speechText)
+                        }
+                    )
                 }
-                OpenAiSpeechSynthesizer.Outcome.UseSystem -> {
-                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
-                    speakWithSystemTts(item, speechText)
-                }
-                is OpenAiSpeechSynthesizer.Outcome.Fallback -> {
-                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
-                    showToast(outcome.reason)
+                SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(item, speechText)
+                is SpeechSynthesisOutcome.Fallback -> {
+                    showFallbackToast(outcome.reason)
                     speakWithSystemTts(item, speechText)
                 }
             }
@@ -365,14 +393,82 @@ class PlaybackService : Service() {
         }
     }
 
+    /**
+     * While cloud TTS audio plays, synthesize the next [CLOUD_TTS_PREFETCH_COUNT] speakable queue items
+     * into the existing disk cache (cache hits are cheap). Outcomes are ignored — no toast on prefetch
+     * failure; playback still falls back per message when its turn comes. Cancelled on skip/stop/pause
+     * or when [generation] is superseded / the engine is no longer a cloud provider.
+     */
+    private fun scheduleCloudPrefetch(generation: Int) {
+        cancelPrefetch()
+        val provider = ttsPreferences.settings.value.provider
+        if (provider != SpeechProvider.OPENAI && provider != SpeechProvider.EDGE) return
+        val synthesize: (String) -> SpeechSynthesisOutcome = when (provider) {
+            SpeechProvider.OPENAI -> openAiSpeech::synthesize
+            SpeechProvider.EDGE -> edgeSpeech::synthesize
+            SpeechProvider.SYSTEM -> return
+        }
+        val texts = CloudTtsPrefetch.upcomingSpeechTexts(audioQueue.snapshot(), CLOUD_TTS_PREFETCH_COUNT)
+        if (texts.isEmpty()) return
+        prefetchJob = scope.launch {
+            for (text in texts) {
+                if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+                if (ttsPreferences.settings.value.provider != provider) return@launch
+                try {
+                    synthesize(text)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.w(
+                        "PlaybackService",
+                        "Cloud TTS prefetch failed: ${e.javaClass.simpleName}: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun cancelPrefetch() {
+        prefetchJob?.cancel()
+        prefetchJob = null
+    }
+
+    // At most one fallback toast per TOAST_THROTTLE_MS, so a dead network does not toast on every message
+    @Volatile private var lastFallbackToastAt = 0L
+
+    private fun showFallbackToast(message: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (lastFallbackToastAt != 0L && now - lastFallbackToastAt < TOAST_THROTTLE_MS) return
+        lastFallbackToastAt = now
+        showToast(message)
+    }
+
     private fun showToast(message: String) {
         mainHandler.post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun playAudioFile(path: String, generation: Int, item: PlaybackItem.MessageItem) {
+    /**
+     * Plays [path] (a voice note or a synthesized message) through the [mediaPlayer] slot. [speed] != 1 sets
+     * the MediaPlayer playback speed (used for Edge TTS, whose audio is cached at normal speed).
+     * [onPlaybackError] replaces the default "skip silently but mark read" handling of unplayable files.
+     */
+    private fun playAudioFile(
+        path: String,
+        generation: Int,
+        item: PlaybackItem.MessageItem,
+        speed: Float = 1f,
+        onPlaybackError: (() -> Unit)? = null
+    ) {
         if (!isPlaying || isPaused || generation != itemGeneration.get()) return
+        val handleError = {
+            if (onPlaybackError != null) onPlaybackError()
+            else {
+                onMessageFullyPlayed(item)
+                processQueue()
+            }
+        }
         val player = android.media.MediaPlayer()
         try {
             player.apply {
@@ -394,14 +490,12 @@ class PlaybackService : Service() {
                     mp.release()
                     if (mediaPlayer === mp) mediaPlayer = null
                     // Unplayable voice note: skip silently but still mark read (like a photo)
-                    if (generation == itemGeneration.get()) {
-                        onMessageFullyPlayed(item)
-                        processQueue()
-                    }
+                    if (generation == itemGeneration.get()) handleError()
                     true
                 }
                 prepare()
             }
+
             // pause / skip / stop may have happened while the file was being prepared
             if (!isPlaying || isPaused || generation != itemGeneration.get()) {
                 player.release()
@@ -409,13 +503,18 @@ class PlaybackService : Service() {
             }
             mediaPlayer = player
             player.start()
+            // After start(): on a prepared/paused player a non-zero speed would itself start playback
+            if (speed != 1f) {
+                try {
+                    player.playbackParams = player.playbackParams.setSpeed(speed)
+                } catch (e: Exception) {
+                    // Speed change unsupported on this device: keep normal speed
+                }
+            }
         } catch (e: Exception) {
             player.release()
             if (mediaPlayer === player) mediaPlayer = null
-            if (generation == itemGeneration.get()) {
-                onMessageFullyPlayed(item)
-                processQueue()
-            }
+            if (generation == itemGeneration.get()) handleError()
         }
     }
 
@@ -491,6 +590,7 @@ class PlaybackService : Service() {
     }
 
     private fun skipMessage() {
+        cancelPrefetch()
         ttsManager.stop()
         releaseMediaPlayer()
         // Paused in the middle of a message: that message was pushed back to the front of the queue
@@ -508,6 +608,7 @@ class PlaybackService : Service() {
     private fun skipChat() {
         // The message being played and the rest of the chat are NOT marked as read
         flushReadCheckpoints()
+        cancelPrefetch()
         ttsManager.stop()
         releaseMediaPlayer()
         currentItem = null
@@ -521,6 +622,7 @@ class PlaybackService : Service() {
         playbackManager.setPaused(true)
         // Invalidate in-flight audio first so late callbacks cannot start the next item
         itemGeneration.incrementAndGet()
+        cancelPrefetch()
 
         val player = mediaPlayer
         if (player != null) {
@@ -594,11 +696,18 @@ class PlaybackService : Service() {
 
         val player = mediaPlayer
         if (voiceNotePaused && player != null) {
-            // Continue the voice note where it was paused
+            // Continue the voice note / synthesized file where it was paused
             voiceNotePaused = false
             try {
                 player.start()
                 refreshNotification()
+                // Resume warming the next cloud-TTS items for the remaining playback time
+                if (currentItem is PlaybackItem.MessageItem &&
+                    (ttsPreferences.settings.value.provider == SpeechProvider.OPENAI ||
+                        ttsPreferences.settings.value.provider == SpeechProvider.EDGE)
+                ) {
+                    scheduleCloudPrefetch(itemGeneration.get())
+                }
             } catch (e: IllegalStateException) {
                 releaseMediaPlayer()
                 processQueue()
@@ -616,6 +725,7 @@ class PlaybackService : Service() {
             unregisterNoisyReceiver()
             isPaused = false
             itemGeneration.incrementAndGet()
+            cancelPrefetch()
             flushReadCheckpoints()
             playbackManager.setPlaying(false)
             updateMediaSessionState()
