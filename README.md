@@ -85,6 +85,28 @@ database, no use-case layer yet, no dedicated Player screen). The open polish wo
 Not published. Before a Play release see the publishing checklist in the roadmap (applicationId is still
 `com.example.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
 
+
+
+## TDLib / 16 KB page size
+
+Native TDLib comes from the JitPack artifact [`com.github.tdlibx:td:1.8.56`](https://github.com/tdlibx/td)
+(`libtdjni.so` inside the AAR). There is no separately vendored copy under `app/libs`.
+
+Google Play / Android 15+ require 16 KB page-size support for native code on 64-bit devices:
+
+| ABI | ELF `LOAD` align (tdlibx 1.8.56) | Status |
+|-----|----------------------------------|--------|
+| arm64-v8a | `0x4000` (16 KB) | OK |
+| x86_64 | `0x4000` (16 KB) | OK |
+| armeabi-v7a | `0x1000` (4 KB) | Not 16 KB (32-bit; Play's 16 KB rule targets 64-bit) |
+| x86 | `0x1000` (4 KB) | Same as above |
+
+This project sets `packaging.jniLibs.useLegacyPackaging = true` so native libs are stored compressed
+and extracted at install time (avoids the APK mmap ZIP 16 KB alignment requirement). That is not a
+substitute for a correctly aligned `.so` on 16 KB devices — the 64-bit builds from tdlibx already
+are aligned; a future TDLib rebuild with NDK r28+ (`-Wl,-z,max-page-size=16384`) is the durable fix
+if Play or a device still rejects the package. Tracking: https://github.com/yedidyatob/TelegramNarrator/issues/45 .
+
 ## License
 
 No license has been chosen yet, so all rights are reserved by the author until one is added.

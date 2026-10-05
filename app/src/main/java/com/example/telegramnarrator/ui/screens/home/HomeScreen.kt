@@ -70,7 +70,6 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.core.labelRes
 import com.example.telegramnarrator.core.service.PlaybackService
 import com.example.telegramnarrator.domain.model.Chat
-import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import com.example.telegramnarrator.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +87,6 @@ fun HomeScreen(
     val selectedChat by viewModel.selectedChat.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedChatIds.collectAsStateWithLifecycle()
     val playingChatId by viewModel.currentPlayingChatId.collectAsStateWithLifecycle()
-    val speechRate by viewModel.speechRate.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -112,14 +110,6 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    val speedLabel = TtsVoiceLogic.rateLabel(speechRate)
-                    val speedDescription = stringResource(R.string.home_playback_speed, speedLabel)
-                    TextButton(
-                        onClick = { viewModel.cyclePlaybackSpeed() },
-                        modifier = Modifier.semantics { contentDescription = speedDescription }
-                    ) {
-                        Text(speedLabel, fontWeight = FontWeight.Bold)
-                    }
                     IconButton(onClick = { showVoiceSettings = true }) {
                         Icon(
                             Icons.Default.Settings,

@@ -80,7 +80,7 @@ as `(?i)` (ignore case) or `(?s)` (dot matches newlines). Remember that backslas
 |------|---------|
 | `dropMessage` | A message whose text matches **any** pattern is not read (but marked read). Example: `"(?i)givechak\\.co\\.il"`. |
 | `dropNext` | A message matching `pattern` (the *marker*) is dropped **and so are the next `count` messages** (default 1) in the order they are played. Markers inside a dropped group extend it. Make the pattern match *only* the marker message when the ad can also be in the same message, e.g. `"\\A\\s*°\\s*תוכן שיווקי\\s*\\z"` matches a message that contains nothing else, so an ad that already contains its own marker doesn't swallow the next real message (use `dropMessage` for that case). |
-| `cut` | Every match is deleted from the text. Example: trailing comment counts `"^[ \\t]*\\d+ (?:תגובות\|תגובה)[ \\t]*$"`. |
+| `cut` | Every match is deleted from the text. Example: trailing comment counts `"^[ \\t]*(?:\\d+[ \\t]+(?:תגובות|תגובה)|תגובה[ \\t]+אחת)[ \\t]*$"` (covers `N תגובות`, `1 תגובה`, and `תגובה אחת`). |
 | `replace` | Every match of `pattern` is replaced by `replacement` (Java syntax: `$1` is group 1, write `\\$` for a literal dollar). |
 
 Messages are matched on their text or caption; media without a caption has an empty text.
@@ -124,5 +124,5 @@ pattern.
 
 See the `Abu Ali Express` entry in `channel_rules.json` and the reconstructed sample messages in
 `app/src/test/resources/channel_rules/abu_ali/`: it drops `°תוכן שיווקי` ads (inline, or as a separate marker
-message followed by the ad) and `givechak` / donation links, cuts `N תגובות` and `כדי להגיב לכתבה לחצו כאן`, drops all
+message followed by the ad) and `givechak` / donation links, cuts `N תגובות` / `1 תגובה` / `תגובה אחת` and `כדי להגיב לכתבה לחצו כאן`, drops all
 `t.me` links (via the default `removeTelegramLinks` / `readLinks: false`), reads list numbers naturally and removes `°`.

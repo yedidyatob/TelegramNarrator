@@ -216,6 +216,16 @@ class TdLibChatRepository @Inject constructor(
         Log.d("ChatRepository", "Marking ${messageIds.size} messages as read in chat: $chatId")
         try {
             client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, messageIds.toLongArray(), null, true))
+            // Refresh local unread count immediately. UpdateChatReadInbox usually follows, but
+            // after pause the UI should not wait on that race — otherwise the badge stays stale
+            // and a new Play All reloads the same messages from lastReadInboxMessageId.
+            try {
+                val refreshed = client.send<TdApi.Chat>(TdApi.GetChat(chatId))
+                chatCache[chatId] = refreshed
+                refreshUnreadList()
+            } catch (refreshError: Exception) {
+                Log.w("ChatRepository", "Marked read but could not refresh chat $chatId", refreshError)
+            }
         } catch (e: Exception) {
             Log.e("ChatRepository", "Failed to mark chat as read: $chatId", e)
         }

@@ -37,7 +37,6 @@
     <string name="home_deselect_all">Deselect all</string>
     <string name="home_select_chat">Select %1$s</string>
     <string name="home_btn_play_selected">Play selected (%1$d)</string>
-    <string name="home_playback_speed">Playback speed %1$s</string>
     <string name="home_sheet_showing_partial">Showing %1$d of %2$d unread</string>
     <string name="home_sheet_showing_all">%1$d unread messages</string>
     <string name="home_mark_chat_read">Mark as read</string>

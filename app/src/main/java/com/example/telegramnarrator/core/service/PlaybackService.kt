@@ -31,6 +31,7 @@ import com.example.telegramnarrator.domain.audio.SpokenPhraseLanguage
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
 import com.example.telegramnarrator.domain.audio.SenderAnnouncement
+import com.example.telegramnarrator.domain.audio.PlaybackReadProgress
 import com.example.telegramnarrator.domain.audio.ReadCheckpointer
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.repository.ChatRepository
@@ -286,7 +287,7 @@ class PlaybackService : Service() {
             is PlaybackItem.MessageItem -> {
                 if (item.dropped) {
                     // Dropped by the channel rules: not read, but handled, so it is marked as read in order
-                    markMessagePlayed(item)
+                    onMessageFullyPlayed(item)
                     processQueue()
                     return
                 }
@@ -303,7 +304,7 @@ class PlaybackService : Service() {
                 // Filter if blank to not pause
                 if (text.isBlank() && item.voiceNoteFileId == null) {
                     // Nothing to say (unsupported content, emoji only, ...): handled, so mark it read
-                    markMessagePlayed(item)
+                    onMessageFullyPlayed(item)
                     processQueue()
                     return
                 }
@@ -360,7 +361,7 @@ class PlaybackService : Service() {
     // Speaks a message; it counts as played (and gets marked as read) only if the speech finished
     private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
         ttsManager.speak(speechText) { completed ->
-            if (completed) markMessagePlayed(item)
+            if (completed) onMessageFullyPlayed(item)
             processQueue()
         }
     }
@@ -381,7 +382,7 @@ class PlaybackService : Service() {
                     it.release()
                     if (mediaPlayer === it) mediaPlayer = null
                     // The voice note played to the end
-                    markMessagePlayed(item)
+                    onMessageFullyPlayed(item)
                     processQueue()
                 }
                 setOnErrorListener { mp, _, _ ->
@@ -449,9 +450,7 @@ class PlaybackService : Service() {
         if (!isPlaying || isPaused) return
         isPaused = true
         playbackManager.setPaused(true)
-        // The interrupted message is not marked as read; the ones that finished are sent now
-        flushReadCheckpoints()
-        // Invalidate everything that is still pending for the current item
+        // Invalidate in-flight audio first so late callbacks cannot start the next item
         itemGeneration.incrementAndGet()
 
         val player = mediaPlayer
@@ -465,8 +464,9 @@ class PlaybackService : Service() {
             }
         } else {
             ttsManager.stop()
-            // Push the current item back so it plays (from its start) when resumed
-            currentItem?.let {
+            // Push only an in-progress item back. Completed messages are cleared in
+            // onMessageFullyPlayed so a race with pause cannot replay them.
+            PlaybackReadProgress.itemToRequeueOnPause(currentItem)?.let {
                 audioQueue.addFirst(it)
                 currentItem = null
                 // The message will be announced again from its start, including its sender
@@ -475,7 +475,12 @@ class PlaybackService : Service() {
                     isFirstMessageInChat = firstMessageBeforeCurrentItem
                 }
             }
+            currentItem = null
         }
+
+        // Flush after stop/requeue so a completion that raced with pause is still marked read now.
+        // The interrupted in-progress message was never passed to messagePlayed, so it stays unread.
+        flushReadCheckpoints()
 
         updateMediaSessionState()
         refreshNotification()
@@ -556,6 +561,15 @@ class PlaybackService : Service() {
             foregroundStarted = false
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
+    }
+
+    /**
+     * Message finished (spoken / voice note / dropped / empty): clear [currentItem] if it still
+     * points here so pause cannot re-queue it, then checkpoint for mark-as-read.
+     */
+    private fun onMessageFullyPlayed(item: PlaybackItem.MessageItem) {
+        currentItem = PlaybackReadProgress.afterMessageCompleted(currentItem, item)
+        markMessagePlayed(item)
     }
 
     /** A message was fully played (or deliberately skipped): queue it for marking as read. */
