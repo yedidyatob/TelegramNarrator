@@ -46,11 +46,26 @@ class MessageCleanerTest {
     }
 
     @Test
-    fun `intra word underscores and hashtags are kept`() {
+    fun `intra word underscores without hash are kept`() {
         assertEquals("snake_case_name", MessageCleaner.clean("snake_case_name"))
-        assertEquals("#my_tag", MessageCleaner.clean("#my_tag"))
         assertEquals("שלום_עולם", MessageCleaner.clean("שלום_עולם"))
         assertEquals("file_1 and file_2", MessageCleaner.clean("file_1 and file_2"))
+    }
+
+    @Test
+    fun `english hashtags keep hash and speak underscores as spaces`() {
+        assertEquals("# foo bar baz", MessageCleaner.clean("#foo_bar_baz"))
+        assertEquals("# my tag", MessageCleaner.clean("#my_tag"))
+        assertEquals("# tag", MessageCleaner.clean("#tag"))
+        assertEquals("see # foo bar now", MessageCleaner.clean("see #foo_bar now"))
+        assertEquals("# two tags # here", MessageCleaner.clean("#two_tags #here"))
+    }
+
+    @Test
+    fun `hebrew hashtags keep hash and speak underscores as spaces`() {
+        assertEquals("# שלום עולם", MessageCleaner.clean("#שלום_עולם"))
+        assertEquals("# תג אחת", MessageCleaner.clean("#תג_אחת"))
+        assertEquals("ראה # תג בוקר", MessageCleaner.clean("ראה #תג_בוקר"))
     }
 
     @Test

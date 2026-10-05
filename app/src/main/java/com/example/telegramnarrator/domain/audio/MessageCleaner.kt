@@ -28,6 +28,13 @@ object MessageCleaner {
     private val STRAY_UNDERSCORE_RUNS = Regex("_{2,}")
 
     /**
+     * Telegram-style hashtags: `#foo_bar_baz`, `#שלום_עולם`.
+     * Leading `#` is kept (spoken as "hash" / "number sign"); underscores become spaces
+     * so the engine reads words instead of "underscore". Letters and digits of any script are kept.
+     */
+    private val HASHTAG = Regex("#([${WORD}_]+)")
+
+    /**
      * @param linkLabel what URLs are replaced with. By default URLs are removed (not read at all);
      * pass a word such as "link" to have them read as that word instead.
      */
@@ -41,6 +48,9 @@ object MessageCleaner {
         // Remove Markdown characters
         cleaned = stripMarkdown(cleaned)
 
+        // Expand #hashtags for TTS (after markdown so #hash_tags were left intact by italic rules)
+        cleaned = expandHashtags(cleaned)
+
         // Remove Emojis and unassigned characters
         cleaned = cleaned.replace(Regex("[\\p{So}\\p{Cn}]"), "")
 
@@ -49,6 +59,12 @@ object MessageCleaner {
 
         return cleaned.trim()
     }
+
+    /** `#foo_bar` → `# foo bar`; `#tag` → `# tag`. Non-hashtag snake_case is unchanged. */
+    internal fun expandHashtags(text: String): String =
+        HASHTAG.replace(text) { match ->
+            "# " + match.groupValues[1].replace('_', ' ')
+        }
 
     private fun stripMarkdown(text: String): String {
         var result = text

@@ -91,6 +91,6 @@
     <string name="settings_voice_playing_note">Voice choices can be tested when the reading is stopped</string>
     <string name="settings_voice_offline_note">Only offline voices of the installed engines are listed; install more voices in the system text-to-speech settings</string>
     <string name="settings_mark_read">Mark messages as read in Telegram</string>
-    <string name="settings_mark_read_desc">Messages are marked as read only after they were fully read aloud. Debug builds start with this off.</string>
+    <string name="settings_mark_read_desc">On by default. Messages are marked as read in Telegram only after they were fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
     <string name="settings_voice_loading">Loading voices…</string>
 </resources>

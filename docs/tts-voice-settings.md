@@ -20,3 +20,7 @@ choice use the engine's default voice. The choice is stored in SharedPreferences
 `domain/tts/TtsVoiceLogic.kt` and is unit tested.
 
 Voice changes and test sentences are disabled while the reading is playing.
+
+- **Mark messages as read in Telegram**: on by default. When enabled, messages are marked read in
+  Telegram only after they were fully spoken (or skipped). Turn off to leave chats unread while testing.
+  Details: [mark-as-read.md](mark-as-read.md).

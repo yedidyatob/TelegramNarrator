@@ -22,6 +22,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -101,6 +102,28 @@ fun VoiceSettingsSheet(
                     valueRange = TtsVoiceLogic.MIN_RATE..TtsVoiceLogic.MAX_RATE,
                     steps = Math.round((TtsVoiceLogic.MAX_RATE - TtsVoiceLogic.MIN_RATE) / TtsVoiceLogic.RATE_STEP) - 1
                 )
+                Spacer(Modifier.height(8.dp))
+
+                // Mark as read in Telegram (default ON; critical for unread badge / replay-from-start)
+                Text(stringResource(R.string.settings_mark_read), style = MaterialTheme.typography.titleMedium)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        stringResource(R.string.settings_mark_read_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f).padding(end = 12.dp)
+                    )
+                    Switch(
+                        checked = state.markAsRead,
+                        onCheckedChange = { viewModel.setMarkAsRead(it) }
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
             }
 

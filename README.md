@@ -44,11 +44,12 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
    ```
 
-### Debug vs release behaviour
+### Mark as read
 
-Debug builds **do not mark messages as read** in Telegram by default, so testing does not touch real chats.
-Use the "Mark messages as read in Telegram" switch in *Voice settings* to turn it on explicitly. Release builds
-mark messages as read by default.
+Played (or deliberately skipped) messages are marked as read in Telegram by default in **both** debug and
+release builds, so the unread badge drops and "Play from start" does not re-narrate already-heard messages.
+Use the **"Mark messages as read in Telegram"** switch in *Voice settings* to turn this off while testing.
+See [docs/mark-as-read.md](docs/mark-as-read.md) for the TDLib call sequence and quirks.
 
 ## Project layout
 
