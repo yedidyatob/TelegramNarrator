@@ -38,6 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.telegramnarrator.R
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
 
 /**
@@ -123,6 +131,104 @@ fun VoiceSettingsSheet(
                         checked = state.markAsRead,
                         onCheckedChange = { viewModel.setMarkAsRead(it) }
                     )
+                }
+                Spacer(Modifier.height(8.dp))
+
+                // OpenAI TTS (optional BYOK)
+                Text(stringResource(R.string.settings_openai_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.settings_openai_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        stringResource(R.string.settings_openai_enable),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f).padding(end = 12.dp)
+                    )
+                    Switch(
+                        checked = state.openAiEnabled,
+                        onCheckedChange = { viewModel.setOpenAiEnabled(it) },
+                        enabled = !isPlaying
+                    )
+                }
+                if (state.openAiEnabled) {
+                    var keyDraft by remember(state.openAiHasKey, state.openAiKeyMasked) {
+                        mutableStateOf("")
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = keyDraft,
+                        onValueChange = { keyDraft = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.settings_openai_api_key)) },
+                        placeholder = {
+                            Text(
+                                if (state.openAiHasKey) state.openAiKeyMasked
+                                else stringResource(R.string.settings_openai_api_key_hint)
+                            )
+                        },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        enabled = !isPlaying
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.setOpenAiApiKey(keyDraft)
+                                keyDraft = ""
+                            },
+                            enabled = !isPlaying && keyDraft.isNotBlank()
+                        ) { Text(stringResource(R.string.settings_openai_save_key)) }
+                        if (state.openAiHasKey) {
+                            OutlinedButton(
+                                onClick = { viewModel.clearOpenAiApiKey() },
+                                enabled = !isPlaying
+                            ) { Text(stringResource(R.string.settings_openai_clear_key)) }
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.settings_openai_privacy),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.settings_openai_model), style = MaterialTheme.typography.titleSmall)
+                    OpenAiTts.MODELS.forEach { model ->
+                        val label = when (model) {
+                            OpenAiTts.MODEL_TTS_1 -> stringResource(R.string.settings_openai_model_tts1)
+                            OpenAiTts.MODEL_TTS_1_HD -> stringResource(R.string.settings_openai_model_tts1_hd)
+                            else -> model
+                        }
+                        ChoiceRow(
+                            label = label,
+                            selected = state.openAiModel == model,
+                            enabled = !isPlaying,
+                            onClick = { viewModel.setOpenAiModel(model) }
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.settings_openai_voice), style = MaterialTheme.typography.titleSmall)
+                    OpenAiTts.VOICES.forEach { voice ->
+                        ChoiceRow(
+                            label = voice,
+                            selected = state.openAiVoice == voice,
+                            enabled = !isPlaying,
+                            onClick = { viewModel.setOpenAiVoice(voice) }
+                        )
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
             }

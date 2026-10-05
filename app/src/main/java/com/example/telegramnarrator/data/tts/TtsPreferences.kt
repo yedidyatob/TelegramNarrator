@@ -1,6 +1,8 @@
 package com.example.telegramnarrator.data.tts
 
 import android.content.Context
+import com.example.telegramnarrator.domain.openai.OpenAiTts
+import com.example.telegramnarrator.domain.openai.OpenAiTtsOptions
 import com.example.telegramnarrator.domain.tts.TtsSettings
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,6 +25,9 @@ class TtsPreferences @Inject constructor(
         const val KEY_ENGINE = "engine"
         const val KEY_RATE = "rate"
         const val KEY_MARK_AS_READ = "mark_as_read"
+        const val KEY_OPENAI_ENABLED = "openai_enabled"
+        const val KEY_OPENAI_MODEL = "openai_model"
+        const val KEY_OPENAI_VOICE = "openai_voice"
         const val VOICE_PREFIX = "voice."
     }
 
@@ -48,7 +53,12 @@ class TtsPreferences @Inject constructor(
             enginePackage = prefs.getString(KEY_ENGINE, null),
             speechRate = TtsVoiceLogic.clampRate(prefs.getFloat(KEY_RATE, TtsVoiceLogic.DEFAULT_RATE)),
             voices = voices,
-            markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null
+            markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null,
+            openAi = OpenAiTtsOptions(
+                enabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false),
+                model = OpenAiTts.normalizeModel(prefs.getString(KEY_OPENAI_MODEL, OpenAiTts.DEFAULT_MODEL)),
+                voice = OpenAiTts.normalizeVoice(prefs.getString(KEY_OPENAI_VOICE, OpenAiTts.DEFAULT_VOICE))
+            )
         )
     }
 
@@ -57,6 +67,9 @@ class TtsPreferences @Inject constructor(
         settings.enginePackage?.let { editor.putString(KEY_ENGINE, it) }
         editor.putFloat(KEY_RATE, settings.speechRate)
         settings.markAsReadOverride?.let { editor.putBoolean(KEY_MARK_AS_READ, it) }
+        editor.putBoolean(KEY_OPENAI_ENABLED, settings.openAi.enabled)
+        editor.putString(KEY_OPENAI_MODEL, OpenAiTts.normalizeModel(settings.openAi.model))
+        editor.putString(KEY_OPENAI_VOICE, OpenAiTts.normalizeVoice(settings.openAi.voice))
         settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }
         editor.apply()
     }

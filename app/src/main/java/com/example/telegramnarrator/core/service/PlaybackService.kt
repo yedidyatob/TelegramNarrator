@@ -24,6 +24,10 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.domain.audio.MessageSpeechBody
 import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
+import com.example.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import com.example.telegramnarrator.domain.audio.AudioQueue
 import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.PlaybackItem
@@ -54,7 +58,9 @@ class PlaybackService : Service() {
     @Inject lateinit var chatRepository: ChatRepository
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var channelRules: ChannelRulesRepository
+    @Inject lateinit var openAiSpeech: OpenAiSpeechSynthesizer
 
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
     
@@ -324,11 +330,44 @@ class PlaybackService : Service() {
         }
     }
 
-    // Speaks a message; it counts as played (and gets marked as read) only if the speech finished
+    // Speaks a message; it counts as played (and gets marked as read) only if the speech finished.
+    // Optional OpenAI TTS: synthesize (cached) MP3 and play via MediaPlayer; fall back to system TTS.
     private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
+        if (!openAiSpeech.isOpenAiEnabled()) {
+            speakWithSystemTts(item, speechText)
+            return
+        }
+        val generation = itemGeneration.get()
+        // OpenAI enabled: synthesize (or cache hit), toast + system TTS on missing key / errors.
+        scope.launch {
+            when (val outcome = openAiSpeech.synthesize(speechText)) {
+                is OpenAiSpeechSynthesizer.Outcome.Ready -> {
+                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+                    playAudioFile(outcome.file.absolutePath, generation, item)
+                }
+                OpenAiSpeechSynthesizer.Outcome.UseSystem -> {
+                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+                    speakWithSystemTts(item, speechText)
+                }
+                is OpenAiSpeechSynthesizer.Outcome.Fallback -> {
+                    if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+                    showToast(outcome.reason)
+                    speakWithSystemTts(item, speechText)
+                }
+            }
+        }
+    }
+
+    private fun speakWithSystemTts(item: PlaybackItem.MessageItem, speechText: String) {
         ttsManager.speak(speechText) { completed ->
             if (completed) onMessageFullyPlayed(item)
             processQueue()
+        }
+    }
+
+    private fun showToast(message: String) {
+        mainHandler.post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
         }
     }
 
