@@ -6,6 +6,7 @@ import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.model.MessageContentType
 import com.example.telegramnarrator.domain.repository.ChatRepository
 import com.example.telegramnarrator.BuildConfig
+import com.example.telegramnarrator.data.tts.TtsPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.drinkless.tdlib.TdApi
@@ -21,7 +22,8 @@ import kotlinx.coroutines.flow.collectLatest
 @Singleton
 class TdLibChatRepository @Inject constructor(
     private val client: TdLibClient,
-    private val userCache: TdLibUserCache
+    private val userCache: TdLibUserCache,
+    private val ttsPreferences: TtsPreferences
 ) : ChatRepository {
 
     // Internal cache of raw TdApi objects
@@ -30,7 +32,10 @@ class TdLibChatRepository @Inject constructor(
     // Public state for UI
     private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
     
-    override var markAsReadEnabled: Boolean = !BuildConfig.DEBUG
+    // User setting (Voice settings sheet); without an explicit choice: on in release, off in debug builds
+    override var markAsReadEnabled: Boolean
+        get() = ttsPreferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
+        set(value) = ttsPreferences.update { it.copy(markAsReadOverride = value) }
 
     private val repositoryScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
 
