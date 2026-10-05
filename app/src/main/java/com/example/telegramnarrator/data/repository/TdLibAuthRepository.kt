@@ -2,6 +2,7 @@ package com.example.telegramnarrator.data.repository
 
 import com.example.telegramnarrator.BuildConfig
 import com.example.telegramnarrator.data.tdlib.TdLibClient
+import com.example.telegramnarrator.domain.model.ApiCredentials
 import com.example.telegramnarrator.domain.model.AuthState
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,13 @@ class TdLibAuthRepository @Inject constructor(
         
         val newState = when (state) {
             is TdApi.AuthorizationStateWaitTdlibParameters -> {
+                val apiId = ApiCredentials.parse(BuildConfig.TELEGRAM_API_ID, BuildConfig.TELEGRAM_API_HASH)
+                if (apiId == null) {
+                    // Without credentials TDLib never leaves this state: show why instead of spinning forever
+                    _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE)
+                    return
+                }
+                var failure: String? = null
                 try {
                     client.send<TdApi.Ok>(TdApi.SetTdlibParameters(
                         false,                                          // useTestDc
@@ -51,7 +59,7 @@ class TdLibAuthRepository @Inject constructor(
                         true,                                           // useChatInfoDatabase
                         true,                                           // useMessageDatabase
                         false,                                          // useSecretChats
-                        BuildConfig.TELEGRAM_API_ID.toIntOrNull() ?: 0, // apiId
+                        apiId,                                          // apiId
                         BuildConfig.TELEGRAM_API_HASH,                  // apiHash
                         "en",                                           // systemLanguageCode
                         "Android",                                      // deviceModel
@@ -60,8 +68,9 @@ class TdLibAuthRepository @Inject constructor(
                     ))
                 } catch (e: Exception) {
                     Log.e("AuthRepository", "Failed to set TDLib parameters", e)
+                    failure = e.message ?: "Could not initialize Telegram"
                 }
-                AuthState.Initializing
+                if (failure != null) AuthState.Error(failure) else AuthState.Initializing
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.WaitPhoneNumber
             is TdApi.AuthorizationStateWaitCode -> AuthState.WaitCode
@@ -76,6 +85,11 @@ class TdLibAuthRepository @Inject constructor(
             else -> AuthState.Unauthenticated
         }
         _authState.value = newState
+    }
+
+    override suspend fun retryInitialization() {
+        _authState.value = AuthState.Initializing
+        handleAuthorizationState(TdApi.AuthorizationStateWaitTdlibParameters())
     }
 
     override suspend fun setPhoneNumber(phoneNumber: String) {

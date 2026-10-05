@@ -8,6 +8,10 @@
     <string name="login_title_code">Enter verification code</string>
     <string name="login_label_code">Verification Code</string>
     <string name="login_btn_verify_code">Verify Code</string>
+    <string name="login_subtitle_code">Telegram sent the code to your other Telegram app or by SMS</string>
+    <string name="login_subtitle_password">Your account is protected by two-step verification</string>
+    <string name="login_error_title">Could not start Telegram</string>
+    <string name="login_btn_retry">Retry</string>
     <string name="login_title_password">Enter your 2FA password</string>
     <string name="login_label_password">Password</string>
     <string name="login_btn_login">Login</string>
