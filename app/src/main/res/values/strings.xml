@@ -76,7 +76,7 @@
     <!-- Voice settings (English only: the app UI is not translated) -->
     <string name="settings_voice_title">Voice settings</string>
     <string name="settings_voice_open">Voice settings</string>
-    <string name="settings_voice_engine">Speech engine</string>
+    <string name="settings_voice_engine">System speech engine</string>
     <string name="settings_voice_engine_default">System default</string>
     <string name="settings_voice_rate">Speech rate: %1$s</string>
     <string name="settings_voice_voices">Voices</string>
@@ -93,8 +93,7 @@
 
     <!-- Optional OpenAI TTS (Bring-Your-Own-Key) -->
     <string name="settings_openai_title">OpenAI text-to-speech (optional)</string>
-    <string name="settings_openai_desc">Uses your own OpenAI API key. System TTS stays the default until you enable this. Audio is cached on device so the same message is not billed twice.</string>
-    <string name="settings_openai_enable">Use OpenAI TTS</string>
+    <string name="settings_openai_desc">Uses your own OpenAI API key. Audio is cached on device so the same message is not billed twice.</string>
     <string name="settings_openai_api_key">OpenAI API key</string>
     <string name="settings_openai_api_key_hint">sk-…</string>
     <string name="settings_openai_save_key">Save key</string>
@@ -104,4 +103,29 @@
     <string name="settings_openai_model_tts1">tts-1 (default, cheaper)</string>
     <string name="settings_openai_model_tts1_hd">tts-1-hd (higher quality)</string>
     <string name="settings_openai_voice">OpenAI voice</string>
+
+    <!-- Text-to-speech engine choice -->
+    <string name="settings_tts_engine">Text-to-speech engine</string>
+    <string name="settings_tts_engine_system">System (default)</string>
+    <string name="settings_tts_engine_system_desc">On-device voices, works offline</string>
+    <string name="settings_tts_engine_openai">OpenAI</string>
+    <string name="settings_tts_engine_openai_desc">Your own API key, paid per character</string>
+    <string name="settings_tts_engine_edge">Microsoft Edge neural voices (experimental)</string>
+    <string name="settings_tts_engine_edge_desc">Unofficial, free, needs internet; may stop working</string>
+    <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
+
+    <!-- Experimental Edge TTS -->
+    <string name="settings_edge_title">Edge neural voices (experimental)</string>
+    <string name="settings_edge_warning">Experimental and unofficial: this uses the endpoint behind Microsoft Edge\'s \"Read aloud\" feature (the same approach as the open-source edge-tts library). It costs $0 and needs no account or key, but it is not a supported Microsoft API and may break or be blocked at any time. Needs a network connection: cleaned message text is sent to Microsoft (speech.platform.bing.com). If it fails, the app shows a short notice and reads with the system voice. Audio is cached on device.</string>
+    <string name="settings_edge_voice">Edge voice</string>
+    <string name="settings_edge_voice_avri">Hebrew, male (non-Hebrew messages use a multilingual male voice)</string>
+    <string name="settings_edge_voice_hila">Hebrew, female (non-Hebrew messages use a multilingual female voice)</string>
+    <string name="settings_edge_voice_multilingual">Multilingual (English and other languages)</string>
+    <string name="settings_edge_custom_voice">Other Edge voice</string>
+    <string name="settings_edge_custom_voice_hint">e.g. en-GB-SoniaNeural</string>
+    <string name="settings_edge_custom_voice_desc">Any Edge voice short name (run `edge-tts --list-voices` to see them). Used for every message.</string>
+    <string name="settings_edge_custom_voice_invalid">Not a valid Edge voice name (expected something like en-US-AriaNeural)</string>
+    <string name="settings_edge_custom_voice_use">Use voice</string>
+    <string name="settings_edge_current_voice">Current voice: %1$s</string>
+    <string name="settings_edge_test_failed">Edge TTS failed (no network, or the unofficial service changed). Playback will use the system voice.</string>
 </resources>

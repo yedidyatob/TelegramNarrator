@@ -45,7 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.example.telegramnarrator.domain.edge.EdgeTts
 import com.example.telegramnarrator.domain.openai.OpenAiTts
+import com.example.telegramnarrator.domain.tts.SpeechProvider
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import com.example.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
 
 /**
@@ -134,32 +139,49 @@ fun VoiceSettingsSheet(
                 }
                 Spacer(Modifier.height(8.dp))
 
-                // OpenAI TTS (optional BYOK)
-                Text(stringResource(R.string.settings_openai_title), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.settings_openai_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Text-to-speech engine: System (default) | OpenAI (BYOK) | Edge (experimental)
+                Text(stringResource(R.string.settings_tts_engine), style = MaterialTheme.typography.titleMedium)
+                ChoiceRow(
+                    label = stringResource(R.string.settings_tts_engine_system),
+                    supporting = stringResource(R.string.settings_tts_engine_system_desc),
+                    selected = state.provider == SpeechProvider.SYSTEM,
+                    enabled = !isPlaying,
+                    onClick = { viewModel.setProvider(SpeechProvider.SYSTEM) }
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        stringResource(R.string.settings_openai_enable),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f).padding(end = 12.dp)
-                    )
-                    Switch(
-                        checked = state.openAiEnabled,
-                        onCheckedChange = { viewModel.setOpenAiEnabled(it) },
-                        enabled = !isPlaying
+                ChoiceRow(
+                    label = stringResource(R.string.settings_tts_engine_openai),
+                    supporting = stringResource(R.string.settings_tts_engine_openai_desc),
+                    selected = state.provider == SpeechProvider.OPENAI,
+                    enabled = !isPlaying,
+                    onClick = { viewModel.setProvider(SpeechProvider.OPENAI) }
+                )
+                ChoiceRow(
+                    label = stringResource(R.string.settings_tts_engine_edge),
+                    supporting = stringResource(R.string.settings_tts_engine_edge_desc),
+                    selected = state.provider == SpeechProvider.EDGE,
+                    enabled = !isPlaying,
+                    onClick = { viewModel.setProvider(SpeechProvider.EDGE) }
+                )
+                Spacer(Modifier.height(8.dp))
+
+                if (state.edgeEnabled) {
+                    EdgeSettingsSection(
+                        voice = state.edgeVoice,
+                        testing = state.edgeTesting,
+                        isPlaying = isPlaying,
+                        onSelectVoice = { viewModel.setEdgeVoice(it) },
+                        onTest = { viewModel.testEdgeVoice() }
                     )
                 }
+
+                // OpenAI TTS (optional BYOK)
                 if (state.openAiEnabled) {
+                    Text(stringResource(R.string.settings_openai_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.settings_openai_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     var keyDraft by remember(state.openAiHasKey, state.openAiKeyMasked) {
                         mutableStateOf("")
                     }
@@ -324,6 +346,91 @@ fun VoiceSettingsSheet(
             }
         }
     }
+}
+
+/** Experimental Edge TTS: warning, preset voices, custom voice name, and a test button. */
+@Composable
+private fun EdgeSettingsSection(
+    voice: String,
+    testing: Boolean,
+    isPlaying: Boolean,
+    onSelectVoice: (String) -> Boolean,
+    onTest: () -> Unit
+) {
+    Text(stringResource(R.string.settings_edge_title), style = MaterialTheme.typography.titleMedium)
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Text(
+            stringResource(R.string.settings_edge_warning),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(12.dp)
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(stringResource(R.string.settings_edge_voice), style = MaterialTheme.typography.titleSmall)
+    EdgeTts.PRESET_VOICES.forEach { preset ->
+        ChoiceRow(
+            label = preset,
+            supporting = when (preset) {
+                EdgeTts.VOICE_AVRI -> stringResource(R.string.settings_edge_voice_avri)
+                EdgeTts.VOICE_HILA -> stringResource(R.string.settings_edge_voice_hila)
+                else -> stringResource(R.string.settings_edge_voice_multilingual)
+            },
+            selected = voice == preset,
+            enabled = !isPlaying,
+            onClick = { onSelectVoice(preset) }
+        )
+    }
+    val isCustom = voice !in EdgeTts.PRESET_VOICES
+    var customDraft by remember(voice) { mutableStateOf(if (isCustom) voice else "") }
+    var customError by remember(voice) { mutableStateOf(false) }
+    OutlinedTextField(
+        value = customDraft,
+        onValueChange = {
+            customDraft = it
+            customError = false
+        },
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        label = { Text(stringResource(R.string.settings_edge_custom_voice)) },
+        placeholder = { Text(stringResource(R.string.settings_edge_custom_voice_hint)) },
+        supportingText = {
+            Text(
+                stringResource(
+                    if (customError) R.string.settings_edge_custom_voice_invalid
+                    else R.string.settings_edge_custom_voice_desc
+                )
+            )
+        },
+        isError = customError,
+        singleLine = true,
+        enabled = !isPlaying
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedButton(
+            onClick = { customError = !onSelectVoice(customDraft.trim()) },
+            enabled = !isPlaying && customDraft.isNotBlank() && customDraft.trim() != voice
+        ) { Text(stringResource(R.string.settings_edge_custom_voice_use)) }
+        OutlinedButton(
+            onClick = onTest,
+            enabled = !isPlaying && !testing
+        ) { Text(stringResource(R.string.settings_voice_test)) }
+        if (testing) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+    }
+    if (isCustom) {
+        Text(
+            stringResource(R.string.settings_edge_current_voice, voice),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(Modifier.height(12.dp))
 }
 
 @Composable

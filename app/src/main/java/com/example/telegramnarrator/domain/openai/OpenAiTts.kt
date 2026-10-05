@@ -4,7 +4,7 @@ import java.security.MessageDigest
 
 /**
  * Pure helpers for the optional Bring-Your-Own-Key OpenAI TTS engine.
- * System TTS stays the default until the user enables OpenAI and pastes a key.
+ * System TTS stays the default until the user selects OpenAI as the engine and pastes a key.
  */
 object OpenAiTts {
     const val MODEL_TTS_1 = "tts-1"
@@ -43,8 +43,7 @@ object OpenAiTts {
 
 /** Non-secret OpenAI TTS choices persisted with the rest of [com.example.telegramnarrator.domain.tts.TtsSettings]. */
 data class OpenAiTtsOptions(
-    /** When true and an API key is stored, playback uses OpenAI; otherwise system TTS. */
-    val enabled: Boolean = false,
+    // Whether OpenAI is used is TtsSettings.provider == SpeechProvider.OPENAI (one engine choice for all engines)
     val model: String = OpenAiTts.DEFAULT_MODEL,
     val voice: String = OpenAiTts.DEFAULT_VOICE
 )

@@ -1,5 +1,6 @@
 package com.example.telegramnarrator.domain.tts
 
+import com.example.telegramnarrator.domain.edge.EdgeTtsOptions
 import com.example.telegramnarrator.domain.openai.OpenAiTtsOptions
 
 /** An installed offline voice of the system TTS engine (a platform-independent copy of android.speech.tts.Voice). */
@@ -32,8 +33,12 @@ data class TtsSettings(
     val voices: Map<String, String> = emptyMap(),
     /** User's choice for "mark messages as read in Telegram"; null = not chosen, default on. */
     val markAsReadOverride: Boolean? = null,
-    /** Optional Bring-Your-Own-Key OpenAI TTS (default off — system TTS). */
-    val openAi: OpenAiTtsOptions = OpenAiTtsOptions()
+    /** Engine that speaks messages: system TTS (default), OpenAI (BYOK) or Edge (experimental). */
+    val provider: SpeechProvider = SpeechProvider.DEFAULT,
+    /** Optional Bring-Your-Own-Key OpenAI TTS choices (used when [provider] is OPENAI). */
+    val openAi: OpenAiTtsOptions = OpenAiTtsOptions(),
+    /** Experimental Edge TTS choices (used when [provider] is EDGE). */
+    val edge: EdgeTtsOptions = EdgeTtsOptions()
 ) {
     /**
      * Whether played messages are marked as read in Telegram. Defaults to **on** for every build

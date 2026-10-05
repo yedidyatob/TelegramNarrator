@@ -107,6 +107,9 @@ dependencies {
     // TDLib
     implementation(libs.tdlib)
 
+    // Experimental Edge TTS (WebSocket)
+    implementation(libs.okhttp)
+
     testImplementation(libs.junit)
     // Unit tests run on the JVM, where the Android org.json stubs do nothing (used for the channel rules JSON)
     testImplementation("org.json:json:20231013")

@@ -1,8 +1,11 @@
 package com.example.telegramnarrator.data.tts
 
 import android.content.Context
+import com.example.telegramnarrator.domain.edge.EdgeTts
+import com.example.telegramnarrator.domain.edge.EdgeTtsOptions
 import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.openai.OpenAiTtsOptions
+import com.example.telegramnarrator.domain.tts.SpeechProvider
 import com.example.telegramnarrator.domain.tts.TtsSettings
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,9 +28,12 @@ class TtsPreferences @Inject constructor(
         const val KEY_ENGINE = "engine"
         const val KEY_RATE = "rate"
         const val KEY_MARK_AS_READ = "mark_as_read"
+        const val KEY_PROVIDER = "provider"
+        /** Legacy (OpenAI PR builds): read once to migrate to [KEY_PROVIDER], no longer written. */
         const val KEY_OPENAI_ENABLED = "openai_enabled"
         const val KEY_OPENAI_MODEL = "openai_model"
         const val KEY_OPENAI_VOICE = "openai_voice"
+        const val KEY_EDGE_VOICE = "edge_voice"
         const val VOICE_PREFIX = "voice."
     }
 
@@ -54,10 +60,16 @@ class TtsPreferences @Inject constructor(
             speechRate = TtsVoiceLogic.clampRate(prefs.getFloat(KEY_RATE, TtsVoiceLogic.DEFAULT_RATE)),
             voices = voices,
             markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null,
+            provider = SpeechProvider.fromStored(
+                prefs.getString(KEY_PROVIDER, null),
+                legacyOpenAiEnabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false)
+            ),
             openAi = OpenAiTtsOptions(
-                enabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false),
                 model = OpenAiTts.normalizeModel(prefs.getString(KEY_OPENAI_MODEL, OpenAiTts.DEFAULT_MODEL)),
                 voice = OpenAiTts.normalizeVoice(prefs.getString(KEY_OPENAI_VOICE, OpenAiTts.DEFAULT_VOICE))
+            ),
+            edge = EdgeTtsOptions(
+                voice = EdgeTts.normalizeVoice(prefs.getString(KEY_EDGE_VOICE, EdgeTts.DEFAULT_VOICE))
             )
         )
     }
@@ -67,9 +79,10 @@ class TtsPreferences @Inject constructor(
         settings.enginePackage?.let { editor.putString(KEY_ENGINE, it) }
         editor.putFloat(KEY_RATE, settings.speechRate)
         settings.markAsReadOverride?.let { editor.putBoolean(KEY_MARK_AS_READ, it) }
-        editor.putBoolean(KEY_OPENAI_ENABLED, settings.openAi.enabled)
+        editor.putString(KEY_PROVIDER, settings.provider.id)
         editor.putString(KEY_OPENAI_MODEL, OpenAiTts.normalizeModel(settings.openAi.model))
         editor.putString(KEY_OPENAI_VOICE, OpenAiTts.normalizeVoice(settings.openAi.voice))
+        editor.putString(KEY_EDGE_VOICE, EdgeTts.normalizeVoice(settings.edge.voice))
         settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }
         editor.apply()
     }
