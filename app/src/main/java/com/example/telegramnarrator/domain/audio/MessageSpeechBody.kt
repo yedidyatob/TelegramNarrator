@@ -3,15 +3,15 @@ package com.example.telegramnarrator.domain.audio
 import com.example.telegramnarrator.domain.model.MessageContentType
 
 /**
- * What the player should say for a message body (not including "Message from ..." / voice-note intros).
+ * What the player should say for a message body (no sender / "Voice note" labels — those are gone).
  *
  * Media-only messages (photo / video / sticker / ... with no caption) and **symbol-only** rows
  * (e.g. `####`, `****`, `———` — no letters or digits) are **not** spoken. Callers still mark those
  * message ids as read when playback passes them (or batched with the next spoken text in the same
  * chat via [ReadCheckpointer]).
  *
- * Voice notes are handled separately via [PlaybackItem.MessageItem.voiceNoteFileId]; this helper
- * only decides the text/caption path.
+ * Voice notes are handled separately via [PlaybackItem.MessageItem.voiceNoteFileId] and
+ * [VoiceNotePlayback] (play the file, or skip silently — never TTS-labelled).
  */
 object MessageSpeechBody {
     /**

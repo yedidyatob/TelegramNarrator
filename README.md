@@ -12,16 +12,15 @@ another; messages are marked as read in Telegram only after they were actually s
 - Telegram login (phone number, code, optional 2FA password) via TDLib
 - Unread chat list, "Play all" or play a single chat, pause/resume, skip message, skip chat
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
-- Voice notes are played as audio, announced by sender
-- Language is detected **per message** (Hebrew/English); spoken phrases ("Message from ...", "End of messages") follow
-  the content language (not the device locale) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
-- Chat boundaries use a short language-neutral ding (not spoken "New chat" / "שיחה חדשה")
+- Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
+- Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
+- Chat boundaries and end-of-queue use distinct language-neutral dings (not spoken "New chat" / "End of messages")
 - Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
-The UI is English only by design; only the spoken phrases have a Hebrew version.
+The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
 
 ## Build
 

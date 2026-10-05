@@ -50,8 +50,6 @@
     <!-- Playback Service -->
     <string name="playback_skip_msg">Skip Message</string>
     <string name="playback_skip_chat">Skip Chat</string>
-    <string name="playback_from">Message from %1$s: %2$s</string>
-    <string name="playback_end">End of messages.</string>
     <string name="playback_link">Link</string>
     <string name="playback_voice_note">Voice note</string>
     <string name="playback_content_photo">Photo</string>
