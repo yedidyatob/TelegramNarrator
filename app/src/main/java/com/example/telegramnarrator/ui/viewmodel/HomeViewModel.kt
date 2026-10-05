@@ -2,21 +2,16 @@ package com.example.telegramnarrator.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.telegramnarrator.core.audio.TtsManager
-import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.audio.PlaybackManager
-import com.example.telegramnarrator.domain.audio.PlaybackSpeedCycle
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import com.example.telegramnarrator.domain.repository.ChatRepository
-import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,9 +20,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
-    private val playbackManager: PlaybackManager,
-    private val ttsPreferences: TtsPreferences,
-    private val ttsManager: TtsManager
+    private val playbackManager: PlaybackManager
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -41,11 +34,6 @@ class HomeViewModel @Inject constructor(
     val playStatus: StateFlow<String?> = playbackManager.currentStatus
     val selectedChatIds: StateFlow<Set<Long>> = playbackManager.selectedChatIds
     val currentPlayingChatId: StateFlow<Long?> = playbackManager.currentPlayingChatId
-
-    /** Live speech rate (same preference as the voice-settings slider). */
-    val speechRate: StateFlow<Float> = ttsPreferences.settings
-        .map { it.speechRate }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TtsVoiceLogic.DEFAULT_RATE)
 
     private val _selectedChat = MutableStateFlow<Chat?>(null)
     val selectedChat: StateFlow<Chat?> = _selectedChat.asStateFlow()
@@ -116,13 +104,6 @@ class HomeViewModel @Inject constructor(
 
     fun deselectAll() {
         playbackManager.deselectAll()
-    }
-
-    /** Cycles 1.0 → 1.25 → 1.5 → 2.0 → 1.0 and writes the shared speech-rate preference. */
-    fun cyclePlaybackSpeed() {
-        val next = PlaybackSpeedCycle.next(ttsPreferences.settings.value.speechRate)
-        ttsPreferences.update { TtsVoiceLogic.withRate(it, next) }
-        ttsManager.refreshSettings()
     }
 
     /**

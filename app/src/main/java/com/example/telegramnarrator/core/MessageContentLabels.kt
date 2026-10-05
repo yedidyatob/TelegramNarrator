@@ -5,8 +5,9 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.domain.model.MessageContentType
 
 /**
- * Short localized label announced for a message that has no text of its own,
- * or null when nothing should be said (plain text, unsupported content).
+ * Short localized label for a message that has no text of its own (used in the **UI** chat preview).
+ * Playback does not speak these placeholders — see [com.example.telegramnarrator.domain.audio.MessageSpeechBody].
+ * Returns null for plain text / unsupported content.
  */
 @StringRes
 fun MessageContentType.labelRes(): Int? = when (this) {

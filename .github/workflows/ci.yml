@@ -26,6 +26,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Inject Telegram API credentials from repo Actions secrets so the debug APK
+      # can log in. Without them BuildConfig fields stay empty and the login screen errors.
+      - name: Write Telegram API credentials
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          if [ -n "$TELEGRAM_API_ID" ] && [ -n "$TELEGRAM_API_HASH" ]; then
+            {
+              echo "TELEGRAM_API_ID=$TELEGRAM_API_ID"
+              echo "TELEGRAM_API_HASH=$TELEGRAM_API_HASH"
+            } >> local.properties
+            echo "Wrote TELEGRAM_API_* into local.properties for this build."
+          else
+            echo "::warning::TELEGRAM_API_ID / TELEGRAM_API_HASH secrets are not set; the debug APK will show a login-screen error until they are configured under Settings → Secrets and variables → Actions."
+          fi
+
       # gradle.properties still carries the maintainer's Windows-only JDK path and
       # trust-store settings; command-line -D properties take precedence over it.
       # (TODO: move those to ~/.gradle/gradle.properties and drop these overrides.)
@@ -42,9 +59,16 @@ jobs:
           name: test-reports
           path: app/build/reports/tests/
           if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Prepare debug APK artifact
+        run: |
+          mkdir -p artifact
+          cp app/build/outputs/apk/debug/*.apk artifact/TelegramNarrator-debug.apk
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: TelegramNarrator-debug
+          path: artifact/TelegramNarrator-debug.apk
+          retention-days: 14

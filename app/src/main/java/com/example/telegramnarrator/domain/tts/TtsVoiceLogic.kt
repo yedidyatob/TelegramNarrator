@@ -28,14 +28,19 @@ data class TtsSettings(
     val enginePackage: String? = null,
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     val voices: Map<String, String> = emptyMap(),
-    /** User's choice for "mark messages as read in Telegram"; null = not chosen, use the build default. */
+    /** User's choice for "mark messages as read in Telegram"; null = not chosen, default on. */
     val markAsReadOverride: Boolean? = null
 ) {
     /**
-     * Whether played messages are marked as read in Telegram. Defaults to on for release builds and off for
-     * debug builds (so testing does not mark real chats as read), unless the user chose explicitly.
+     * Whether played messages are marked as read in Telegram. Defaults to **on** for every build
+     * (debug and release). Device testing previously left this off in debug APKs, so listening never
+     * marked messages read and "Play from start" replayed the same unread set. The Voice settings
+     * switch still lets the user turn it off explicitly ([markAsReadOverride] = false).
+     *
+     * [isDebugBuild] is kept for call-site compatibility; it no longer changes the default.
      */
-    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean = markAsReadOverride ?: !isDebugBuild
+    @Suppress("UNUSED_PARAMETER")
+    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean = markAsReadOverride ?: true
 }
 
 /** Pure helpers behind the TTS settings (no Android dependencies, unit tested). */

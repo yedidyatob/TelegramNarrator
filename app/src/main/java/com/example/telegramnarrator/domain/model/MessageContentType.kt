@@ -1,8 +1,9 @@
 package com.example.telegramnarrator.domain.model
 
 /**
- * Kind of content of a [Message]. [Message.text] only holds the text / caption, so for media
- * without a caption this tells the player what to announce ("Photo", "Sticker", ...).
+ * Kind of content of a [Message]. [Message.text] only holds the text / caption.
+ * Media without a caption is shown with a short label in the UI, but is **not** spoken as a
+ * "Photo"/"Video" placeholder during playback (see [com.example.telegramnarrator.domain.audio.MessageSpeechBody]).
  */
 enum class MessageContentType {
     TEXT,

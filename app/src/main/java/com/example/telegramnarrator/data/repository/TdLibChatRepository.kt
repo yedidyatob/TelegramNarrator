@@ -33,7 +33,7 @@ class TdLibChatRepository @Inject constructor(
     // Public state for UI
     private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
     
-    // User setting (Voice settings sheet); without an explicit choice: on in release, off in debug builds
+    // User setting (Voice settings sheet); default ON for debug and release (override via the switch)
     override var markAsReadEnabled: Boolean
         get() = ttsPreferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
         set(value) = ttsPreferences.update { it.copy(markAsReadOverride = value) }
@@ -205,7 +205,7 @@ class TdLibChatRepository @Inject constructor(
 
     override suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>) {
         if (!markAsReadEnabled) {
-            Log.d("ChatRepository", "Mark as read skipped (Debug/Disabled): $chatId")
+            Log.d("ChatRepository", "Mark as read skipped (disabled in settings): $chatId")
             return
         }
         if (messageIds.isEmpty()) {
@@ -213,9 +213,33 @@ class TdLibChatRepository @Inject constructor(
             Log.d("ChatRepository", "Mark as read skipped (no messages): $chatId")
             return
         }
-        Log.d("ChatRepository", "Marking ${messageIds.size} messages as read in chat: $chatId")
+        Log.d("ChatRepository", "Marking ${messageIds.size} messages as read in chat: $chatId ids=$messageIds")
         try {
+            // TDLib quirk: OpenChat before ViewMessages so the chat is treated as "being viewed".
+            // forceRead=true should mark without an open chat, but some channel/supergroup paths
+            // only update lastReadInboxMessageId reliably after OpenChat. Best-effort; failure
+            // must not block ViewMessages.
+            try {
+                client.send<TdApi.Ok>(TdApi.OpenChat(chatId))
+            } catch (openError: Exception) {
+                Log.w("ChatRepository", "OpenChat failed for $chatId (continuing with ViewMessages)", openError)
+            }
+            // forceRead=true: mark even if the user is not actively staring at the chat UI
             client.send<TdApi.Ok>(TdApi.ViewMessages(chatId, messageIds.toLongArray(), null, true))
+            // Refresh local unread count immediately. UpdateChatReadInbox usually follows, but
+            // after pause the UI should not wait on that race — otherwise the badge stays stale
+            // and a new Play All reloads the same messages from lastReadInboxMessageId.
+            try {
+                val refreshed = client.send<TdApi.Chat>(TdApi.GetChat(chatId))
+                chatCache[chatId] = refreshed
+                refreshUnreadList()
+                Log.d(
+                    "ChatRepository",
+                    "After mark-read chat=$chatId unread=${refreshed.unreadCount} lastRead=${refreshed.lastReadInboxMessageId}"
+                )
+            } catch (refreshError: Exception) {
+                Log.w("ChatRepository", "Marked read but could not refresh chat $chatId", refreshError)
+            }
         } catch (e: Exception) {
             Log.e("ChatRepository", "Failed to mark chat as read: $chatId", e)
         }

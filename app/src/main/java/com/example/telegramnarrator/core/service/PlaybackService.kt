@@ -21,16 +21,15 @@ import com.example.telegramnarrator.core.audio.AudioFocusController
 import com.example.telegramnarrator.domain.audio.AudioFocusPolicy
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
-import com.example.telegramnarrator.core.labelRes
+import com.example.telegramnarrator.domain.audio.MessageSpeechBody
 import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.domain.audio.AudioQueue
-import com.example.telegramnarrator.core.SpokenStrings
 import com.example.telegramnarrator.domain.audio.MessageCleaner
-import com.example.telegramnarrator.domain.audio.SpokenPhraseLanguage
 import com.example.telegramnarrator.domain.audio.PlaybackItem
 import com.example.telegramnarrator.domain.audio.PlaybackManager
-import com.example.telegramnarrator.domain.audio.SenderAnnouncement
+import com.example.telegramnarrator.domain.audio.PlaybackReadProgress
+import com.example.telegramnarrator.domain.audio.VoiceNotePlayback
 import com.example.telegramnarrator.domain.audio.ReadCheckpointer
 import com.example.telegramnarrator.domain.model.Chat
 import com.example.telegramnarrator.domain.repository.ChatRepository
@@ -78,15 +77,6 @@ class PlaybackService : Service() {
     private val itemGeneration = AtomicInteger(0)
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
-    private var lastSender: String? = null
-    // True until the first spoken message of the current chat (its sender is not announced)
-    private var isFirstMessageInChat = false
-    // Title of the chat being read (the language of the spoken phrases can depend on it)
-    private var currentChatTitle: String? = null
-    private val spokenStrings by lazy { SpokenStrings(this) }
-    // Values before currentItem updated them (restored if the item is replayed after a pause)
-    private var senderBeforeCurrentItem: String? = null
-    private var firstMessageBeforeCurrentItem = false
     
     private lateinit var mediaSession: MediaSessionCompat
 
@@ -214,7 +204,13 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
-                audioQueue.add(PlaybackItem.Intro(title, chatId, silent = decisions.all { it.dropped }))
+                audioQueue.add(
+                    PlaybackItem.Intro(
+                        title,
+                        chatId,
+                        silent = decisions.all { it.dropped }
+                    )
+                )
                 decisions.forEach { decision ->
                     val msg = decision.message
                     audioQueue.add(
@@ -271,88 +267,59 @@ class PlaybackService : Service() {
         
         when (item) {
             is PlaybackItem.Intro -> {
-                lastSender = null
-                isFirstMessageInChat = true
-                currentChatTitle = item.chatName
                 playbackManager.setPlayingChatId(item.chatId)
                 if (item.silent) {
                     processQueue()
                 } else {
-                    // The phrase is said in Hebrew only if the chat title is Hebrew (not by device locale)
-                    val phrases = SpokenPhraseLanguage.choose(item.chatName)
-                    ttsManager.speak(spokenStrings.get(phrases, R.string.playback_new_chat, item.chatName)) { processQueue() }
+                    // Language-neutral ding (no spoken "New chat" / "שיחה חדשה")
+                    playChatBoundaryDing(generation)
                 }
             }
             is PlaybackItem.MessageItem -> {
                 if (item.dropped) {
                     // Dropped by the channel rules: not read, but handled, so it is marked as read in order
-                    markMessagePlayed(item)
+                    onMessageFullyPlayed(item)
                     processQueue()
                     return
                 }
-                // Language of the app's own phrases ("Message from", "Photo", ...): decided by the content,
-                // not the device locale - the message text first, then the sender, then the chat title
                 val cleanedText = MessageCleaner.clean(item.text)
-                val phrases = SpokenPhraseLanguage.choose(cleanedText, item.sender, currentChatTitle)
-                val sender = item.sender ?: spokenStrings.get(phrases, R.string.playback_unknown_sender)
 
-                // Media without a caption is announced by its type ("Photo", "Sticker", ...);
-                // content we can't handle has no label and is skipped below
-                val text = cleanedText
-                    .ifBlank { item.contentType.labelRes()?.let { spokenStrings.get(phrases, it) } ?: "" }
-                // Filter if blank to not pause
-                if (text.isBlank() && item.voiceNoteFileId == null) {
-                    // Nothing to say (unsupported content, emoji only, ...): handled, so mark it read
-                    markMessagePlayed(item)
-                    processQueue()
-                    return
-                }
-
-                // Announce the sender only when it changes, and never on the first spoken message of a
-                // chat (the "New chat: ..." intro already named it). Decided once, before lastSender /
-                // isFirstMessageInChat are updated, and reused for text and voice-note intros.
-                val senderKey = item.sender.orEmpty()
-                val decision = SenderAnnouncement.decide(senderKey, lastSender, isFirstMessageInChat)
-                senderBeforeCurrentItem = decision.previousLastSender
-                firstMessageBeforeCurrentItem = decision.previousIsFirstMessageInChat
-                lastSender = decision.nextLastSender
-                isFirstMessageInChat = decision.nextIsFirstMessageInChat
-
-                val speechText = if (decision.announceSender) {
-                    spokenStrings.get(phrases, R.string.playback_from, sender, text)
-                } else {
-                    text
-                }
-
+                // Voice notes: play the downloaded audio in the queue — never speak "Voice note" / sender.
+                // If the file cannot be downloaded or played, skip silently (still mark read) like a photo.
                 if (item.voiceNoteFileId != null) {
-                    val voiceNoteLabel = spokenStrings.get(phrases, R.string.playback_voice_note)
-                    val introText = if (decision.announceSender) {
-                        spokenStrings.get(phrases, R.string.playback_from, sender, voiceNoteLabel)
-                    } else {
-                        voiceNoteLabel
-                    }
                     scope.launch {
                         val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
                         // Paused / skipped / stopped while the file was downloading
                         if (generation != itemGeneration.get()) return@launch
-                        if (path != null) {
-                            ttsManager.speak(introText) { 
-                                playAudioFile(path, generation, item)
+                        when (val outcome = VoiceNotePlayback.afterDownload(path)) {
+                            is VoiceNotePlayback.Outcome.Play ->
+                                playAudioFile(outcome.path, generation, item)
+                            VoiceNotePlayback.Outcome.SkipSilently -> {
+                                onMessageFullyPlayed(item)
+                                processQueue()
                             }
-                        } else {
-                            speakMessage(item, speechText)
                         }
                     }
-                } else {
-                    speakMessage(item, speechText)
+                    return
                 }
+
+                // Media-only (photo/video/sticker/... with no caption) and symbol-only rows: not spoken.
+                // Skip silently but still mark as read when we pass them (batches with the next text).
+                if (MessageSpeechBody.shouldSkipSilently(cleanedText, item.contentType, item.voiceNoteFileId)) {
+                    onMessageFullyPlayed(item)
+                    processQueue()
+                    return
+                }
+                val text = MessageSpeechBody.resolve(cleanedText, item.contentType).orEmpty()
+                // No "Message from X:" — speak the body only (notification still shows the sender).
+                speakMessage(item, text)
             }
             is PlaybackItem.Silence -> {
                 processQueue()
             }
             is PlaybackItem.Outro -> {
-                  val phrases = SpokenPhraseLanguage.choose(currentChatTitle)
-                  ttsManager.speak(spokenStrings.get(phrases, R.string.playback_end)) { stopPlayback() }
+                // Distinct ding (not speech, not the chat-boundary tone)
+                playEndOfMessagesDing(generation)
             }
         }
     }
@@ -360,7 +327,7 @@ class PlaybackService : Service() {
     // Speaks a message; it counts as played (and gets marked as read) only if the speech finished
     private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
         ttsManager.speak(speechText) { completed ->
-            if (completed) markMessagePlayed(item)
+            if (completed) onMessageFullyPlayed(item)
             processQueue()
         }
     }
@@ -381,13 +348,17 @@ class PlaybackService : Service() {
                     it.release()
                     if (mediaPlayer === it) mediaPlayer = null
                     // The voice note played to the end
-                    markMessagePlayed(item)
+                    onMessageFullyPlayed(item)
                     processQueue()
                 }
                 setOnErrorListener { mp, _, _ ->
                     mp.release()
                     if (mediaPlayer === mp) mediaPlayer = null
-                    processQueue()
+                    // Unplayable voice note: skip silently but still mark read (like a photo)
+                    if (generation == itemGeneration.get()) {
+                        onMessageFullyPlayed(item)
+                        processQueue()
+                    }
                     true
                 }
                 prepare()
@@ -402,7 +373,69 @@ class PlaybackService : Service() {
         } catch (e: Exception) {
             player.release()
             if (mediaPlayer === player) mediaPlayer = null
+            if (generation == itemGeneration.get()) {
+                onMessageFullyPlayed(item)
+                processQueue()
+            }
+        }
+    }
+
+    /** Short language-neutral ding that marks a chat boundary (replaces spoken "New chat: …"). */
+    private fun playChatBoundaryDing(generation: Int) {
+        playRawDing(R.raw.chat_boundary_ding, generation) {
             if (generation == itemGeneration.get()) processQueue()
+        }
+    }
+
+    /** Distinct end cue (not speech, not the chat-boundary ding). */
+    private fun playEndOfMessagesDing(generation: Int) {
+        playRawDing(R.raw.end_of_messages_ding, generation) {
+            if (generation == itemGeneration.get()) stopPlayback()
+        }
+    }
+
+    /**
+     * Plays a short raw WAV ding via the same [mediaPlayer] slot as voice notes.
+     * [onDone] runs on completion, error, or prepare failure (when still current).
+     */
+    private fun playRawDing(resId: Int, generation: Int, onDone: () -> Unit) {
+        releaseMediaPlayer()
+        val player = android.media.MediaPlayer()
+        try {
+            player.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            val afd = resources.openRawResourceFd(resId)
+            try {
+                player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            } finally {
+                afd.close()
+            }
+            player.setOnCompletionListener {
+                it.release()
+                if (mediaPlayer === it) mediaPlayer = null
+                onDone()
+            }
+            player.setOnErrorListener { mp, _, _ ->
+                mp.release()
+                if (mediaPlayer === mp) mediaPlayer = null
+                onDone()
+                true
+            }
+            player.prepare()
+            if (!isPlaying || isPaused || generation != itemGeneration.get()) {
+                player.release()
+                return
+            }
+            mediaPlayer = player
+            player.start()
+        } catch (e: Exception) {
+            player.release()
+            if (mediaPlayer === player) mediaPlayer = null
+            if (generation == itemGeneration.get()) onDone()
         }
     }
 
@@ -439,8 +472,6 @@ class PlaybackService : Service() {
         ttsManager.stop()
         releaseMediaPlayer()
         currentItem = null
-        lastSender = null
-        isFirstMessageInChat = false
         audioQueue.skipToNextChat()
         processQueue()
     }
@@ -449,9 +480,7 @@ class PlaybackService : Service() {
         if (!isPlaying || isPaused) return
         isPaused = true
         playbackManager.setPaused(true)
-        // The interrupted message is not marked as read; the ones that finished are sent now
-        flushReadCheckpoints()
-        // Invalidate everything that is still pending for the current item
+        // Invalidate in-flight audio first so late callbacks cannot start the next item
         itemGeneration.incrementAndGet()
 
         val player = mediaPlayer
@@ -465,17 +494,18 @@ class PlaybackService : Service() {
             }
         } else {
             ttsManager.stop()
-            // Push the current item back so it plays (from its start) when resumed
-            currentItem?.let {
+            // Push only an in-progress item back. Completed messages are cleared in
+            // onMessageFullyPlayed so a race with pause cannot replay them.
+            PlaybackReadProgress.itemToRequeueOnPause(currentItem)?.let {
                 audioQueue.addFirst(it)
                 currentItem = null
-                // The message will be announced again from its start, including its sender
-                if (it is PlaybackItem.MessageItem) {
-                    lastSender = senderBeforeCurrentItem
-                    isFirstMessageInChat = firstMessageBeforeCurrentItem
-                }
             }
+            currentItem = null
         }
+
+        // Flush after stop/requeue so a completion that raced with pause is still marked read now.
+        // The interrupted in-progress message was never passed to messagePlayed, so it stays unread.
+        flushReadCheckpoints()
 
         updateMediaSessionState()
         refreshNotification()
@@ -556,6 +586,15 @@ class PlaybackService : Service() {
             foregroundStarted = false
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
+    }
+
+    /**
+     * Message finished (spoken / voice note / dropped / empty): clear [currentItem] if it still
+     * points here so pause cannot re-queue it, then checkpoint for mark-as-read.
+     */
+    private fun onMessageFullyPlayed(item: PlaybackItem.MessageItem) {
+        currentItem = PlaybackReadProgress.afterMessageCompleted(currentItem, item)
+        markMessagePlayed(item)
     }
 
     /** A message was fully played (or deliberately skipped): queue it for marking as read. */

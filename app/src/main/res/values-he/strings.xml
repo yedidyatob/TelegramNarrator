@@ -3,12 +3,8 @@
     <!-- Home Screen -->
     <string name="message_unsupported_content">תוכן לא נתמך</string>
 
-    <!-- Playback Service. Only the phrases that are SPOKEN aloud are translated; the app's UI is English.
-         Which set is spoken depends on the content (Hebrew chat/message), not the device locale:
-         see SpokenPhraseLanguage. -->
-    <string name="playback_new_chat">שיחה חדשה: %1$s</string>
-    <string name="playback_from">הודעה מאת %1$s: %2$s</string>
-    <string name="playback_end">אין עוד הודעות.</string>
+    <!-- Hebrew overrides for labels that may appear in the UI / link replacement when the device
+         locale is Hebrew. Chat-boundary and end-of-queue cues are language-neutral dings (not speech). -->
     <string name="playback_link">קישור</string>
     <string name="playback_voice_note">הודעה קולית</string>
     <string name="playback_content_photo">תמונה</string>

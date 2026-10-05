@@ -12,14 +12,15 @@ another; messages are marked as read in Telegram only after they were actually s
 - Telegram login (phone number, code, optional 2FA password) via TDLib
 - Unread chat list, "Play all" or play a single chat, pause/resume, skip message, skip chat
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
-- Voice notes are played as audio, announced by sender
-- Language is detected **per message** (Hebrew/English); the app's own phrases ("Message from ...") are spoken in
-  Hebrew only when the content is Hebrew - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
+- Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
+- Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
+- Chat boundaries and end-of-queue use distinct language-neutral dings (not spoken "New chat" / "End of messages")
+- Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
-The UI is English only by design; only the spoken phrases have a Hebrew version.
+The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
 
 ## Build
 
@@ -60,11 +61,12 @@ Artifacts are kept for about **14 days**.
 
 For a working login, set repository Actions secrets `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` (from <https://my.telegram.org>). CI writes them into `local.properties` before `assembleDebug`. Without those secrets the APK still builds, but the login screen shows an API-credentials error.
 
-### Debug vs release behaviour
+### Mark as read
 
-Debug builds **do not mark messages as read** in Telegram by default, so testing does not touch real chats.
-Use the "Mark messages as read in Telegram" switch in *Voice settings* to turn it on explicitly. Release builds
-mark messages as read by default.
+Played (or deliberately skipped) messages are marked as read in Telegram by default in **both** debug and
+release builds, so the unread badge drops and "Play from start" does not re-narrate already-heard messages.
+Use the **"Mark messages as read in Telegram"** switch in *Voice settings* to turn this off while testing.
+See [docs/mark-as-read.md](docs/mark-as-read.md) for the TDLib call sequence and quirks.
 
 ## Project layout
 
@@ -100,6 +102,28 @@ database, no use-case layer yet, no dedicated Player screen). The open polish wo
 
 Not published. Before a Play release see the publishing checklist in the roadmap (applicationId is still
 `com.example.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
+
+
+
+## TDLib / 16 KB page size
+
+Native TDLib comes from the JitPack artifact [`com.github.tdlibx:td:1.8.56`](https://github.com/tdlibx/td)
+(`libtdjni.so` inside the AAR). There is no separately vendored copy under `app/libs`.
+
+Google Play / Android 15+ require 16 KB page-size support for native code on 64-bit devices:
+
+| ABI | ELF `LOAD` align (tdlibx 1.8.56) | Status |
+|-----|----------------------------------|--------|
+| arm64-v8a | `0x4000` (16 KB) | OK |
+| x86_64 | `0x4000` (16 KB) | OK |
+| armeabi-v7a | `0x1000` (4 KB) | Not 16 KB (32-bit; Play's 16 KB rule targets 64-bit) |
+| x86 | `0x1000` (4 KB) | Same as above |
+
+This project sets `packaging.jniLibs.useLegacyPackaging = true` so native libs are stored compressed
+and extracted at install time (avoids the APK mmap ZIP 16 KB alignment requirement). That is not a
+substitute for a correctly aligned `.so` on 16 KB devices — the 64-bit builds from tdlibx already
+are aligned; a future TDLib rebuild with NDK r28+ (`-Wl,-z,max-page-size=16384`) is the durable fix
+if Play or a device still rejects the package. Tracking: https://github.com/yedidyatob/TelegramNarrator/issues/45 .
 
 ## License
 

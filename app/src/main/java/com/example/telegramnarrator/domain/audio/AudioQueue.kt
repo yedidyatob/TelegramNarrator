@@ -1,11 +1,18 @@
 package com.example.telegramnarrator.domain.audio
 
-import com.example.telegramnarrator.domain.model.Message
 import com.example.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
-    // silent: every message of the chat is dropped by the channel rules, so the chat isn't announced
-    data class Intro(val chatName: String, val chatId: Long, val silent: Boolean = false) : PlaybackItem()
+    /**
+     * Chat boundary cue (played as a short language-neutral ding, not spoken TTS).
+     *
+     * @param silent every message of the chat is dropped by the channel rules, so the chat isn't cued
+     */
+    data class Intro(
+        val chatName: String,
+        val chatId: Long,
+        val silent: Boolean = false
+    ) : PlaybackItem()
     data class MessageItem(
         val sender: String?,
         val text: String,
