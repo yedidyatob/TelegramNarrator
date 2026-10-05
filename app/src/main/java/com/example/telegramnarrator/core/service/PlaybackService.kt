@@ -21,7 +21,7 @@ import com.example.telegramnarrator.core.audio.AudioFocusController
 import com.example.telegramnarrator.domain.audio.AudioFocusPolicy
 import com.example.telegramnarrator.MainActivity
 import com.example.telegramnarrator.R
-import com.example.telegramnarrator.core.labelRes
+import com.example.telegramnarrator.domain.audio.MessageSpeechBody
 import com.example.telegramnarrator.data.rules.ChannelRulesRepository
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.domain.audio.AudioQueue
@@ -215,7 +215,17 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
-                audioQueue.add(PlaybackItem.Intro(title, chatId, silent = decisions.all { it.dropped }))
+                // Phrase language for "New chat" follows upcoming message content, not title/device locale
+                val speakable = decisions.filter { !it.dropped }
+                audioQueue.add(
+                    PlaybackItem.Intro(
+                        title,
+                        chatId,
+                        silent = decisions.all { it.dropped },
+                        languageHintTexts = speakable.map { it.text },
+                        languageHintSenders = speakable.mapNotNull { it.message.senderName }
+                    )
+                )
                 decisions.forEach { decision ->
                     val msg = decision.message
                     audioQueue.add(
@@ -279,8 +289,10 @@ class PlaybackService : Service() {
                 if (item.silent) {
                     processQueue()
                 } else {
-                    // The phrase is said in Hebrew only if the chat title is Hebrew (not by device locale)
-                    val phrases = SpokenPhraseLanguage.choose(item.chatName)
+                    // Match upcoming message language (Hebrew content -> Hebrew "שיחה חדשה"), not device locale / title alone
+                    val phrases = SpokenPhraseLanguage.forIntro(
+                        item.chatName, item.languageHintTexts, item.languageHintSenders
+                    )
                     ttsManager.speak(spokenStrings.get(phrases, R.string.playback_new_chat, item.chatName)) { processQueue() }
                 }
             }
@@ -291,23 +303,20 @@ class PlaybackService : Service() {
                     processQueue()
                     return
                 }
-                // Language of the app's own phrases ("Message from", "Photo", ...): decided by the content,
+                // Language of the app's own phrases ("Message from", "Voice note", ...): decided by the content,
                 // not the device locale - the message text first, then the sender, then the chat title
                 val cleanedText = MessageCleaner.clean(item.text)
                 val phrases = SpokenPhraseLanguage.choose(cleanedText, item.sender, currentChatTitle)
                 val sender = item.sender ?: spokenStrings.get(phrases, R.string.playback_unknown_sender)
 
-                // Media without a caption is announced by its type ("Photo", "Sticker", ...);
-                // content we can't handle has no label and is skipped below
-                val text = cleanedText
-                    .ifBlank { item.contentType.labelRes()?.let { spokenStrings.get(phrases, it) } ?: "" }
-                // Filter if blank to not pause
-                if (text.isBlank() && item.voiceNoteFileId == null) {
-                    // Nothing to say (unsupported content, emoji only, ...): handled, so mark it read
+                // Media-only (photo/video/sticker/... with no caption) is NOT spoken as "Photo"/"Video".
+                // Skip silently but still mark as read when we pass it (batches with the next text via checkpointer).
+                if (MessageSpeechBody.shouldSkipSilently(cleanedText, item.contentType, item.voiceNoteFileId)) {
                     onMessageFullyPlayed(item)
                     processQueue()
                     return
                 }
+                val text = MessageSpeechBody.resolve(cleanedText, item.contentType).orEmpty()
 
                 // Announce the sender only when it changes, and never on the first spoken message of a
                 // chat (the "New chat: ..." intro already named it). Decided once, before lastSender /
@@ -341,7 +350,8 @@ class PlaybackService : Service() {
                                 playAudioFile(path, generation, item)
                             }
                         } else {
-                            speakMessage(item, speechText)
+                            // No file: still announce the voice-note phrase (not an empty body)
+                            speakMessage(item, if (text.isNotBlank()) speechText else introText)
                         }
                     }
                 } else {

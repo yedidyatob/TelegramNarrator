@@ -54,4 +54,65 @@ class SpokenPhraseLanguageTest {
         assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detectOrNull("hello"))
         assertEquals(LanguageDetector.HEBREW, LanguageDetector.detectOrNull("שלום"))
     }
+
+    @Test
+    fun `forIntro prefers upcoming Hebrew messages over Latin chat title`() {
+        // Device-test bug: channel titled in Latin / English brand, Hebrew posts -> must say שיחה חדשה
+        assertEquals(
+            he,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "CNN Breaking",
+                upcomingTexts = listOf("המצב בצפון מחמיר הבוקר"),
+                upcomingSenders = listOf("Editor")
+            )
+        )
+        assertEquals(
+            he,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "Abu Ali Express",
+                upcomingTexts = listOf("", "", "כותרות השבת"),
+                upcomingSenders = emptyList()
+            )
+        )
+    }
+
+    @Test
+    fun `forIntro uses English when upcoming content is English even if title is Hebrew`() {
+        assertEquals(
+            en,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "חדשות העולם",
+                upcomingTexts = listOf("Breaking: markets rally overnight"),
+                upcomingSenders = listOf("דוד")
+            )
+        )
+    }
+
+    @Test
+    fun `forIntro falls back to title then English when messages have no letters`() {
+        assertEquals(
+            he,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "חדשות",
+                upcomingTexts = listOf("", "📷", "12"),
+                upcomingSenders = emptyList()
+            )
+        )
+        assertEquals(
+            en,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "News",
+                upcomingTexts = listOf("", "😀"),
+                upcomingSenders = emptyList()
+            )
+        )
+        assertEquals(
+            he,
+            SpokenPhraseLanguage.forIntro(
+                chatTitle = "News",
+                upcomingTexts = emptyList(),
+                upcomingSenders = listOf("משה")
+            )
+        )
+    }
 }
