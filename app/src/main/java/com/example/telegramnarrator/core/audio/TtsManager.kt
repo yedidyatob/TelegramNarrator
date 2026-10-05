@@ -78,6 +78,13 @@ class TtsManager @Inject constructor(
                     finishUtterance(utteranceId, completed = false)
                 }
             })
+            // Spoken content on the media stream, flagged as speech (matches the audio focus request)
+            tts?.setAudioAttributes(
+                android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
             voices = loadVoices()
             tts?.setSpeechRate(preferences.settings.value.speechRate)
             // Hebrew is the default; the language is switched per utterance in speak()
