@@ -5,8 +5,9 @@ package com.example.telegramnarrator.domain.audio
  * lastSender interaction is unit-tested (the old bug compared lastSender *after* updating it).
  *
  * Rules:
- * - First spoken message of a chat: do **not** announce the sender (the "New chat: ..." intro already
- *   named the chat). Still record the sender so consecutive messages from the same person stay quiet.
+ * - First spoken message of a chat: do **not** announce the sender (the chat-boundary ding already
+ *   marks the switch; the notification shows the chat title). Still record the sender so consecutive
+ *   messages from the same person stay quiet.
  * - Later messages: announce only when the sender key changes.
  */
 object SenderAnnouncement {

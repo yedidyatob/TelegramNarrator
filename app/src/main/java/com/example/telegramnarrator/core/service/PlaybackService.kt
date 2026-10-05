@@ -215,15 +215,11 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
-                // Phrase language for "New chat" follows upcoming message content, not title/device locale
-                val speakable = decisions.filter { !it.dropped }
                 audioQueue.add(
                     PlaybackItem.Intro(
                         title,
                         chatId,
-                        silent = decisions.all { it.dropped },
-                        languageHintTexts = speakable.map { it.text },
-                        languageHintSenders = speakable.mapNotNull { it.message.senderName }
+                        silent = decisions.all { it.dropped }
                     )
                 )
                 decisions.forEach { decision ->
@@ -289,11 +285,8 @@ class PlaybackService : Service() {
                 if (item.silent) {
                     processQueue()
                 } else {
-                    // Match upcoming message language (Hebrew content -> Hebrew "שיחה חדשה"), not device locale / title alone
-                    val phrases = SpokenPhraseLanguage.forIntro(
-                        item.chatName, item.languageHintTexts, item.languageHintSenders
-                    )
-                    ttsManager.speak(spokenStrings.get(phrases, R.string.playback_new_chat, item.chatName)) { processQueue() }
+                    // Language-neutral ding (no spoken "New chat" / "שיחה חדשה")
+                    playChatBoundaryDing(generation)
                 }
             }
             is PlaybackItem.MessageItem -> {
@@ -319,8 +312,8 @@ class PlaybackService : Service() {
                 val text = MessageSpeechBody.resolve(cleanedText, item.contentType).orEmpty()
 
                 // Announce the sender only when it changes, and never on the first spoken message of a
-                // chat (the "New chat: ..." intro already named it). Decided once, before lastSender /
-                // isFirstMessageInChat are updated, and reused for text and voice-note intros.
+                // chat (boundary ding + notification already mark the switch). Decided once, before
+                // lastSender / isFirstMessageInChat are updated, and reused for text and voice-note intros.
                 val senderKey = item.sender.orEmpty()
                 val decision = SenderAnnouncement.decide(senderKey, lastSender, isFirstMessageInChat)
                 senderBeforeCurrentItem = decision.previousLastSender
@@ -404,6 +397,51 @@ class PlaybackService : Service() {
                 prepare()
             }
             // pause / skip / stop may have happened while the file was being prepared
+            if (!isPlaying || isPaused || generation != itemGeneration.get()) {
+                player.release()
+                return
+            }
+            mediaPlayer = player
+            player.start()
+        } catch (e: Exception) {
+            player.release()
+            if (mediaPlayer === player) mediaPlayer = null
+            if (generation == itemGeneration.get()) processQueue()
+        }
+    }
+
+    /**
+     * Short language-neutral ding that marks a chat boundary (replaces spoken "New chat: …").
+     * Uses [R.raw.chat_boundary_ding] via the same [mediaPlayer] slot as voice notes.
+     */
+    private fun playChatBoundaryDing(generation: Int) {
+        releaseMediaPlayer()
+        val player = android.media.MediaPlayer()
+        try {
+            player.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            val afd = resources.openRawResourceFd(R.raw.chat_boundary_ding)
+            try {
+                player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            } finally {
+                afd.close()
+            }
+            player.setOnCompletionListener {
+                it.release()
+                if (mediaPlayer === it) mediaPlayer = null
+                if (generation == itemGeneration.get()) processQueue()
+            }
+            player.setOnErrorListener { mp, _, _ ->
+                mp.release()
+                if (mediaPlayer === mp) mediaPlayer = null
+                if (generation == itemGeneration.get()) processQueue()
+                true
+            }
+            player.prepare()
             if (!isPlaying || isPaused || generation != itemGeneration.get()) {
                 player.release()
                 return

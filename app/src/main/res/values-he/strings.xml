@@ -6,7 +6,6 @@
     <!-- Playback Service. Only the phrases that are SPOKEN aloud are translated; the app's UI is English.
          Which set is spoken depends on the content (Hebrew chat/message), not the device locale:
          see SpokenPhraseLanguage. -->
-    <string name="playback_new_chat">שיחה חדשה: %1$s</string>
     <string name="playback_from">הודעה מאת %1$s: %2$s</string>
     <string name="playback_end">אין עוד הודעות.</string>
     <string name="playback_link">קישור</string>
