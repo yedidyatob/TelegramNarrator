@@ -29,9 +29,16 @@ class OpenAiSpeechSynthesizer @Inject constructor(
     fun discard(file: File) = cache.remove(file)
 
     fun synthesize(text: String): SpeechSynthesisOutcome {
+        if (!isOpenAiEnabled()) return SpeechSynthesisOutcome.UseSystem
+        return synthesizeWithSavedKey(text)
+    }
+
+    /** "Test voice" in settings: the selected model / voice with the saved key (the caller checks a key is saved). */
+    fun synthesizeForTest(text: String): SpeechSynthesisOutcome = synthesizeWithSavedKey(text)
+
+    private fun synthesizeWithSavedKey(text: String): SpeechSynthesisOutcome {
         val settings = preferences.settings.value
         val opts = settings.openAi
-        if (!isOpenAiEnabled()) return SpeechSynthesisOutcome.UseSystem
         val apiKey = keyStore.getApiKey()
         if (apiKey == null) {
             return SpeechSynthesisOutcome.Fallback("OpenAI TTS needs an API key. Using system voice.")

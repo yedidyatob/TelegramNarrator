@@ -90,14 +90,80 @@ class EdgeTtsTest {
     }
 
     @Test
-    fun `hebrew voices hand non-hebrew text to a multilingual voice of the same gender`() {
-        assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(EdgeTts.VOICE_AVRI, "he"))
-        assertEquals(EdgeTts.VOICE_HILA, EdgeTts.voiceFor(EdgeTts.VOICE_HILA, "he"))
-        assertEquals(EdgeTts.VOICE_ANDREW_MULTILINGUAL, EdgeTts.voiceFor(EdgeTts.VOICE_AVRI, "en"))
-        assertEquals(EdgeTts.VOICE_AVA_MULTILINGUAL, EdgeTts.voiceFor(EdgeTts.VOICE_HILA, "ru"))
-        // Other voices are used as-is for every language
-        assertEquals("en-GB-SoniaNeural", EdgeTts.voiceFor("en-GB-SoniaNeural", "he"))
-        assertEquals(EdgeTts.VOICE_AVA_MULTILINGUAL, EdgeTts.voiceFor(EdgeTts.VOICE_AVA_MULTILINGUAL, "en"))
+    fun `gender picks avri or hila for hebrew and andrew or ava for every other language`() {
+        val male = EdgeTtsOptions(gender = EdgeVoiceGender.MALE)
+        val female = EdgeTtsOptions(gender = EdgeVoiceGender.FEMALE)
+        assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(male, "he"))
+        assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(male, "iw"))
+        assertEquals(EdgeTts.VOICE_HILA, EdgeTts.voiceFor(female, "he"))
+        for (language in listOf("en", "ru", "ar", "fr", "")) {
+            assertEquals(EdgeTts.VOICE_ANDREW_MULTILINGUAL, EdgeTts.voiceFor(male, language))
+            assertEquals(EdgeTts.VOICE_AVA_MULTILINGUAL, EdgeTts.voiceFor(female, language))
+        }
+    }
+
+    @Test
+    fun `a custom voice overrides the gender for every language`() {
+        val custom = EdgeTtsOptions(gender = EdgeVoiceGender.FEMALE, customVoice = "en-GB-SoniaNeural")
+        assertEquals("en-GB-SoniaNeural", EdgeTts.voiceFor(custom, "he"))
+        assertEquals("en-GB-SoniaNeural", EdgeTts.voiceFor(custom, "en"))
+        // An invalid custom value (corrupt prefs) is ignored rather than sent to the service
+        val broken = EdgeTtsOptions(gender = EdgeVoiceGender.MALE, customVoice = "x'/><evil")
+        assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(broken, "he"))
+    }
+
+    @Test
+    fun `default options are male without a custom voice`() {
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.MALE, null), EdgeTtsOptions())
+        assertEquals(EdgeVoiceGender.MALE, EdgeVoiceGender.fromId(null))
+        assertEquals(EdgeVoiceGender.MALE, EdgeVoiceGender.fromId("unknown"))
+        assertEquals(EdgeVoiceGender.FEMALE, EdgeVoiceGender.fromId("female"))
+    }
+
+    // ---- Prefs migration (single edge_voice -> gender + custom voice) ----
+
+    @Test
+    fun `legacy avri and andrew migrate to male, hila and ava to female`() {
+        fun migrate(legacy: String?) = EdgeTts.optionsFromStored(gender = null, customVoice = null, legacyVoice = legacy)
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.MALE), migrate(EdgeTts.VOICE_AVRI))
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.MALE), migrate(EdgeTts.VOICE_ANDREW_MULTILINGUAL))
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.FEMALE), migrate(EdgeTts.VOICE_HILA))
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.FEMALE), migrate(EdgeTts.VOICE_AVA_MULTILINGUAL))
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.FEMALE), migrate(" he-IL-HilaNeural "))
+    }
+
+    @Test
+    fun `any other legacy voice becomes the advanced custom voice`() {
+        val migrated = EdgeTts.optionsFromStored(null, null, "en-GB-SoniaNeural")
+        assertEquals("en-GB-SoniaNeural", migrated.customVoice)
+        assertEquals(EdgeVoiceGender.MALE, migrated.gender)
+        // The audio a migrated user hears does not change
+        assertEquals("en-GB-SoniaNeural", EdgeTts.voiceFor(migrated, "he"))
+        assertEquals(
+            EdgeTts.VOICE_AVA_MULTILINGUAL,
+            EdgeTts.voiceFor(EdgeTts.optionsFromStored(null, null, EdgeTts.VOICE_HILA), "en")
+        )
+    }
+
+    @Test
+    fun `missing or invalid legacy voice gives the defaults`() {
+        assertEquals(EdgeTtsOptions(), EdgeTts.optionsFromStored(null, null, null))
+        assertEquals(EdgeTtsOptions(), EdgeTts.optionsFromStored(null, null, ""))
+        assertEquals(EdgeTtsOptions(), EdgeTts.optionsFromStored(null, null, "not a voice"))
+    }
+
+    @Test
+    fun `new keys win over the legacy voice`() {
+        assertEquals(
+            EdgeTtsOptions(EdgeVoiceGender.FEMALE),
+            EdgeTts.optionsFromStored(gender = "female", customVoice = null, legacyVoice = EdgeTts.VOICE_AVRI)
+        )
+        assertEquals(
+            EdgeTtsOptions(EdgeVoiceGender.MALE, "de-DE-KatjaNeural"),
+            EdgeTts.optionsFromStored(gender = "male", customVoice = "de-DE-KatjaNeural", legacyVoice = EdgeTts.VOICE_HILA)
+        )
+        // An invalid stored custom voice is dropped
+        assertEquals(EdgeTtsOptions(EdgeVoiceGender.MALE), EdgeTts.optionsFromStored("male", "bad name", null))
     }
 
     // ---- Messages / SSML ----

@@ -36,7 +36,6 @@ class TtsVoiceLogicTest {
         assertEquals(1.3f, TtsVoiceLogic.clampRate(1.2999f), 0f)
         assertEquals(1.0f, TtsVoiceLogic.clampRate(Float.NaN), 0f)
         assertEquals(1.0f, TtsVoiceLogic.clampRate(Float.POSITIVE_INFINITY), 0f)
-        assertEquals("1.5x", TtsVoiceLogic.rateLabel(1.5f))
     }
 
     @Test
@@ -96,17 +95,16 @@ class TtsVoiceLogicTest {
     }
 
     @Test
-    fun `test sentence follows the language`() {
-        assertTrue(TtsVoiceLogic.testSentence("he").contains("שלום"))
-        assertTrue(TtsVoiceLogic.testSentence("iw").contains("שלום"))
-        assertTrue(TtsVoiceLogic.testSentence("en").startsWith("Hello"))
-        assertTrue(TtsVoiceLogic.testSentence("ru").startsWith("Hello"))
+    fun `test sample is hebrew`() {
+        assertTrue(TtsVoiceLogic.TEST_SENTENCE_HE.contains("שלום"))
+        assertEquals("he", TtsVoiceLogic.TEST_LANGUAGE)
     }
 
     @Test
-    fun `describe shows locale and quality`() {
-        assertEquals("he-IL · high quality", TtsVoiceLogic.describe(heHigh))
-        assertEquals("en-US · normal quality", TtsVoiceLogic.describe(enUs))
-        assertEquals("en-US · basic quality", TtsVoiceLogic.describe(voice("x", "en-US", 200)))
+    fun `quality buckets`() {
+        assertEquals(VoiceQuality.HIGH, TtsVoiceLogic.qualityOf(heHigh))
+        assertEquals(VoiceQuality.HIGH, TtsVoiceLogic.qualityOf(heLocal))
+        assertEquals(VoiceQuality.NORMAL, TtsVoiceLogic.qualityOf(enUs))
+        assertEquals(VoiceQuality.BASIC, TtsVoiceLogic.qualityOf(voice("x", "en-US", 200)))
     }
 }

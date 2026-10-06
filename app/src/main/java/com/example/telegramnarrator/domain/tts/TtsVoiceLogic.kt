@@ -80,9 +80,6 @@ object TtsVoiceLogic {
         return Math.round(clamped * 10f) / 10f
     }
 
-    /** "1.0x" style label. */
-    fun rateLabel(rate: Float): String = String.format(java.util.Locale.US, "%.1fx", clampRate(rate))
-
     /**
      * The languages to offer voices for: Hebrew first (the app's main language), then the device
      * languages in their order of preference, then English (the language of Latin-script text and of the
@@ -133,19 +130,20 @@ object TtsVoiceLogic {
     fun withEngine(settings: TtsSettings, enginePackage: String?): TtsSettings =
         if (settings.enginePackage == enginePackage) settings else settings.copy(enginePackage = enginePackage, voices = emptyMap())
 
-    /** Short human readable name for a voice, e.g. "he-IL · high quality". */
-    fun describe(voice: VoiceOption): String {
-        val quality = when {
-            voice.quality >= 400 -> "high quality"
-            voice.quality >= 300 -> "normal quality"
-            else -> "basic quality"
-        }
-        return "${voice.localeTag} · $quality"
+    /** Quality bucket of a voice; the settings sheet turns it into a string resource. */
+    fun qualityOf(voice: VoiceOption): VoiceQuality = when {
+        voice.quality >= 400 -> VoiceQuality.HIGH
+        voice.quality >= 300 -> VoiceQuality.NORMAL
+        else -> VoiceQuality.BASIC
     }
 
-    /** The sentence used by the "Test voice" button. */
-    fun testSentence(language: String): String = when (normalizeLanguage(language)) {
-        HEBREW -> "שלום, זהו קול לבדיקה. כך נשמעות ההודעות שלך."
-        else -> "Hello, this is a test of the selected voice. This is how your messages will sound."
-    }
+    /**
+     * The sample every "Test voice" button speaks. Always Hebrew (the app's main language), so each engine is
+     * heard with the voice it would really use for a Hebrew message.
+     */
+    const val TEST_SENTENCE_HE = "שלום, זהו קול לבדיקה. כך נשמעות ההודעות שלך."
+    const val TEST_LANGUAGE = HEBREW
 }
+
+/** Coarse voice quality shown next to each system voice. */
+enum class VoiceQuality { HIGH, NORMAL, BASIC }
