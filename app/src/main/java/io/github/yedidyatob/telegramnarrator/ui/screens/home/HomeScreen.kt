@@ -72,13 +72,17 @@ import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.labelRes
 import io.github.yedidyatob.telegramnarrator.core.service.PlaybackService
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
+import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
+import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.HomeViewModel
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onPlayAll: (List<Chat>) -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    sponsoredViewModel: SponsoredViewModel = hiltViewModel()
 ) {
     val chats by viewModel.unreadChats.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -91,8 +95,17 @@ fun HomeScreen(
     val selectedIds by viewModel.selectedChatIds.collectAsStateWithLifecycle()
     val playingChatId by viewModel.currentPlayingChatId.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
+    // Official Telegram sponsored messages (Telegram API ToS 3.3)
+    val playingAd by sponsoredViewModel.playingAd.collectAsStateWithLifecycle()
+    val previewAd by sponsoredViewModel.previewAd.collectAsStateWithLifecycle()
+    val reportDialog by sponsoredViewModel.reportDialog.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        sponsoredViewModel.toasts.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+    }
+    // Opening a chat's preview sheet "opens" the chat: fetch its sponsored message (channels / bots only)
+    LaunchedEffect(selectedChat?.id) { sponsoredViewModel.loadPreviewAd(selectedChat?.id) }
     val pullToRefreshState = rememberPullToRefreshState()
     if (pullToRefreshState.isRefreshing) {
         LaunchedEffect(Unit) { viewModel.refresh() }
@@ -144,6 +157,18 @@ fun HomeScreen(
             }
         },
         bottomBar = {
+          Column {
+            // Sponsored message of the chat that was just played: from when it is spoken until the next chat
+            playingAd?.let { ad ->
+                SponsoredCard(
+                    ad = ad,
+                    onFullyVisible = sponsoredViewModel::onFullyVisible,
+                    onLinkClicked = sponsoredViewModel::onLinkClicked,
+                    onReport = sponsoredViewModel::startReport,
+                    loadFile = sponsoredViewModel::localFile,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
             androidx.compose.animation.AnimatedVisibility(
                 visible = isPlaying,
                 enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
@@ -182,6 +207,7 @@ fun HomeScreen(
                     }
                 )
             }
+          }
         }
     ) { innerPadding ->
         Box(
@@ -351,9 +377,31 @@ fun HomeScreen(
                                 }
                             }
                         }
+                        // The channel's / bot's sponsored message, at the bottom of the sheet
+                        previewAd?.takeIf { it.chatId == currentChat.id }?.let { ad ->
+                            item(key = "sponsored") {
+                                SponsoredCard(
+                                    ad = ad,
+                                    onFullyVisible = sponsoredViewModel::onFullyVisible,
+                                    onLinkClicked = sponsoredViewModel::onLinkClicked,
+                                    onReport = sponsoredViewModel::startReport,
+                                    loadFile = sponsoredViewModel::localFile,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        reportDialog?.let { dialog ->
+            SponsoredReportDialog(
+                title = dialog.title,
+                options = dialog.options,
+                onChoose = sponsoredViewModel::chooseReportOption,
+                onDismiss = sponsoredViewModel::dismissReport
+            )
         }
     }
 }

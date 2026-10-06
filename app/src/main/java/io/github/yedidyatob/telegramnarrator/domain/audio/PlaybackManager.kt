@@ -1,6 +1,9 @@
 package io.github.yedidyatob.telegramnarrator.domain.audio
 
 import io.github.yedidyatob.telegramnarrator.domain.home.ChatSelectionLogic
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAdCache
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,6 +83,38 @@ class PlaybackManager @Inject constructor() {
             audioLoading.clear()
             _isPreparingAudio.value = false
         }
+    }
+
+    // ---- Sponsored message card (Telegram API ToS 3.3) ---------------------------------------------
+
+    private val _sponsoredAd = MutableStateFlow<SponsoredAd?>(null)
+
+    /**
+     * The sponsored message of the chat that was just played, shown as a card on Home from the moment it is
+     * spoken until the next chat starts, a new Play All, a report / hide, or [SponsoredAdCache.TTL_MS] later.
+     * It stays after playback ends so the card can still be seen.
+     */
+    val sponsoredAd: StateFlow<SponsoredAd?> = _sponsoredAd.asStateFlow()
+    private var sponsoredExpiry: Job? = null
+
+    @Synchronized
+    fun showSponsoredAd(ad: SponsoredAd) {
+        _sponsoredAd.value = ad
+        sponsoredExpiry?.cancel()
+        sponsoredExpiry = timerScope.launch {
+            delay(SponsoredAdCache.TTL_MS)
+            clearSponsoredAd(ad)
+        }
+    }
+
+    /** Hides the card; with [onlyIf], only when that ad is the one shown. */
+    @Synchronized
+    fun clearSponsoredAd(onlyIf: SponsoredAd? = null) {
+        val current = _sponsoredAd.value ?: return
+        if (onlyIf != null && (current.chatId != onlyIf.chatId || current.messageId != onlyIf.messageId)) return
+        _sponsoredAd.value = null
+        sponsoredExpiry?.cancel()
+        sponsoredExpiry = null
     }
 
     fun setPlaying(playing: Boolean) {

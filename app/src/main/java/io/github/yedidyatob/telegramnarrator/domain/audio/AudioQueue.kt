@@ -37,6 +37,17 @@ sealed class PlaybackItem {
         // Dropped by the channel rules: not read, but marked as read when its turn comes
         val dropped: Boolean = false
     ) : PlaybackItem()
+    /**
+     * Place of the chat's official sponsored message (Telegram API ToS 3.3): after the chat's last unread
+     * message, before the next chat's ding. Only for chats that are not silent; channels and bot chats get an ad
+     * from `SponsoredMessagesRepository` when the slot is reached, other chats (and chats without an ad) are
+     * passed silently. Lives inside the chat, so skip-chat skips it too. Never marked as read; the ad is only
+     * reported as viewed.
+     */
+    data class SponsoredSlot(
+        val chatId: Long,
+        val chatName: String
+    ) : PlaybackItem()
     data class Silence(val durationMs: Long) : PlaybackItem()
     object Outro : PlaybackItem()
 }
@@ -85,4 +96,16 @@ class AudioQueue {
             }
         }
     }
+}
+
+/** Where the sponsored-message slot goes in a chat's queue items. */
+object SponsoredSlotPlacement {
+    /**
+     * [chatItems] = the items of one chat (opening, messages). Appends a [PlaybackItem.SponsoredSlot] after the
+     * last message unless the chat is silent (every message dropped by the channel rules: nothing of it is
+     * played, so no ad either).
+     */
+    fun withSlot(chatItems: List<PlaybackItem>, chatId: Long, chatName: String, silent: Boolean): List<PlaybackItem> =
+        if (silent || chatItems.none { it is PlaybackItem.MessageItem }) chatItems
+        else chatItems + PlaybackItem.SponsoredSlot(chatId, chatName)
 }
