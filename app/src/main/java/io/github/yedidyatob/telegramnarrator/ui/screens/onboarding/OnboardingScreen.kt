@@ -1,5 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.onboarding
 
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -193,6 +195,9 @@ fun OnboardingContent(
         Column(
             Modifier
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                // Edge-to-edge: the OpenAI key field and the bottom buttons stay above the keyboard
+                .imePadding()
                 .fillMaxSize()
         ) {
             Row(

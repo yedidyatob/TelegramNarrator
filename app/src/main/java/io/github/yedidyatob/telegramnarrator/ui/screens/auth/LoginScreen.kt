@@ -1,5 +1,9 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.auth
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -47,12 +51,17 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                // Edge-to-edge: keep the field and button above the keyboard, and scroll on small screens
+                .imePadding()
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
             ) {
                 when (val state = authState) {
                     is AuthState.Initializing -> {

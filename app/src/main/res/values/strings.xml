@@ -294,4 +294,6 @@
     <string name="sponsored_report_premium">Hiding ads requires Telegram Premium</string>
     <string name="sponsored_report_expired">This ad is no longer available</string>
     <string name="sponsored_report_error">Could not report the ad. Try again later.</string>
+    <!-- Home ⋮ menu: Material You dynamic color (Android 12+) -->
+    <string name="home_menu_system_colors">Use system colors</string>
 </resources>

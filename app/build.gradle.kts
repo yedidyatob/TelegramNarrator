@@ -140,6 +140,8 @@ android {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    // Android 12-style splash on every API level (#17)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.media)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

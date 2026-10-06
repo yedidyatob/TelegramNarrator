@@ -63,8 +63,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun TelegramNarratorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+ but we might want our custom Telegram branding 
-    // to overrule dynamic colours so it always feels like Telegram!
+    // Telegram-blue branding by default; "Use system colors" (Home ⋮ menu, Android 12+) switches to Material You
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

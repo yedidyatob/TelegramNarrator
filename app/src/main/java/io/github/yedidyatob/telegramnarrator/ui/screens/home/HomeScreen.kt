@@ -1,5 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
+import androidx.compose.material3.Checkbox
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppearanceViewModel
 import android.content.ActivityNotFoundException
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
@@ -80,8 +82,10 @@ fun HomeScreen(
     onOpenPlayer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     sponsoredViewModel: SponsoredViewModel = hiltViewModel(),
-    playerViewModel: PlayerViewModel = hiltViewModel()
+    playerViewModel: PlayerViewModel = hiltViewModel(),
+    appearanceViewModel: AppearanceViewModel = hiltViewModel()
 ) {
+    val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val chats by viewModel.unreadChats.collectAsStateWithLifecycle()
     val player by playerViewModel.state.collectAsStateWithLifecycle()
@@ -156,6 +160,13 @@ fun HomeScreen(
                                         }
                                     }
                                 )
+                                if (appearanceViewModel.dynamicColorAvailable) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.home_menu_system_colors)) },
+                                        trailingIcon = { Checkbox(checked = dynamicColor, onCheckedChange = null) },
+                                        onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_btn_logout)) },
                                     onClick = {

@@ -1,5 +1,9 @@
 package io.github.yedidyatob.telegramnarrator
 
+import io.github.yedidyatob.telegramnarrator.data.appearance.AppearancePreferences
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.activity.viewModels
+import android.os.SystemClock
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,20 +47,38 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var playbackController: PlaybackController
 
+    @Inject
+    lateinit var appearance: AppearancePreferences
+
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // AndroidX SplashScreen (#17): the icon stays while TDLib starts (at most SPLASH_MAX_MS), so the login
+        // screen's "initializing" spinner rarely flashes
+        val splash = installSplashScreen()
+        val launchedAt = SystemClock.elapsedRealtime()
+        splash.setKeepOnScreenCondition {
+            authViewModel.authState.value is AuthState.Initializing &&
+                SystemClock.elapsedRealtime() - launchedAt < SPLASH_MAX_MS
+        }
         super.onCreate(savedInstanceState)
         // Draw behind transparent system bars; screens consume the insets via Scaffold / navigationBarsPadding
         enableEdgeToEdge()
         setContent {
-            TelegramNarratorTheme {
+            val dynamicColor by appearance.dynamicColor.collectAsStateWithLifecycle()
+            TelegramNarratorTheme(dynamicColor = dynamicColor) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(playbackController)
+                    AppNavigation(playbackController, authViewModel)
                 }
             }
         }
+    }
+
+    private companion object {
+        const val SPLASH_MAX_MS = 1_500L
     }
 }
 

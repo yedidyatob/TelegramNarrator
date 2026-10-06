@@ -2,6 +2,7 @@
 agp = "8.2.1"
 kotlin = "1.9.22"
 coreKtx = "1.12.0"
+splashscreen = "1.0.1"
 junit = "4.13.2"
 coroutinesTest = "1.7.3"
 junitVersion = "1.1.5"
@@ -21,6 +22,7 @@ libphonenumber = "9.0.40" # Google libphonenumber: per-country trunk prefix / le
 [libraries]
 androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
