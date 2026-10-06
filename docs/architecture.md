@@ -24,7 +24,7 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 com.example.telegramnarrator
 ├── MainActivity, TelegramNarratorApp      Single activity + @HiltAndroidApp
 ├── ui/        Presentation (Compose)
-│   ├── screens/auth/LoginScreen           phone → code → 2FA password
+│   ├── screens/auth/LoginScreen           phone (country picker, PhoneNumberField) → code → 2FA password
 │   ├── screens/home/HomeScreen            unread chat list, multi-select, Play all / per chat, controls
 │   ├── screens/settings/VoiceSettingsSheet engine / voice per language / rate / mark-as-read
 │   ├── components/NotificationPermissionGate
@@ -38,6 +38,7 @@ com.example.telegramnarrator
 │   │                 CloudTtsPrefetch, PlaybackSpeedCycle, PlaybackManager (shared playback UI state)
 │   ├── cleaning/     ChannelRules model + ChannelRulesEngine
 │   ├── home/         UnreadChatFilter, ChatSelectionLogic
+│   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── openai/       OpenAiTts (models, voices, cost estimate)
 │   ├── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
@@ -47,6 +48,7 @@ com.example.telegramnarrator
 │   ├── tdlib/TdLibDatabaseKeyStore  database key wrapped by an Android Keystore AES-GCM key
 │   ├── repository/                  TdLibAuthRepository, TdLibChatRepository, TdLibUserCache, UnreadHistoryPager
 │   ├── rules/                       ChannelRulesParser + ChannelRulesRepository (assets/channel_rules.json)
+│   ├── auth/DeviceCountrySignals    SIM / network / locale country for the login default country
 │   ├── tts/TtsPreferences           SharedPreferences (read synchronously by TtsManager)
 │   ├── openai/                      OpenAiKeyStore, OpenAiSpeechClient/Synthesizer/Cache
 │   ├── edge/                        EdgeTtsClient (OkHttp WebSocket), EdgeSpeechSynthesizer/Cache
@@ -64,6 +66,12 @@ There is **no use-case layer**: ViewModels and `PlaybackService` call repositori
 ## Main flows
 
 **Login.** `AuthViewModel` observes `AuthRepository.authState` (driven by TDLib `updateAuthorizationState`).
+The phone step (#56) has a searchable country picker (flag + dial code); the default country comes from
+`PhoneCountryResolver` (SIM country, then network country if the device has telephony, then the locale region, else
+none; read by `data/auth/DeviceCountrySignals`, no permission). `PhoneNumberNormalizer` (libphonenumber) turns a local
+number with or without the trunk prefix, or a pasted `+…` number (which selects its own country), into E.164 for
+`setAuthenticationPhoneNumber`, and drives the inline length validation. The number row stays left-to-right in RTL
+locales (dial code + digits read as one phone number).
 `TdLibAuthRepository` sends `setTdlibParameters` with `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` from
 `BuildConfig` (injected from `local.properties`, or from Actions secrets in CI), a database directory in
 `filesDir/tdlib`, and the database encryption key from `TdLibDatabaseKeyStore`. `DatabaseEncryptionPolicy`
