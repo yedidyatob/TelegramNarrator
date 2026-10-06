@@ -15,6 +15,13 @@ import javax.inject.Singleton
 @Singleton
 class OpenAiSpeechClient @Inject constructor() {
 
+    /**
+     * Non-2xx answer. [errorSummary] holds only the body's machine-readable `code`/`type` values (never the
+     * message, which can echo part of the key); [retryAfterSeconds] is the `Retry-After` header, if any.
+     */
+    class HttpException(val code: Int, val errorSummary: String, val retryAfterSeconds: Long?) :
+        IOException("OpenAI TTS HTTP $code${if (errorSummary.isNotBlank()) ": $errorSummary" else ""}")
+
     data class Request(
         val apiKey: String,
         val model: String,
@@ -54,8 +61,8 @@ class OpenAiSpeechClient @Inject constructor() {
                     connection.errorStream?.bufferedReader()?.use { it.readText().take(2_000) }
                 }.getOrNull()
                 // Only the error code/type: OpenAI's error message can echo part of the API key
-                val err = OpenAiTts.safeErrorSummary(body)
-                throw IOException("OpenAI TTS HTTP $code${if (err.isNotBlank()) ": $err" else ""}")
+                val retryAfter = connection.getHeaderField("Retry-After")?.trim()?.toLongOrNull()
+                throw HttpException(code, OpenAiTts.safeErrorSummary(body), retryAfter)
             }
             val bytes = connection.inputStream.use { it.readBytes() }
             if (bytes.isEmpty()) throw IOException("OpenAI TTS returned empty audio")

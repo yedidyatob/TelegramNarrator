@@ -7,6 +7,7 @@ import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
+import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsVoiceLogic
 import java.io.File
 import javax.inject.Inject
@@ -58,11 +59,17 @@ class EdgeSpeechSynthesizer @Inject constructor(
             // Never log the text; the exception message contains only status / protocol info
             android.util.Log.w("EdgeTts", "Edge TTS failed: ${e.javaClass.simpleName}: ${e.message}")
             backoffUntilMs = SystemClock.elapsedRealtime() + FAILURE_BACKOFF_MS
-            SpeechSynthesisOutcome.Fallback(FallbackReason.EDGE_FAILED)
+            SpeechSynthesisOutcome.Fallback(reasonFor(e))
         }
     }
 
     companion object {
         const val FAILURE_BACKOFF_MS = 60_000L
+
+        /** Edge failure → what the user is told (#63): throttled, refused, timeout, offline, or generic. */
+        fun reasonFor(e: Throwable): FallbackReason = when (e) {
+            is EdgeTtsClient.HandshakeException -> TtsFailures.edgeHandshake(e.code)
+            else -> TtsFailures.transport(e, FallbackReason.EDGE_TIMEOUT) ?: FallbackReason.EDGE_FAILED
+        }
     }
 }

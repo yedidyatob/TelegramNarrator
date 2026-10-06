@@ -9,6 +9,8 @@ import java.security.MessageDigest
 object OpenAiTts {
     /** Where users create a key ("Get an API key" link in Voice settings); the page handles sign-up / login. */
     const val API_KEYS_URL = "https://platform.openai.com/api-keys"
+    /** Where users add credit (out-of-credit notification, #63). */
+    const val BILLING_URL = "https://platform.openai.com/settings/organization/billing/overview"
     const val MODEL_TTS_1 = "tts-1"
     const val MODEL_TTS_1_HD = "tts-1-hd"
     const val DEFAULT_MODEL = MODEL_TTS_1
@@ -21,7 +23,7 @@ object OpenAiTts {
 
     val MODELS: List<String> = listOf(MODEL_TTS_1, MODEL_TTS_1_HD)
 
-    /** OpenAI speech input limit; longer text falls back to system TTS. */
+    /** OpenAI speech input limit; longer text is split into chunks of at most this size (SpeechTextSplitter). */
     const val MAX_INPUT_CHARS = 4096
 
     fun normalizeModel(model: String?): String =

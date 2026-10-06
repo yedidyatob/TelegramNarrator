@@ -1,6 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.core.service
 
-import androidx.annotation.StringRes
+import io.github.yedidyatob.telegramnarrator.core.tts.TtsFailureNotifier
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -34,7 +34,6 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioQueue
 import io.github.yedidyatob.telegramnarrator.domain.audio.ChatPlaybackHistory
 import io.github.yedidyatob.telegramnarrator.domain.audio.ChatTitleSpeech
@@ -142,7 +141,6 @@ class PlaybackService : Service() {
         
         const val CHANNEL_ID = "PlaybackChannel"
         const val NOTIFICATION_ID = 1
-        private const val TOAST_THROTTLE_MS = 30_000L
         /** Upcoming speakable messages to synthesize into the disk cache while the current cloud TTS item plays. */
         const val CLOUD_TTS_PREFETCH_COUNT = CloudTtsPrefetch.COUNT
         /** How long a sponsored-message slot waits for getChatSponsoredMessages before it is passed. */
@@ -490,6 +488,7 @@ class PlaybackService : Service() {
             if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
             when (outcome) {
                 is SpeechSynthesisOutcome.Ready -> {
+                    if (!outcome.fromCache) ttsFailures.onNetworkSuccess()
                     playbackManager.setNowPlayingEngine(provider)
                     // Warm the next few messages into the disk cache while this one plays
                     scheduleCloudPrefetch(generation)
@@ -500,14 +499,14 @@ class PlaybackService : Service() {
                             // Corrupt / unplayable synthesized file: drop it and read the text with system TTS
                             openAiSpeech.discard(outcome.file)
                             edgeSpeech.discard(outcome.file)
-                            showFallbackToast(getString(R.string.tts_fallback_unplayable))
+                            ttsFailures.onFailure(FallbackReason.UNPLAYABLE)
                             speakWithSystemTts(speechText, onSpoken)
                         }
                     )
                 }
                 SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(speechText, onSpoken)
                 is SpeechSynthesisOutcome.Fallback -> {
-                    showFallbackToast(getString(fallbackMessage(outcome.reason)))
+                    ttsFailures.onFailure(outcome.reason)
                     speakWithSystemTts(speechText, onSpoken)
                 }
             }
@@ -525,18 +524,10 @@ class PlaybackService : Service() {
         }
     }
 
-    @StringRes
-    private fun fallbackMessage(reason: FallbackReason): Int = when (reason) {
-        FallbackReason.OPENAI_NO_KEY -> R.string.tts_fallback_openai_no_key
-        FallbackReason.OPENAI_TOO_LONG -> R.string.tts_fallback_openai_too_long
-        FallbackReason.OPENAI_FAILED -> R.string.tts_fallback_openai_failed
-        FallbackReason.EDGE_FAILED -> R.string.tts_fallback_edge_failed
-    }
-
     /**
      * While cloud TTS audio plays, synthesize the next [CLOUD_TTS_PREFETCH_COUNT] speakable queue items
-     * into the existing disk cache (cache hits are cheap). Outcomes are ignored — no toast on prefetch
-     * failure; playback still falls back per message when its turn comes. Cancelled on skip/stop/pause
+     * into the existing disk cache (cache hits are cheap). A failed prefetch only tells the user when the
+     * network is down (once per episode, [TtsFailureNotifier]); playback still falls back per message. Cancelled on skip/stop/pause
      * or when [generation] is superseded / the engine is no longer a cloud provider.
      */
     private fun scheduleCloudPrefetch(generation: Int) {
@@ -555,14 +546,15 @@ class PlaybackService : Service() {
                 if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
                 if (ttsPreferences.settings.value.provider != provider) return@launch
                 try {
-                    synthesize(text)
+                    when (val outcome = synthesize(text)) {
+                        is SpeechSynthesisOutcome.Ready -> if (!outcome.fromCache) ttsFailures.onNetworkSuccess()
+                        is SpeechSynthesisOutcome.Fallback -> ttsFailures.onPrefetchFailure(outcome.reason)
+                        SpeechSynthesisOutcome.UseSystem -> Unit
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    android.util.Log.w(
-                        "PlaybackService",
-                        "Cloud TTS prefetch failed: ${e.javaClass.simpleName}: ${e.message}"
-                    )
+                    android.util.Log.w("PlaybackService", "Cloud TTS prefetch failed: ${e.javaClass.simpleName}")
                 }
             }
         }
@@ -573,21 +565,8 @@ class PlaybackService : Service() {
         prefetchJob = null
     }
 
-    // At most one fallback toast per TOAST_THROTTLE_MS, so a dead network does not toast on every message
-    @Volatile private var lastFallbackToastAt = 0L
-
-    private fun showFallbackToast(message: String) {
-        val now = SystemClock.elapsedRealtime()
-        if (lastFallbackToastAt != 0L && now - lastFallbackToastAt < TOAST_THROTTLE_MS) return
-        lastFallbackToastAt = now
-        showToast(message)
-    }
-
-    private fun showToast(message: String) {
-        mainHandler.post {
-            Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
-        }
-    }
+    // One message per failure episode (#63), not one per message or per prefetched item
+    private val ttsFailures by lazy { TtsFailureNotifier(applicationContext) }
 
     /**
      * Plays [path] (a voice note or a synthesized message) through the [mediaPlayer] slot. [speed] != 1 sets
