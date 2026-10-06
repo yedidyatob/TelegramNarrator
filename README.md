@@ -1,11 +1,12 @@
 # Telegram Narrator
 
-An Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
+**Unofficial Telegram Narrator** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
 Hebrew and mixed Hebrew/English channels. It logs in with your own Telegram account through
 [TDLib](https://core.telegram.org/tdlib), lists the chats with unread messages, and plays them one after
 another; messages are marked as read in Telegram only after they were actually spoken.
 
-> Personal project, not published on Google Play (see [Publishing](#publishing-status)).
+> Unofficial app: it uses the Telegram API but is not made, endorsed or supported by Telegram.
+> Not published on Google Play yet (see [Publishing](#publishing)).
 
 ## Features
 
@@ -26,7 +27,7 @@ The UI is English only by design; a few labels (e.g. link replacement) have Hebr
 
 ## Build
 
-Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set both up.
+Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set both up.
 
 1. Get a Telegram **API id / API hash** at <https://my.telegram.org> (API development tools).
 2. Add them to `local.properties` in the project root (this file is git-ignored):
@@ -44,8 +45,12 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew assembleDebug          # debug APK in app/build/outputs/apk/debug
    ./gradlew testDebugUnitTest      # JVM unit tests
    ./gradlew lintDebug              # Android lint (existing findings are in app/lint-baseline.xml)
-   ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
+   ./gradlew assembleRelease        # minified APK, unsigned unless a keystore is configured
+   ./gradlew bundleRelease          # Play bundle: app/build/outputs/bundle/release/app-release.aab
    ```
+
+   Release signing and versioning (`TN_VERSION_NAME` in `gradle.properties`) are described in
+   [docs/publishing.md](docs/publishing.md).
 
    Unit tests are pure JVM tests (no device or emulator needed). The live Edge TTS network test is skipped
    unless you opt in with `EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest`. CI (`.github/workflows/ci.yml`) runs
@@ -133,6 +138,9 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 | [docs/tts-voice-settings.md](docs/tts-voice-settings.md) | Engines, voice per language, speech rate, OpenAI / Edge TTS |
 | [docs/spoken-phrases.md](docs/spoken-phrases.md) | Playback cues (dings, silent skips) and per-message language detection |
 | [docs/mark-as-read.md](docs/mark-as-read.md) | Mark-as-read behaviour and the TDLib call sequence |
+| [docs/publishing.md](docs/publishing.md) | Google Play release: application ID, versioning, upload keystore, Play App Signing, signed AAB in CI |
+| [docs/privacy-policy.md](docs/privacy-policy.md) | Privacy policy (to host publicly for the Play listing and the in-app link) |
+| [docs/play-data-safety.md](docs/play-data-safety.md) | Play Data safety answers, store listing drafts (EN/HE), content rating, Telegram API terms checklist |
 
 ## Privacy & security
 
@@ -152,11 +160,15 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
   databases are re-keyed in place on first start, so you stay logged in. If the Keystore key is ever lost, the
   database is reset and you log in again.
 - Message text is never written to the log; debug logging is stripped from release builds. The OpenAI API key is never logged.
+- Full details: [docs/privacy-policy.md](docs/privacy-policy.md).
 
-## Publishing status
+## Publishing
 
-Not published. Before a Play release see the publishing checklist in the roadmap (applicationId is still
-`io.github.yedidyatob.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
+Not published yet. The app is prepared for Google Play (`applicationId` `io.github.yedidyatob.telegramnarrator`,
+`targetSdk` 36, release signing from `local.properties` / env vars, R8 + resource shrinking, privacy policy and
+Data safety answers). The remaining manual steps (upload keystore, hosting the privacy policy, Play Console forms,
+closed test) and the open Telegram API terms item (sponsored messages in channels) are listed in
+[docs/publishing.md](docs/publishing.md) and [docs/play-data-safety.md](docs/play-data-safety.md).
 
 ## TDLib / 16 KB page size
 
