@@ -30,7 +30,7 @@ class EdgeSpeechSynthesizer @Inject constructor(
     fun synthesize(text: String): SpeechSynthesisOutcome {
         if (!isEdgeSelected() || text.isBlank()) return SpeechSynthesisOutcome.UseSystem
         val settings = preferences.settings.value
-        val voice = EdgeTts.voiceFor(settings.edge.voice, LanguageDetector.detect(text).language)
+        val voice = EdgeTts.voiceFor(settings.edge, LanguageDetector.detect(text).language)
         val speed = TtsVoiceLogic.clampRate(settings.speechRate)
         cache.getIfPresent(text, voice)?.let { return SpeechSynthesisOutcome.Ready(it, fromCache = true, playbackSpeed = speed) }
         if (SystemClock.elapsedRealtime() < backoffUntilMs) return SpeechSynthesisOutcome.UseSystem

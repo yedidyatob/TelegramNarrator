@@ -39,10 +39,8 @@ object EdgeTts {
     const val VOICE_HILA = "he-IL-HilaNeural"
     const val VOICE_AVA_MULTILINGUAL = "en-US-AvaMultilingualNeural"
     const val VOICE_ANDREW_MULTILINGUAL = "en-US-AndrewMultilingualNeural"
+    /** Fallback when a stored / typed voice name is invalid (only reachable through the Advanced field). */
     const val DEFAULT_VOICE = VOICE_AVRI
-
-    /** Voices offered in the settings sheet; any other Edge voice short name can be typed in. */
-    val PRESET_VOICES: List<String> = listOf(VOICE_AVRI, VOICE_HILA, VOICE_AVA_MULTILINGUAL, VOICE_ANDREW_MULTILINGUAL)
 
     /** The service rejects SSML text longer than this (UTF-8 bytes, after XML escaping); longer text is split. */
     const val MAX_TEXT_BYTES_PER_REQUEST = 4096
@@ -60,16 +58,48 @@ object EdgeTts {
 
     fun normalizeVoice(name: String?): String = if (isValidVoiceName(name)) name!!.trim() else DEFAULT_VOICE
 
+    /** The Hebrew voice of [gender]: Avri (male) or Hila (female). */
+    fun hebrewVoice(gender: EdgeVoiceGender): String = when (gender) {
+        EdgeVoiceGender.MALE -> VOICE_AVRI
+        EdgeVoiceGender.FEMALE -> VOICE_HILA
+    }
+
+    /** The multilingual voice of [gender] for every non-Hebrew message: Andrew (male) or Ava (female). */
+    fun multilingualVoice(gender: EdgeVoiceGender): String = when (gender) {
+        EdgeVoiceGender.MALE -> VOICE_ANDREW_MULTILINGUAL
+        EdgeVoiceGender.FEMALE -> VOICE_AVA_MULTILINGUAL
+    }
+
     /**
-     * Voice actually used for one message. The Hebrew voices cannot read other scripts, so a message the
-     * [com.example.telegramnarrator.domain.audio.LanguageDetector] classifies as non-Hebrew ([language] is
-     * an ISO code like "en") is read by a multilingual Edge voice of the same gender. Any other selected
-     * voice is used as-is.
+     * Voice actually used for one message. A custom (Advanced) voice is used as-is for every message.
+     * Otherwise the Hebrew voices cannot read other scripts, so a message the
+     * [com.example.telegramnarrator.domain.audio.LanguageDetector] classifies as non-Hebrew ([language] is an
+     * ISO code like "en") is read by the multilingual voice of the selected gender.
      */
-    fun voiceFor(selectedVoice: String, language: String): String {
-        val voice = normalizeVoice(selectedVoice)
-        if (!voice.startsWith("he-IL-") || language == "he" || language == "iw") return voice
-        return if (voice == VOICE_HILA) VOICE_AVA_MULTILINGUAL else VOICE_ANDREW_MULTILINGUAL
+    fun voiceFor(options: EdgeTtsOptions, language: String): String {
+        options.customVoice?.let { if (isValidVoiceName(it)) return it.trim() }
+        val hebrew = language.equals("he", ignoreCase = true) || language.equals("iw", ignoreCase = true)
+        return if (hebrew) hebrewVoice(options.gender) else multilingualVoice(options.gender)
+    }
+
+    /**
+     * Reads the stored Edge choice. Current builds store `edge_gender` (+ optional `edge_custom_voice`);
+     * builds before the voice-settings redesign stored a single `edge_voice` short name, which is migrated:
+     * Avri / Andrew -> male, Hila / Ava -> female, any other valid voice -> custom (Advanced) voice.
+     */
+    fun optionsFromStored(gender: String?, customVoice: String?, legacyVoice: String?): EdgeTtsOptions {
+        if (gender != null || customVoice != null) {
+            return EdgeTtsOptions(
+                gender = EdgeVoiceGender.fromId(gender),
+                customVoice = customVoice?.trim()?.takeIf { isValidVoiceName(it) }
+            )
+        }
+        return when (legacyVoice?.trim()) {
+            null, "" -> EdgeTtsOptions()
+            VOICE_AVRI, VOICE_ANDREW_MULTILINGUAL -> EdgeTtsOptions(gender = EdgeVoiceGender.MALE)
+            VOICE_HILA, VOICE_AVA_MULTILINGUAL -> EdgeTtsOptions(gender = EdgeVoiceGender.FEMALE)
+            else -> EdgeTtsOptions(customVoice = legacyVoice.trim().takeIf { isValidVoiceName(it) })
+        }
     }
 
     // ---- Cache ----------------------------------------------------------------------------------
@@ -264,8 +294,21 @@ object EdgeTts {
             .joinToString("") { "%02x".format(it) }
 }
 
+/** Male / female voice family for Edge TTS (see [EdgeTts.voiceFor]). */
+enum class EdgeVoiceGender(val id: String) {
+    MALE("male"),
+    FEMALE("female");
+
+    companion object {
+        val DEFAULT = MALE
+
+        fun fromId(id: String?): EdgeVoiceGender = values().firstOrNull { it.id == id } ?: DEFAULT
+    }
+}
+
 /** Non-secret Edge TTS choices persisted with the rest of [com.example.telegramnarrator.domain.tts.TtsSettings]. */
 data class EdgeTtsOptions(
-    /** Edge voice short name, e.g. `he-IL-AvriNeural`. */
-    val voice: String = EdgeTts.DEFAULT_VOICE
+    val gender: EdgeVoiceGender = EdgeVoiceGender.DEFAULT,
+    /** Advanced: any Edge voice short name, used for every message and overriding [gender]; null = none. */
+    val customVoice: String? = null
 )

@@ -1,10 +1,11 @@
 package com.example.telegramnarrator.ui.viewmodel
 
 import android.content.Context
-import androidx.core.os.ConfigurationCompat
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.widget.Toast
+import androidx.annotation.StringRes
+import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.telegramnarrator.BuildConfig
@@ -12,65 +13,29 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import com.example.telegramnarrator.data.openai.OpenAiKeyStore
+import com.example.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
 import com.example.telegramnarrator.data.tts.TtsPreferences
+import com.example.telegramnarrator.domain.audio.PlaybackManager
 import com.example.telegramnarrator.domain.edge.EdgeTts
+import com.example.telegramnarrator.domain.edge.EdgeVoiceGender
 import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.tts.SpeechProvider
 import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
-import com.example.telegramnarrator.domain.audio.PlaybackManager
-import com.example.telegramnarrator.domain.tts.EngineOption
 import com.example.telegramnarrator.domain.tts.TtsSettings
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
-import com.example.telegramnarrator.domain.tts.VoiceOption
+import com.example.telegramnarrator.domain.tts.VoiceSettingsLogic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.Locale
 import javax.inject.Inject
-
-/** Voices of one language, as shown in the settings sheet. */
-data class VoiceGroup(
-    val language: String,
-    /** Language name in the user's UI language, e.g. "Hebrew". */
-    val displayName: String,
-    val voices: List<VoiceOption>,
-    /** Name of the voice chosen for this language, null = engine default. */
-    val selectedVoice: String?
-)
-
-data class TtsSettingsUiState(
-    val loading: Boolean = true,
-    val engines: List<EngineOption> = emptyList(),
-    /** Engine in use. */
-    val activeEngine: String? = null,
-    /** Engine the user picked; null = the system default engine. */
-    val selectedEngine: String? = null,
-    val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
-    val groups: List<VoiceGroup> = emptyList(),
-    /** Mark played messages as read in Telegram. */
-    val markAsRead: Boolean = true,
-    /** Engine that speaks messages (system TTS is the default). */
-    val provider: SpeechProvider = SpeechProvider.DEFAULT,
-    /** Bring-Your-Own-Key OpenAI TTS (optional; system TTS remains default). */
-    val openAiModel: String = OpenAiTts.DEFAULT_MODEL,
-    val openAiVoice: String = OpenAiTts.DEFAULT_VOICE,
-    /** Whether a key is stored (never expose the key itself in UI state). */
-    val openAiHasKey: Boolean = false,
-    /** Masked preview for the key field (empty when none). */
-    val openAiKeyMasked: String = "",
-    /** Experimental Edge TTS voice short name. */
-    val edgeVoice: String = EdgeTts.DEFAULT_VOICE,
-    /** True while the Edge "Test voice" sample is being fetched. */
-    val edgeTesting: Boolean = false
-) {
-    val openAiEnabled: Boolean get() = provider == SpeechProvider.OPENAI
-    val edgeEnabled: Boolean get() = provider == SpeechProvider.EDGE
-}
 
 @HiltViewModel
 class TtsSettingsViewModel @Inject constructor(
@@ -78,55 +43,57 @@ class TtsSettingsViewModel @Inject constructor(
     private val preferences: TtsPreferences,
     private val openAiKeyStore: OpenAiKeyStore,
     private val edgeSpeech: EdgeSpeechSynthesizer,
+    private val openAiSpeech: OpenAiSpeechSynthesizer,
     playbackManager: PlaybackManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(TtsSettingsUiState())
+    private val _state = MutableStateFlow(stateFrom(preferences.settings.value))
     val state: StateFlow<TtsSettingsUiState> = _state.asStateFlow()
 
     /** Voice changes and "Test voice" would interrupt the reading, so they are disabled while it plays. */
     val isPlaying: StateFlow<Boolean> = playbackManager.isPlaying
 
-    /** (Re)reads the engines and voices from the TTS engine; call when the sheet opens. */
+    /** Whether the system TTS engine finished (re)starting; the sheet calls [reload] when this changes. */
+    val ttsReady: StateFlow<Boolean> = ttsManager.isInitialized
+
+    private var testPlayer: MediaPlayer? = null
+
+    /** Re-reads settings (and, once the system engine is ready, its engines and voices); call when the sheet opens. */
     fun reload() {
-        val settings = preferences.settings.value
-        if (!ttsManager.isInitialized.value) {
-            _state.value = TtsSettingsUiState(
-                loading = true,
-                speechRate = settings.speechRate,
-                markAsRead = markAsReadNow(),
-                provider = settings.provider,
-                edgeVoice = settings.edge.voice,
-                openAiModel = settings.openAi.model,
-                openAiVoice = settings.openAi.voice,
-                openAiHasKey = openAiKeyStore.hasApiKey(),
-                openAiKeyMasked = maskKey(openAiKeyStore.getApiKey())
-            )
-            return
-        }
+        val current = _state.value
+        _state.value = stateFrom(preferences.settings.value).copy(
+            edge = EdgeVoiceUiState.from(preferences.settings.value.edge, testing = current.edge.testing),
+            openAi = openAiState(testing = current.openAi.testing)
+        )
+    }
+
+    private fun stateFrom(settings: TtsSettings) = TtsSettingsUiState(
+        provider = settings.provider,
+        system = systemState(settings),
+        edge = EdgeVoiceUiState.from(settings.edge),
+        openAi = openAiState(testing = false),
+        speechRate = settings.speechRate,
+        markAsRead = settings.markAsReadEnabled(BuildConfig.DEBUG)
+    )
+
+    private fun systemState(settings: TtsSettings): SystemVoiceUiState {
+        if (!ttsManager.isInitialized.value) return SystemVoiceUiState(loading = true)
         val deviceLanguages = ConfigurationCompat.getLocales(context.resources.configuration).let { list ->
             (0 until list.size()).mapNotNull { list.get(it)?.language }
         }
-        val languages = TtsVoiceLogic.languagesToShow(deviceLanguages)
-        val byLanguage = TtsVoiceLogic.voicesByLanguage(ttsManager.availableVoices(), languages)
-        _state.value = TtsSettingsUiState(
+        val byLanguage = TtsVoiceLogic.voicesByLanguage(
+            ttsManager.availableVoices(),
+            TtsVoiceLogic.languagesToShow(deviceLanguages)
+        )
+        return SystemVoiceUiState(
             loading = false,
             engines = ttsManager.availableEngines(),
-            activeEngine = ttsManager.activeEngine(),
             selectedEngine = settings.enginePackage,
-            speechRate = settings.speechRate,
-            markAsRead = markAsReadNow(),
-            provider = settings.provider,
-            edgeVoice = settings.edge.voice,
-            openAiModel = settings.openAi.model,
-            openAiVoice = settings.openAi.voice,
-            openAiHasKey = openAiKeyStore.hasApiKey(),
-            openAiKeyMasked = maskKey(openAiKeyStore.getApiKey()),
             groups = byLanguage.map { (language, voices) ->
                 VoiceGroup(
                     language = language,
-                    displayName = Locale.forLanguageTag(language).getDisplayLanguage(),
+                    displayName = Locale.forLanguageTag(language).displayLanguage,
                     voices = voices,
                     // Only show a selection that is actually usable
                     selectedVoice = TtsVoiceLogic.chosenVoiceFor(settings, language, voices)?.name
@@ -135,50 +102,144 @@ class TtsSettingsViewModel @Inject constructor(
         )
     }
 
-    private fun maskKey(key: String?): String {
-        if (key.isNullOrBlank()) return ""
-        if (key.length <= 8) return "••••"
-        return key.take(3) + "…" + key.takeLast(4)
-    }
+    /** The key is read only to derive "saved" + the masked hint; it is never put into UI state. */
+    private fun openAiState(testing: Boolean) =
+        OpenAiVoiceUiState.from(preferences.settings.value.openAi, openAiKeyStore.getApiKey(), testing)
 
-    /** System (default) / OpenAI (BYOK) / Edge (experimental). */
+    // ---- Engine ---------------------------------------------------------------------------------
+
+    /** System (default) / Edge / OpenAI. */
     fun setProvider(provider: SpeechProvider) {
+        if (provider == _state.value.provider) return
+        stopTest()
         preferences.update { it.copy(provider = provider) }
-        _state.value = _state.value.copy(provider = provider)
+        _state.update { it.copy(provider = provider) }
     }
 
-    /** Selects an Edge voice; returns false (and changes nothing) when [voice] is not a valid Edge short name. */
-    fun setEdgeVoice(voice: String): Boolean {
-        if (!EdgeTts.isValidVoiceName(voice)) return false
-        val normalized = EdgeTts.normalizeVoice(voice)
-        preferences.update { it.copy(edge = it.edge.copy(voice = normalized)) }
-        _state.value = _state.value.copy(edgeVoice = normalized)
+    // ---- System ---------------------------------------------------------------------------------
+
+    /** [enginePackage] null = the system default engine. Restarts TextToSpeech (the System section shows loading). */
+    fun selectEngine(enginePackage: String?) {
+        preferences.update { TtsVoiceLogic.withEngine(it, enginePackage) }
+        ttsManager.refreshSettings()
+        reload()
+    }
+
+    /** [voiceName] null = back to the engine's default voice for [language]. */
+    fun selectVoice(language: String, voiceName: String?) {
+        preferences.update { TtsVoiceLogic.withVoice(it, language, voiceName) }
+        ttsManager.refreshSettings()
+        reload()
+    }
+
+    /** Speaks the Hebrew sample with the system voice chosen for Hebrew and the current speech rate. */
+    fun testSystemVoice() {
+        if (!VoiceSettingsLogic.canTestSystem(isPlaying.value, ttsManager.isInitialized.value)) return
+        stopTestPlayer()
+        ttsManager.speak(TtsVoiceLogic.TEST_SENTENCE_HE, Locale.forLanguageTag(TtsVoiceLogic.TEST_LANGUAGE)) { }
+    }
+
+    // ---- Edge -----------------------------------------------------------------------------------
+
+    fun setEdgeGender(gender: EdgeVoiceGender) {
+        preferences.update { it.copy(edge = it.edge.copy(gender = gender)) }
+        _state.update { it.copy(edge = it.edge.copy(gender = gender)) }
+    }
+
+    /**
+     * Advanced: sets a custom Edge voice used for every message (overrides Male / Female). Blank clears it.
+     * Returns false (and changes nothing) when [voice] is not a valid Edge short name.
+     */
+    fun setEdgeCustomVoice(voice: String?): Boolean {
+        val trimmed = voice?.trim().orEmpty()
+        if (trimmed.isNotEmpty() && !EdgeTts.isValidVoiceName(trimmed)) return false
+        val custom = trimmed.ifEmpty { null }
+        preferences.update { it.copy(edge = it.edge.copy(customVoice = custom)) }
+        _state.update { it.copy(edge = it.edge.copy(customVoice = custom)) }
         return true
     }
 
-    private var testPlayer: MediaPlayer? = null
-
-    /** Fetches (or reuses the cached) Edge sample for the selected voice and plays it. */
+    /** Plays the Hebrew sample with the voice Edge would use for a Hebrew message (custom voice if set). */
     fun testEdgeVoice() {
-        if (isPlaying.value || _state.value.edgeTesting) return
-        val voice = _state.value.edgeVoice
-        val language = if (voice.startsWith("he-")) "he" else Locale.forLanguageTag(voice).language
-        _state.value = _state.value.copy(edgeTesting = true)
+        val edge = _state.value.edge
+        if (!VoiceSettingsLogic.canTestEdge(isPlaying.value, edge.testing)) return
+        val voice = EdgeTts.voiceFor(preferences.settings.value.edge, TtsVoiceLogic.TEST_LANGUAGE)
+        _state.update { it.copy(edge = it.edge.copy(testing = true)) }
         viewModelScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                edgeSpeech.synthesizeForTest(TtsVoiceLogic.testSentence(language), voice)
+                edgeSpeech.synthesizeForTest(TtsVoiceLogic.TEST_SENTENCE_HE, voice)
             }
-            _state.value = _state.value.copy(edgeTesting = false)
-            when (outcome) {
-                is SpeechSynthesisOutcome.Ready -> playTestFile(outcome)
-                is SpeechSynthesisOutcome.Fallback ->
-                    Toast.makeText(context, context.getString(R.string.settings_edge_test_failed), Toast.LENGTH_LONG).show()
-                SpeechSynthesisOutcome.UseSystem -> Unit
-            }
+            _state.update { it.copy(edge = it.edge.copy(testing = false)) }
+            handleTestOutcome(outcome, R.string.settings_edge_test_failed, edgeSpeech::discard)
         }
     }
 
-    private fun playTestFile(outcome: SpeechSynthesisOutcome.Ready) {
+    // ---- OpenAI ---------------------------------------------------------------------------------
+
+    fun setOpenAiModel(model: String) {
+        val normalized = OpenAiTts.normalizeModel(model)
+        preferences.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
+        _state.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
+    }
+
+    fun setOpenAiVoice(voice: String) {
+        val normalized = OpenAiTts.normalizeVoice(voice)
+        preferences.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
+        _state.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
+    }
+
+    /** Saves the typed API key (encrypted). Never log [key]; it is not kept in the ViewModel. */
+    fun saveOpenAiApiKey(key: String) {
+        if (key.isBlank()) return
+        openAiKeyStore.setApiKey(key)
+        _state.update { it.copy(openAi = openAiState(testing = it.openAi.testing)) }
+    }
+
+    fun removeOpenAiApiKey() {
+        openAiKeyStore.clear()
+        _state.update { it.copy(openAi = openAiState(testing = it.openAi.testing)) }
+    }
+
+    /** Plays the Hebrew sample with the selected OpenAI model and voice (needs a saved key; billed to it). */
+    fun testOpenAiVoice() {
+        val openAi = _state.value.openAi
+        if (!VoiceSettingsLogic.canTestOpenAi(isPlaying.value, openAi.testing, openAi.hasKey)) return
+        _state.update { it.copy(openAi = it.openAi.copy(testing = true)) }
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                openAiSpeech.synthesizeForTest(TtsVoiceLogic.TEST_SENTENCE_HE)
+            }
+            _state.update { it.copy(openAi = it.openAi.copy(testing = false)) }
+            handleTestOutcome(outcome, R.string.settings_openai_test_failed, openAiSpeech::discard)
+        }
+    }
+
+    // ---- Playback -------------------------------------------------------------------------------
+
+    fun setSpeechRate(rate: Float) {
+        preferences.update { TtsVoiceLogic.withRate(it, rate) }
+        ttsManager.refreshSettings()
+        _state.update { it.copy(speechRate = preferences.settings.value.speechRate) }
+    }
+
+    fun setMarkAsRead(enabled: Boolean) {
+        preferences.update { it.copy(markAsReadOverride = enabled) }
+        _state.update { it.copy(markAsRead = enabled) }
+    }
+
+    // ---- Test playback --------------------------------------------------------------------------
+
+    private fun handleTestOutcome(outcome: SpeechSynthesisOutcome, @StringRes failedMessage: Int, discard: (File) -> Unit) {
+        when (outcome) {
+            is SpeechSynthesisOutcome.Ready -> playTestFile(outcome, failedMessage, discard)
+            is SpeechSynthesisOutcome.Fallback -> toast(failedMessage)
+            SpeechSynthesisOutcome.UseSystem -> Unit
+        }
+    }
+
+    private fun playTestFile(outcome: SpeechSynthesisOutcome.Ready, @StringRes failedMessage: Int, discard: (File) -> Unit) {
+        // A late result must not start over the reading that began meanwhile
+        if (isPlaying.value) return
         stopTestPlayer()
         val player = MediaPlayer()
         try {
@@ -198,10 +259,14 @@ class TtsSettingsViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             player.release()
-            edgeSpeech.discard(outcome.file)
-            Toast.makeText(context, context.getString(R.string.settings_edge_test_failed), Toast.LENGTH_LONG).show()
+            if (testPlayer === player) testPlayer = null
+            discard(outcome.file)
+            toast(failedMessage)
         }
     }
+
+    private fun toast(@StringRes message: Int) =
+        Toast.makeText(context, context.getString(message), Toast.LENGTH_LONG).show()
 
     private fun stopTestPlayer() {
         val player = testPlayer ?: return
@@ -210,76 +275,14 @@ class TtsSettingsViewModel @Inject constructor(
         player.release()
     }
 
-    override fun onCleared() {
-        stopTestPlayer()
-        super.onCleared()
-    }
-
-    fun setOpenAiModel(model: String) {
-        val normalized = OpenAiTts.normalizeModel(model)
-        preferences.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
-        _state.value = _state.value.copy(openAiModel = normalized)
-    }
-
-    fun setOpenAiVoice(voice: String) {
-        val normalized = OpenAiTts.normalizeVoice(voice)
-        preferences.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
-        _state.value = _state.value.copy(openAiVoice = normalized)
-    }
-
-    /** Saves the pasted API key (encrypted). Pass blank to clear. Never log [key]. */
-    fun setOpenAiApiKey(key: String) {
-        openAiKeyStore.setApiKey(key)
-        _state.value = _state.value.copy(
-            openAiHasKey = openAiKeyStore.hasApiKey(),
-            openAiKeyMasked = maskKey(openAiKeyStore.getApiKey())
-        )
-    }
-
-    fun clearOpenAiApiKey() {
-        openAiKeyStore.clear()
-        _state.value = _state.value.copy(openAiHasKey = false, openAiKeyMasked = "")
-    }
-
-    /** Whether the engine finished (re)starting; the sheet calls [reload] when this becomes true. */
-    val ttsReady: StateFlow<Boolean> = ttsManager.isInitialized
-
-    private fun markAsReadNow() = preferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
-
-    fun setMarkAsRead(enabled: Boolean) {
-        preferences.update { it.copy(markAsReadOverride = enabled) }
-        _state.value = _state.value.copy(markAsRead = enabled)
-    }
-
-    fun setSpeechRate(rate: Float) {
-        preferences.update { TtsVoiceLogic.withRate(it, rate) }
-        ttsManager.refreshSettings()
-        _state.value = _state.value.copy(speechRate = preferences.settings.value.speechRate)
-    }
-
-    /** [voiceName] null = back to the engine's default voice for [language]. */
-    fun selectVoice(language: String, voiceName: String?) {
-        preferences.update { TtsVoiceLogic.withVoice(it, language, voiceName) }
-        ttsManager.refreshSettings()
-        reload()
-    }
-
-    /** [enginePackage] null = the system default engine. Restarts TextToSpeech. */
-    fun selectEngine(enginePackage: String?) {
-        preferences.update { TtsVoiceLogic.withEngine(it, enginePackage) }
-        ttsManager.refreshSettings()
-        reload()
-    }
-
-    /** Speaks a sample sentence in [language] with the current voice and speech rate. */
-    fun testVoice(language: String) {
-        if (isPlaying.value || !ttsManager.isInitialized.value) return
-        ttsManager.speak(TtsVoiceLogic.testSentence(language), Locale.forLanguageTag(language)) { }
-    }
-
-    /** Stops a running test sentence (not the reading itself). */
+    /** Stops a running test sample (not the reading itself). */
     fun stopTest() {
         stopTestPlayer()
         if (!isPlaying.value) ttsManager.stop()
+    }
+
+    override fun onCleared() {
+        stopTestPlayer()
+        super.onCleared()
     }
 }

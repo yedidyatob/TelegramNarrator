@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Telegram Narrator</string>
 
     <!-- Login Screen -->
@@ -73,59 +73,82 @@
     <string name="playback_paused">Paused</string>
     <string name="playback_preparing">Preparing your unread messages…</string>
 
-    <!-- Voice settings (English only: the app UI is not translated) -->
+    <!-- Voice settings sheet (English only: the app UI is not translated) -->
     <string name="settings_voice_title">Voice settings</string>
     <string name="settings_voice_open">Voice settings</string>
-    <string name="settings_voice_engine">System speech engine</string>
-    <string name="settings_voice_engine_default">System default</string>
-    <string name="settings_voice_rate">Speech rate: %1$s</string>
-    <string name="settings_voice_voices">Voices</string>
-    <string name="settings_voice_default">Default voice</string>
-    <string name="settings_voice_none_installed">No offline voice installed for this language</string>
+    <string name="settings_voice_playing_note">Stop the reading to change or test voices</string>
     <string name="settings_voice_test">Test voice</string>
-    <string name="settings_voice_system">Open system text-to-speech settings</string>
-    <string name="settings_voice_system_unavailable">Could not open the system text-to-speech settings</string>
-    <string name="settings_voice_playing_note">Voice choices can be tested when the reading is stopped</string>
-    <string name="settings_voice_offline_note">Only offline voices of the installed engines are listed; install more voices in the system text-to-speech settings</string>
-    <string name="settings_mark_read">Mark messages as read in Telegram</string>
-    <string name="settings_mark_read_desc">On by default. Messages are marked as read in Telegram only after they were fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
-    <string name="settings_voice_loading">Loading voices…</string>
+    <string name="settings_voice_testing">Loading the voice sample</string>
+    <string name="settings_voice_selected">Selected</string>
+    <string name="settings_state_expanded">Expanded</string>
+    <string name="settings_state_collapsed">Collapsed</string>
 
-    <!-- Optional OpenAI TTS (Bring-Your-Own-Key) -->
-    <string name="settings_openai_title">OpenAI text-to-speech (optional)</string>
-    <string name="settings_openai_desc">Uses your own OpenAI API key. Audio is cached on device so the same message is not billed twice.</string>
-    <string name="settings_openai_api_key">OpenAI API key</string>
-    <string name="settings_openai_api_key_hint">sk-…</string>
-    <string name="settings_openai_save_key">Save key</string>
-    <string name="settings_openai_clear_key">Clear key</string>
-    <string name="settings_openai_privacy">Your key leaves this device only to api.openai.com when synthesizing speech. It is stored encrypted on device and never logged.</string>
-    <string name="settings_openai_model">OpenAI model</string>
-    <string name="settings_openai_model_tts1">tts-1 (default, cheaper)</string>
-    <string name="settings_openai_model_tts1_hd">tts-1-hd (higher quality)</string>
-    <string name="settings_openai_voice">OpenAI voice</string>
+    <!-- 1. Engine -->
+    <string name="settings_section_engine">Engine</string>
+    <string name="settings_engine_system">System</string>
+    <string name="settings_engine_system_desc">Default, works offline</string>
+    <string name="settings_engine_edge">Edge</string>
+    <string name="settings_engine_edge_desc">Free, needs internet</string>
+    <string name="settings_engine_openai">OpenAI</string>
+    <string name="settings_engine_openai_desc">Your own key, paid</string>
 
-    <!-- Text-to-speech engine choice -->
-    <string name="settings_tts_engine">Text-to-speech engine</string>
-    <string name="settings_tts_engine_system">System (default)</string>
-    <string name="settings_tts_engine_system_desc">On-device voices, works offline</string>
-    <string name="settings_tts_engine_openai">OpenAI</string>
-    <string name="settings_tts_engine_openai_desc">Your own API key, paid per character</string>
-    <string name="settings_tts_engine_edge">Microsoft Edge neural voices (experimental)</string>
-    <string name="settings_tts_engine_edge_desc">Unofficial, free, needs internet; may stop working</string>
-    <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
+    <!-- 2a. System voice -->
+    <string name="settings_section_system">System voice</string>
+    <string name="settings_system_loading">Starting the system speech engine…</string>
+    <string name="settings_system_engine">Speech engine</string>
+    <string name="settings_system_engine_default">System default</string>
+    <string name="settings_system_voice_for">%1$s voice</string>
+    <string name="settings_system_voice_default">Default voice</string>
+    <string name="settings_system_none_installed">No offline voice installed</string>
+    <string name="settings_system_quality_high">%1$s · high quality</string>
+    <string name="settings_system_quality_normal">%1$s · normal quality</string>
+    <string name="settings_system_quality_basic">%1$s · basic quality</string>
+    <string name="settings_system_offline_note">Only offline voices are listed. Install more in the system settings.</string>
+    <string name="settings_system_open_tts">Open system TTS settings</string>
+    <string name="settings_system_tts_unavailable">Could not open the system text-to-speech settings</string>
 
-    <!-- Experimental Edge TTS -->
-    <string name="settings_edge_title">Edge neural voices (experimental)</string>
-    <string name="settings_edge_warning">Experimental and unofficial: this uses the endpoint behind Microsoft Edge\'s \"Read aloud\" feature (the same approach as the open-source edge-tts library). It costs $0 and needs no account or key, but it is not a supported Microsoft API and may break or be blocked at any time. Needs a network connection: cleaned message text is sent to Microsoft (speech.platform.bing.com). If it fails, the app shows a short notice and reads with the system voice. Audio is cached on device.</string>
-    <string name="settings_edge_voice">Edge voice</string>
-    <string name="settings_edge_voice_avri">Hebrew, male (non-Hebrew messages use a multilingual male voice)</string>
-    <string name="settings_edge_voice_hila">Hebrew, female (non-Hebrew messages use a multilingual female voice)</string>
-    <string name="settings_edge_voice_multilingual">Multilingual (English and other languages)</string>
-    <string name="settings_edge_custom_voice">Other Edge voice</string>
+    <!-- 2b. Edge voice -->
+    <string name="settings_section_edge">Edge voice</string>
+    <string name="settings_edge_gender">Voice</string>
+    <string name="settings_edge_gender_male">Male</string>
+    <string name="settings_edge_gender_female">Female</string>
+    <string name="settings_edge_voices_desc">Hebrew messages use Avri (Hila for female); other languages switch automatically to Andrew (Ava for female) multilingual voices.</string>
+    <string name="settings_edge_custom_active">Custom voice %1$s reads every message. Clear it under Advanced to use Male / Female.</string>
+    <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet; falls back to the system voice if unavailable.</string>
+    <string name="settings_edge_advanced">Advanced</string>
+    <string name="settings_edge_custom_voice">Custom Edge voice</string>
     <string name="settings_edge_custom_voice_hint">e.g. en-GB-SoniaNeural</string>
-    <string name="settings_edge_custom_voice_desc">Any Edge voice short name (run `edge-tts --list-voices` to see them). Used for every message.</string>
+    <string name="settings_edge_custom_voice_desc" tools:ignore="TypographyDashes">Any Edge voice short name (edge-tts --list-voices). Overrides Male / Female for every message.</string>
     <string name="settings_edge_custom_voice_invalid">Not a valid Edge voice name (expected something like en-US-AriaNeural)</string>
     <string name="settings_edge_custom_voice_use">Use voice</string>
-    <string name="settings_edge_current_voice">Current voice: %1$s</string>
-    <string name="settings_edge_test_failed">Edge TTS failed (no network, or the unofficial service changed). Playback will use the system voice.</string>
+    <string name="settings_edge_custom_voice_clear">Clear</string>
+    <string name="settings_edge_test_failed">Edge voice test failed (no network, or the unofficial service changed). Playback will use the system voice.</string>
+
+    <!-- 2c. OpenAI voice -->
+    <string name="settings_section_openai">OpenAI voice</string>
+    <string name="settings_openai_api_key">API key</string>
+    <string name="settings_openai_api_key_hint">sk-…</string>
+    <string name="settings_openai_show_key">Show key</string>
+    <string name="settings_openai_hide_key">Hide key</string>
+    <string name="settings_openai_key_saved">Saved: %1$s</string>
+    <string name="settings_openai_key_none">No key saved</string>
+    <string name="settings_openai_save_key">Save key</string>
+    <string name="settings_openai_remove_key">Remove key</string>
+    <string name="settings_openai_quality">Quality</string>
+    <string name="settings_openai_model_standard">Standard (tts-1)</string>
+    <string name="settings_openai_model_hd">HD (tts-1-hd)</string>
+    <string name="settings_openai_voice">Voice</string>
+    <string name="settings_openai_test_needs_key">Save a key to test the voice</string>
+    <string name="settings_openai_cost_privacy">About $15 per 1M characters ($30 for HD), billed to your key. Text and key go only to api.openai.com; the key is stored encrypted on this device.</string>
+    <string name="settings_openai_test_failed">OpenAI voice test failed (check the key and the network).</string>
+
+    <!-- 3. Playback -->
+    <string name="settings_section_playback">Playback</string>
+    <string name="settings_rate">Speech rate</string>
+    <string name="settings_rate_value">%1$.1f×</string>
+    <string name="settings_mark_read">Mark messages as read in Telegram</string>
+    <string name="settings_mark_read_desc">Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
+
+    <!-- Network TTS fallback (playback) -->
+    <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
 </resources>

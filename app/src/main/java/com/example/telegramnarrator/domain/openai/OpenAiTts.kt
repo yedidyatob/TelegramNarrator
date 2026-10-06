@@ -39,6 +39,20 @@ object OpenAiTts {
     }
 
     fun isWithinApiLimit(text: String): Boolean = text.length <= MAX_INPUT_CHARS
+
+    /** Keys shorter than this are shown fully masked so the hint can never reveal most of the key. */
+    private const val MIN_KEY_LENGTH_FOR_HINT = 16
+
+    /**
+     * Masked preview of a saved key for the "Saved: sk-…abcd" indicator: first 3 + last 4 characters of a
+     * real-length key, "••••" for short ones, null when there is no key. Never the key itself.
+     */
+    fun maskKey(key: String?): String? {
+        val trimmed = key?.trim().orEmpty()
+        if (trimmed.isEmpty()) return null
+        if (trimmed.length < MIN_KEY_LENGTH_FOR_HINT) return "••••"
+        return trimmed.take(3) + "…" + trimmed.takeLast(4)
+    }
 }
 
 /** Non-secret OpenAI TTS choices persisted with the rest of [com.example.telegramnarrator.domain.tts.TtsSettings]. */

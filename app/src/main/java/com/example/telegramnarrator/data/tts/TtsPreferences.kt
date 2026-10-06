@@ -2,7 +2,6 @@ package com.example.telegramnarrator.data.tts
 
 import android.content.Context
 import com.example.telegramnarrator.domain.edge.EdgeTts
-import com.example.telegramnarrator.domain.edge.EdgeTtsOptions
 import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.openai.OpenAiTtsOptions
 import com.example.telegramnarrator.domain.tts.SpeechProvider
@@ -33,7 +32,10 @@ class TtsPreferences @Inject constructor(
         const val KEY_OPENAI_ENABLED = "openai_enabled"
         const val KEY_OPENAI_MODEL = "openai_model"
         const val KEY_OPENAI_VOICE = "openai_voice"
-        const val KEY_EDGE_VOICE = "edge_voice"
+        const val KEY_EDGE_GENDER = "edge_gender"
+        const val KEY_EDGE_CUSTOM_VOICE = "edge_custom_voice"
+        /** Legacy (before the voice-settings redesign): one Edge voice name; migrated on read, no longer written. */
+        const val KEY_EDGE_VOICE_LEGACY = "edge_voice"
         const val VOICE_PREFIX = "voice."
     }
 
@@ -68,8 +70,10 @@ class TtsPreferences @Inject constructor(
                 model = OpenAiTts.normalizeModel(prefs.getString(KEY_OPENAI_MODEL, OpenAiTts.DEFAULT_MODEL)),
                 voice = OpenAiTts.normalizeVoice(prefs.getString(KEY_OPENAI_VOICE, OpenAiTts.DEFAULT_VOICE))
             ),
-            edge = EdgeTtsOptions(
-                voice = EdgeTts.normalizeVoice(prefs.getString(KEY_EDGE_VOICE, EdgeTts.DEFAULT_VOICE))
+            edge = EdgeTts.optionsFromStored(
+                gender = prefs.getString(KEY_EDGE_GENDER, null),
+                customVoice = prefs.getString(KEY_EDGE_CUSTOM_VOICE, null),
+                legacyVoice = prefs.getString(KEY_EDGE_VOICE_LEGACY, null)
             )
         )
     }
@@ -82,7 +86,8 @@ class TtsPreferences @Inject constructor(
         editor.putString(KEY_PROVIDER, settings.provider.id)
         editor.putString(KEY_OPENAI_MODEL, OpenAiTts.normalizeModel(settings.openAi.model))
         editor.putString(KEY_OPENAI_VOICE, OpenAiTts.normalizeVoice(settings.openAi.voice))
-        editor.putString(KEY_EDGE_VOICE, EdgeTts.normalizeVoice(settings.edge.voice))
+        editor.putString(KEY_EDGE_GENDER, settings.edge.gender.id)
+        settings.edge.customVoice?.let { editor.putString(KEY_EDGE_CUSTOM_VOICE, it) }
         settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }
         editor.apply()
     }

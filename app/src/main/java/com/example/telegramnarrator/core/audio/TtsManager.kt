@@ -116,9 +116,6 @@ class TtsManager @Inject constructor(
         emptyList()
     }
 
-    /** Package of the engine that is actually in use. */
-    fun activeEngine(): String? = try { tts?.defaultEngine } catch (e: Exception) { null }
-
     /** The voices of the active engine, as platform-independent options. */
     fun availableVoices(): List<VoiceOption> = voices.map { voice ->
         VoiceOption(
