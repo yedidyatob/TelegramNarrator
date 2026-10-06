@@ -93,10 +93,11 @@ A relative `TN_KEYSTORE_PATH` is resolved against the project root. Behaviour of
 # → app/build/outputs/bundle/release/app-release.aab
 ```
 
-Check that it is signed with your upload key (look for `jar verified.` and your certificate):
+Check that it is signed with your upload key (the owner and SHA-256 fingerprint must be your upload
+certificate; "Not a signed jar file" means the keystore settings were not picked up):
 
 ```bash
-jarsigner -verify -verbose:summary -certs app/build/outputs/bundle/release/app-release.aab | tail -5
+keytool -printcert -jarfile app/build/outputs/bundle/release/app-release.aab
 ```
 
 Release builds use R8 (`isMinifyEnabled`), resource shrinking and `debuggable false`. Keep rules are in
@@ -220,8 +221,14 @@ jobs:
 
       - name: Verify the bundle is signed
         run: |
-          jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tee verify.txt
-          grep -q "jar verified." verify.txt
+          aab=app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$aab" > verify.txt 2>&1 || true
+          if ! grep -q "^jar verified" verify.txt; then
+            head -20 verify.txt
+            echo "::error::app-release.aab is not signed; check the TN_* secrets"
+            exit 1
+          fi
+          keytool -printcert -jarfile "$aab" | head -8
 
       - name: Remove keystore
         if: always()
