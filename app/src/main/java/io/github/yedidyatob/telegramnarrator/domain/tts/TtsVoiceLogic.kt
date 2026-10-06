@@ -36,7 +36,7 @@ data class TtsSettings(
      * builds, see [markAsReadEnabled].
      */
     val markAsReadOverride: Boolean? = null,
-    /** Engine that speaks messages: system TTS (default), OpenAI (BYOK) or Edge (experimental). */
+    /** Engine that speaks messages: Edge (default for new installs), system TTS or OpenAI (BYOK). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** Optional Bring-Your-Own-Key OpenAI TTS choices (used when [provider] is OPENAI). */
     val openAi: OpenAiTtsOptions = OpenAiTtsOptions(),

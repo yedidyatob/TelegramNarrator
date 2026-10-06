@@ -1,6 +1,9 @@
 package io.github.yedidyatob.telegramnarrator.data.tts
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
 import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
 import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTtsOptions
@@ -17,6 +20,10 @@ import javax.inject.Singleton
 /**
  * Persists the user's [TtsSettings] in SharedPreferences. (SharedPreferences rather than DataStore:
  * TtsManager needs the values synchronously while it initializes the engine.)
+ *
+ * No stored engine: a fresh install starts on [SpeechProvider.DEFAULT] (Edge); an install updated from a version
+ * where "nothing stored" meant the system voice keeps [SpeechProvider.UPGRADE_DEFAULT] (System). The resolved
+ * engine is saved right away, so a later update never changes it.
  */
 @Singleton
 class TtsPreferences @Inject constructor(
@@ -40,8 +47,9 @@ class TtsPreferences @Inject constructor(
     }
 
     private val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
 
-    private val _settings = MutableStateFlow(read())
+    private val _settings = MutableStateFlow(read().also(::persistResolvedProvider))
     val settings: StateFlow<TtsSettings> = _settings.asStateFlow()
 
     /** Applies [transform] to the current settings, saves and publishes the result. */
@@ -64,7 +72,8 @@ class TtsPreferences @Inject constructor(
             markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null,
             provider = SpeechProvider.fromStored(
                 prefs.getString(KEY_PROVIDER, null),
-                legacyOpenAiEnabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false)
+                legacyOpenAiEnabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false),
+                freshInstall = !prefs.contains(KEY_PROVIDER) && isFreshInstall()
             ),
             openAi = OpenAiTtsOptions(
                 model = OpenAiTts.normalizeModel(prefs.getString(KEY_OPENAI_MODEL, OpenAiTts.DEFAULT_MODEL)),
@@ -76,6 +85,29 @@ class TtsPreferences @Inject constructor(
                 legacyVoice = prefs.getString(KEY_EDGE_VOICE_LEGACY, null)
             )
         )
+    }
+
+    /** Saves the engine chosen by [SpeechProvider.fromStored] when none was stored (see the class doc). */
+    private fun persistResolvedProvider(settings: TtsSettings) {
+        if (!prefs.contains(KEY_PROVIDER)) prefs.edit().putString(KEY_PROVIDER, settings.provider.id).apply()
+    }
+
+    /**
+     * True when this version was installed fresh rather than updated over an older one: the package manager then
+     * reports the same first-install and last-update time. Independent of what else already ran on first launch.
+     */
+    private fun isFreshInstall(): Boolean = try {
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            appContext.packageManager.getPackageInfo(appContext.packageName, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+        }
+        info.firstInstallTime == info.lastUpdateTime
+    } catch (e: PackageManager.NameNotFoundException) {
+        // Can't tell: keep the offline system voice rather than sending text to an online service unasked
+        Log.w("TtsPreferences", "Package info unavailable", e)
+        false
     }
 
     private fun write(settings: TtsSettings) {

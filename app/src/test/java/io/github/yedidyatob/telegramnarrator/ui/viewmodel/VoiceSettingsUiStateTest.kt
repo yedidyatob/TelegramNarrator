@@ -77,6 +77,8 @@ class VoiceSettingsUiStateTest {
             listOf(VoiceSettingsSection.ENGINE, VoiceSettingsSection.EDGE_VOICE, VoiceSettingsSection.PLAYBACK),
             TtsSettingsUiState(provider = SpeechProvider.EDGE).sections
         )
-        assertEquals(VoiceSettingsSection.SYSTEM_VOICES, TtsSettingsUiState().sections[1])
+        assertEquals(VoiceSettingsSection.SYSTEM_VOICES, TtsSettingsUiState(provider = SpeechProvider.SYSTEM).sections[1])
+        // New installs start on Edge
+        assertEquals(VoiceSettingsSection.EDGE_VOICE, TtsSettingsUiState().sections[1])
     }
 }

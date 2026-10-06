@@ -32,7 +32,7 @@
     <string name="login_btn_login">Login</string>
     <string name="login_btn_unlock">Unlock</string>
     <!-- Telegram API Terms of Service 2.2 / 2.3: say that the app is unofficial and built on the Telegram API -->
-    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages stay on this device unless you pick an online voice.</string>
+    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with an online voice (Edge, the default, or OpenAI) their text is sent to that service to be read aloud.</string>
     <string name="login_privacy_policy">Privacy policy</string>
     <string name="link_open_failed">No app found to open the link</string>
     <string name="login_status_initializing">Initializing Telegram...</string>
@@ -113,17 +113,17 @@
     <string name="onboarding_welcome_point_listen">Pick the chats, press Play, and listen</string>
     <string name="onboarding_welcome_point_control">Pause, replay or skip a message or a whole chat</string>
     <string name="onboarding_welcome_point_languages">Hebrew and English messages each get the right voice</string>
-    <string name="onboarding_privacy_title">Unofficial and private</string>
-    <string name="onboarding_privacy_point_device">Your login, messages and settings stay on this device</string>
+    <string name="onboarding_privacy_title">Unofficial app and your privacy</string>
+    <string name="onboarding_privacy_point_device">Your login, messages and settings are stored only on this device</string>
+    <string name="onboarding_privacy_point_voice">By default the Edge voice reads your messages: their text and chat names are sent to Microsoft. You can pick the offline system voice in the next step.</string>
     <string name="onboarding_privacy_point_read">A message is marked as read in Telegram only after it was read aloud or skipped</string>
     <string name="onboarding_privacy_point_ads">Channels can include Telegram\'s official sponsored messages</string>
     <string name="onboarding_voice_title">Choose a voice</string>
     <string name="onboarding_voice_body">You can change it any time in Voice settings.</string>
-    <string name="onboarding_voice_recommended">Recommended</string>
     <string name="onboarding_voice_system_title">System voice</string>
-    <string name="onboarding_voice_system_desc">Built into your phone. Free and offline: nothing leaves the device.</string>
+    <string name="onboarding_voice_system_desc">The text-to-speech engine of your phone. Free and offline: nothing leaves the device.</string>
     <string name="onboarding_voice_edge_title">Edge voice</string>
-    <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet; message text is sent to Microsoft.</string>
+    <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet: the text of your messages and the chat names are sent to Microsoft. If it\'s unavailable, the system voice reads.</string>
     <string name="onboarding_voice_openai_title">OpenAI voice</string>
     <string name="onboarding_voice_openai_desc">Premium voices with your own OpenAI API key, billed to you. Message text is sent to OpenAI.</string>
     <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
@@ -175,9 +175,9 @@
     <!-- 1. Engine -->
     <string name="settings_section_engine">Engine</string>
     <string name="settings_engine_system">System</string>
-    <string name="settings_engine_system_desc">Default, works offline</string>
+    <string name="settings_engine_system_desc">On your phone, works offline</string>
     <string name="settings_engine_edge">Edge</string>
-    <string name="settings_engine_edge_desc">Free, needs internet</string>
+    <string name="settings_engine_edge_desc">Free natural voices, needs internet</string>
     <string name="settings_engine_openai">OpenAI</string>
     <string name="settings_engine_openai_desc">Your own key, paid</string>
 

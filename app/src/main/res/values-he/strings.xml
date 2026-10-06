@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Unofficial-app notice (Telegram API Terms of Service 2.2 / 2.3) -->
-    <string name="login_unofficial_notice">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram. ההודעות שלך נשארות במכשיר, אלא אם בחרת בקול מקוון.</string>
+    <string name="login_unofficial_notice">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram. ההודעות שלך נשמרות רק במכשיר; עם קול מקוון (Edge, ברירת המחדל, או OpenAI) הטקסט שלהן נשלח לשירות הזה כדי להקריא אותו.</string>
     <string name="login_privacy_policy">מדיניות פרטיות</string>
     <string name="settings_about_unofficial">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram.</string>
 

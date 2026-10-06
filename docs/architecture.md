@@ -13,7 +13,7 @@ Storage", a use-case layer; the Onboarding and Player screens came later with #2
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
-| Speech | Android `TextToSpeech` (default); optional OpenAI TTS (BYOK) and experimental Microsoft Edge neural TTS |
+| Speech | Microsoft Edge neural TTS (unofficial; default on new installs), Android `TextToSpeech` (offline; fallback, and the engine of updated installs that never chose one), optional OpenAI TTS (BYOK) |
 | Playback | Foreground `PlaybackService` + `MediaSessionCompat`, `MediaPlayer` for voice notes, dings and cloud TTS audio |
 | Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; OpenAI key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
 | Backend | None. The app talks only to Telegram, plus OpenAI / Microsoft if the user opts into those engines |
@@ -97,8 +97,9 @@ it is never reset while the Keystore is unavailable. `AppNavigation` in `MainAct
 
 **Onboarding (#20).** Shown once, before the login, to users who are not signed in (someone already signed in, e.g.
 after an update, never sees it): what the app does; the unofficial-app notice and what stays on the device, with the
-privacy policy link; the voice engine (System, recommended, with a check for an offline Hebrew voice and a shortcut to
-the system TTS settings; Edge; OpenAI with an inline API-key field), written to `TtsPreferences`; and on Android 13+
+privacy policy link (and, when Edge is selected, that its text and chat names go to Microsoft); the voice engine
+(Edge first and preselected on a new install; System, with a check for an offline Hebrew voice and a shortcut to the
+system TTS settings; OpenAI with an inline API-key field), written to `TtsPreferences`; and on Android 13+
 the notification permission (the step is left out when it is already granted). Skip, or finishing, sets the
 `OnboardingPreferences` flag and the login follows.
 

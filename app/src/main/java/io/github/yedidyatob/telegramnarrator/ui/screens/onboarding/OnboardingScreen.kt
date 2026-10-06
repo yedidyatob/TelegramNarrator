@@ -43,6 +43,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Lock
@@ -104,7 +105,7 @@ import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OnboardingViewModel
 
 /** State of the voice step, so the page can be rendered without a ViewModel (previews / screenshots). */
 data class VoiceStepState(
-    val provider: SpeechProvider = SpeechProvider.SYSTEM,
+    val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** null while the system engine starts. */
     val hebrewVoice: Boolean? = null,
     val hasOpenAiKey: Boolean = false
@@ -228,7 +229,7 @@ fun OnboardingContent(
                 ) {
                     when (page) {
                         OnboardingStep.WELCOME -> WelcomePage()
-                        OnboardingStep.PRIVACY -> PrivacyPage()
+                        OnboardingStep.PRIVACY -> PrivacyPage(edgeSelected = voice.provider == SpeechProvider.EDGE)
                         OnboardingStep.VOICE -> VoicePage(voice, voiceActions)
                         OnboardingStep.NOTIFICATIONS -> NotificationsPage()
                     }
@@ -344,7 +345,7 @@ private fun WelcomePage() {
 }
 
 @Composable
-private fun PrivacyPage() {
+private fun PrivacyPage(edgeSelected: Boolean) {
     PageHeader(Icons.Rounded.Lock, stringResource(R.string.onboarding_privacy_title), null)
     // Telegram API ToS 2.2 / 2.3: the app is unofficial and built on the Telegram API
     Surface(
@@ -360,6 +361,8 @@ private fun PrivacyPage() {
     }
     Spacer(Modifier.height(12.dp))
     Point(Icons.Rounded.PhoneAndroid, stringResource(R.string.onboarding_privacy_point_device))
+    // The default engine of a new install sends text to Microsoft: say so before the voice step
+    if (edgeSelected) Point(Icons.Rounded.Cloud, stringResource(R.string.onboarding_privacy_point_voice))
     Point(Icons.Rounded.DoneAll, stringResource(R.string.onboarding_privacy_point_read))
     Point(Icons.Rounded.Campaign, stringResource(R.string.onboarding_privacy_point_ads))
     Spacer(Modifier.height(8.dp))
@@ -377,21 +380,21 @@ private fun VoicePage(state: VoiceStepState, actions: VoiceStepActions) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().selectableGroup()
     ) {
-        VoiceOptionCard(
-            selected = state.provider == SpeechProvider.SYSTEM,
-            title = stringResource(R.string.onboarding_voice_system_title),
-            description = stringResource(R.string.onboarding_voice_system_desc),
-            badge = stringResource(R.string.onboarding_voice_recommended),
-            onSelect = { actions.onSelect(SpeechProvider.SYSTEM) }
-        ) {
-            HebrewVoiceStatus(state.hebrewVoice, actions.onOpenTtsSettings)
-        }
+        // Edge first: the default engine (preselected on a new install)
         VoiceOptionCard(
             selected = state.provider == SpeechProvider.EDGE,
             title = stringResource(R.string.onboarding_voice_edge_title),
             description = stringResource(R.string.onboarding_voice_edge_desc),
             onSelect = { actions.onSelect(SpeechProvider.EDGE) }
         )
+        VoiceOptionCard(
+            selected = state.provider == SpeechProvider.SYSTEM,
+            title = stringResource(R.string.onboarding_voice_system_title),
+            description = stringResource(R.string.onboarding_voice_system_desc),
+            onSelect = { actions.onSelect(SpeechProvider.SYSTEM) }
+        ) {
+            HebrewVoiceStatus(state.hebrewVoice, actions.onOpenTtsSettings)
+        }
         VoiceOptionCard(
             selected = state.provider == SpeechProvider.OPENAI,
             title = stringResource(R.string.onboarding_voice_openai_title),
@@ -409,7 +412,6 @@ private fun VoiceOptionCard(
     title: String,
     description: String,
     onSelect: () -> Unit,
-    badge: String? = null,
     extra: (@Composable () -> Unit)? = null
 ) {
     Surface(
@@ -430,20 +432,7 @@ private fun VoiceOptionCard(
             ) {
                 RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(12.dp))
                 Column(Modifier.weight(1f).padding(top = 10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(title, style = MaterialTheme.typography.titleMedium)
-                        if (badge != null) {
-                            Spacer(Modifier.width(8.dp))
-                            Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
-                                Text(
-                                    badge,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
+                    Text(title, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
                     Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

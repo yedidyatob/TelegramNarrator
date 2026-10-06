@@ -17,8 +17,11 @@ endorsed or supported by Telegram.
   shared for advertising and is not used to train AI models. In channels and bot chats the app shows Telegram's
   official sponsored messages, because Telegram requires it (see section 2a).
 - Your Telegram data is exchanged **only with Telegram's servers** and is stored **on your device**, encrypted.
-- Message text and chat titles leave your device for speech synthesis **only if you choose an online voice engine**
-  (Microsoft Edge or OpenAI) in the app's voice settings. The default engine (System) works on the device.
+- **The default voice engine on a new install is Microsoft Edge, an online service:** with it, the text of the
+  messages being read and the chat titles are sent to Microsoft for speech synthesis. You can switch to the
+  **System** voice, which works entirely on your device, in the first-run introduction or at any time in the voice
+  settings. (Installs updated from a version that used the System voice keep it.) OpenAI is optional and needs your
+  own API key.
 
 ## What the app handles and where it goes
 
@@ -58,12 +61,14 @@ voice engine, the ad's text is sent to it like a message.
 
 ### 3. Speech synthesis (text-to-speech)
 
-You choose the voice engine in the app's voice settings:
+You choose the voice engine in the first-run introduction and, at any time, in the app's voice settings. A new
+install starts with **Edge**; an install updated from an earlier version keeps the engine it had (the System voice
+unless you had chosen another one). If Edge or OpenAI cannot be reached, that message is read with the System voice.
 
 | Engine | What leaves your device | Recipient |
 |---|---|---|
-| **System** (default) | Nothing is sent by the app. The text is handed to the text-to-speech engine installed on your phone (for example Google Speech Services). The app lists only offline voices; what the engine itself does is governed by its own provider's policy. | None |
-| **Edge** (optional, experimental) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
+| **System** | Nothing is sent by the app. The text is handed to the text-to-speech engine installed on your phone (for example Google Speech Services). The app lists only offline voices; what the engine itself does is governed by its own provider's policy. | None |
+| **Edge** (default on new installs; unofficial) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
 | **OpenAI** (optional, your own API key) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice and model, and your OpenAI API key (to authorize the request). | OpenAI ([Privacy Policy](https://openai.com/policies/privacy-policy), [API data usage](https://openai.com/policies/api-data-usage-policies)). Requests are billed to your own OpenAI account. |
 
 "Cleaned text" means the message text after the app removes links, ads and similar parts it does not read
@@ -90,7 +95,7 @@ database, your settings and your API key are never copied to Google Drive or to 
 
 | Permission | Why |
 |---|---|
-| Internet | Connect to Telegram (including its sponsored messages) and, if you choose them, to the Edge or OpenAI voice services |
+| Internet | Connect to Telegram (including its sponsored messages) and to the online voice service in use (Edge by default, or OpenAI) |
 | Foreground service (media playback) | Keep reading aloud while the screen is off or another app is open |
 | Notifications (optional) | Show playback controls (pause, skip, stop) in the notification and on the lock screen |
 
@@ -104,7 +109,7 @@ Telegram database and the OpenAI key are encrypted as described above.
 
 ## Keeping and deleting your data
 
-- **Log out** (button on the main screen) ends the app's Telegram session and deletes the Telegram database
+- **Log out** (in the ⋮ menu of the main screen) ends the app's Telegram session and deletes the Telegram database
   (session, chats and cached messages) from your device.
 - **Remove key** in the voice settings deletes your OpenAI API key.
 - **Clear storage** (Android Settings → Apps → Unofficial Telegram Narrator → Storage) or **uninstalling** the
