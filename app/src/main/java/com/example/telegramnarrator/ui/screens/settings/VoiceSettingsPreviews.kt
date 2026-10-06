@@ -8,6 +8,7 @@ import com.example.telegramnarrator.domain.edge.EdgeVoiceGender
 import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.tts.EngineOption
 import com.example.telegramnarrator.domain.tts.SpeechProvider
+import com.example.telegramnarrator.domain.tts.TestLanguage
 import com.example.telegramnarrator.domain.tts.VoiceOption
 import com.example.telegramnarrator.ui.theme.TelegramNarratorTheme
 import com.example.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
@@ -65,6 +66,18 @@ private fun VoiceSettingsEdgePreview() {
             provider = SpeechProvider.EDGE,
             system = SystemVoiceUiState(loading = true), // never shown for Edge
             edge = EdgeVoiceUiState(gender = EdgeVoiceGender.FEMALE)
+        )
+    )
+}
+
+@Preview(name = "Edge (testing in French)", showBackground = true, heightDp = 900)
+@Composable
+private fun VoiceSettingsEdgeTestingPreview() {
+    PreviewSheet(
+        TtsSettingsUiState(
+            provider = SpeechProvider.EDGE,
+            edge = EdgeVoiceUiState(gender = EdgeVoiceGender.MALE, testing = true),
+            testLanguage = TestLanguage.FRENCH
         )
     )
 }

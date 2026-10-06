@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -32,6 +34,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -81,6 +84,7 @@ import com.example.telegramnarrator.R
 import com.example.telegramnarrator.domain.edge.EdgeVoiceGender
 import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.tts.SpeechProvider
+import com.example.telegramnarrator.domain.tts.TestLanguage
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import com.example.telegramnarrator.domain.tts.VoiceOption
 import com.example.telegramnarrator.domain.tts.VoiceQuality
@@ -92,6 +96,7 @@ import com.example.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import com.example.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import com.example.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
 import com.example.telegramnarrator.ui.viewmodel.VoiceGroup
+import com.example.telegramnarrator.ui.viewmodel.nameRes
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Edge | OpenAI), then only the selected engine's own section,
@@ -126,7 +131,8 @@ fun VoiceSettingsSheet(
             onSelectOpenAiVoice = viewModel::setOpenAiVoice,
             onTestOpenAi = viewModel::testOpenAiVoice,
             onSpeechRate = viewModel::setSpeechRate,
-            onMarkAsRead = viewModel::setMarkAsRead
+            onMarkAsRead = viewModel::setMarkAsRead,
+            onSelectTestLanguage = viewModel::setTestLanguage
         )
     }
 
@@ -154,7 +160,8 @@ class VoiceSettingsActions(
     val onSelectOpenAiVoice: (String) -> Unit = {},
     val onTestOpenAi: () -> Unit = {},
     val onSpeechRate: (Float) -> Unit = {},
-    val onMarkAsRead: (Boolean) -> Unit = {}
+    val onMarkAsRead: (Boolean) -> Unit = {},
+    val onSelectTestLanguage: (TestLanguage) -> Unit = {}
 )
 
 /** Stateless sheet content (also used by the previews). */
@@ -189,9 +196,9 @@ fun VoiceSettingsContent(
         state.sections.forEach { section ->
             when (section) {
                 VoiceSettingsSection.ENGINE -> EngineSection(state.provider, isPlaying, actions.onSelectProvider)
-                VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, isPlaying, actions)
-                VoiceSettingsSection.EDGE_VOICE -> EdgeSection(state.edge, isPlaying, actions)
-                VoiceSettingsSection.OPENAI_VOICE -> OpenAiSection(state.openAi, isPlaying, actions)
+                VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, state.testLanguage, isPlaying, actions)
+                VoiceSettingsSection.EDGE_VOICE -> EdgeSection(state.edge, state.testLanguage, isPlaying, actions)
+                VoiceSettingsSection.OPENAI_VOICE -> OpenAiSection(state.openAi, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.PLAYBACK -> PlaybackSection(state.speechRate, state.markAsRead, actions)
             }
         }
@@ -218,7 +225,12 @@ private fun EngineSection(provider: SpeechProvider, isPlaying: Boolean, onSelect
 }
 
 @Composable
-private fun SystemSection(system: SystemVoiceUiState, isPlaying: Boolean, actions: VoiceSettingsActions) {
+private fun SystemSection(
+    system: SystemVoiceUiState,
+    testLanguage: TestLanguage,
+    isPlaying: Boolean,
+    actions: VoiceSettingsActions
+) {
     val context = LocalContext.current
     SettingsSection(R.string.settings_section_system) {
         if (system.loading) {
@@ -250,8 +262,11 @@ private fun SystemSection(system: SystemVoiceUiState, isPlaying: Boolean, action
             }
         ) { Text(stringResource(R.string.settings_system_open_tts)) }
         TestVoiceRow(
-            enabled = VoiceSettingsLogic.canTestSystem(isPlaying, systemTtsReady = !system.loading),
-            testing = false,
+            language = testLanguage,
+            onSelectLanguage = actions.onSelectTestLanguage,
+            isPlaying = isPlaying,
+            enabled = VoiceSettingsLogic.canTestSystem(isPlaying, systemTtsReady = !system.loading, testing = system.testing),
+            testing = system.testing,
             onTest = actions.onTestSystem
         )
     }
@@ -285,7 +300,7 @@ private fun SystemVoicePicker(group: VoiceGroup, enabled: Boolean, onSelect: (St
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EdgeSection(edge: EdgeVoiceUiState, isPlaying: Boolean, actions: VoiceSettingsActions) {
+private fun EdgeSection(edge: EdgeVoiceUiState, testLanguage: TestLanguage, isPlaying: Boolean, actions: VoiceSettingsActions) {
     SettingsSection(R.string.settings_section_edge) {
         FieldLabel(R.string.settings_edge_gender)
         val genderEnabled = VoiceSettingsLogic.edgeGenderEnabled(isPlaying, edge.customVoice)
@@ -304,6 +319,9 @@ private fun EdgeSection(edge: EdgeVoiceUiState, isPlaying: Boolean, actions: Voi
             else stringResource(R.string.settings_edge_voices_desc)
         )
         TestVoiceRow(
+            language = testLanguage,
+            onSelectLanguage = actions.onSelectTestLanguage,
+            isPlaying = isPlaying,
             enabled = VoiceSettingsLogic.canTestEdge(isPlaying, edge.testing),
             testing = edge.testing,
             onTest = actions.onTestEdge
@@ -404,7 +422,12 @@ private fun GetOpenAiKeyLink() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OpenAiSection(openAi: OpenAiVoiceUiState, isPlaying: Boolean, actions: VoiceSettingsActions) {
+private fun OpenAiSection(
+    openAi: OpenAiVoiceUiState,
+    testLanguage: TestLanguage,
+    isPlaying: Boolean,
+    actions: VoiceSettingsActions
+) {
     SettingsSection(R.string.settings_section_openai) {
         val enabled = !isPlaying
         // The typed key lives only here (not in the ViewModel / UI state) and is not saved in instance state
@@ -477,6 +500,9 @@ private fun OpenAiSection(openAi: OpenAiVoiceUiState, isPlaying: Boolean, action
             onSelect = actions.onSelectOpenAiVoice
         )
         TestVoiceRow(
+            language = testLanguage,
+            onSelectLanguage = actions.onSelectTestLanguage,
+            isPlaying = isPlaying,
             enabled = VoiceSettingsLogic.canTestOpenAi(isPlaying, openAi.testing, openAi.hasKey),
             testing = openAi.testing,
             onTest = actions.onTestOpenAi,
@@ -613,18 +639,70 @@ private fun <T> Dropdown(
     }
 }
 
+/**
+ * Compact test-language picker + Test voice. While the sample loads the button is disabled and a spinner shows;
+ * [hint] (e.g. "save a key first") goes below the row.
+ */
 @Composable
-private fun TestVoiceRow(enabled: Boolean, testing: Boolean, onTest: () -> Unit, hint: String? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onTest, enabled = enabled) { Text(stringResource(R.string.settings_voice_test)) }
-        if (testing) {
-            val loading = stringResource(R.string.settings_voice_testing)
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp).semantics { contentDescription = loading },
-                strokeWidth = 2.dp
-            )
-        } else if (hint != null) {
-            Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun TestVoiceRow(
+    language: TestLanguage,
+    onSelectLanguage: (TestLanguage) -> Unit,
+    isPlaying: Boolean,
+    enabled: Boolean,
+    testing: Boolean,
+    onTest: () -> Unit,
+    hint: String? = null
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TestLanguagePicker(language, enabled = !isPlaying, onSelect = onSelectLanguage)
+        val loading = stringResource(R.string.settings_voice_testing)
+        OutlinedButton(
+            onClick = onTest,
+            enabled = enabled && !testing,
+            modifier = if (testing) Modifier.semantics { stateDescription = loading } else Modifier
+        ) {
+            if (testing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp).semantics { contentDescription = loading },
+                    strokeWidth = 2.dp
+                )
+                Spacer(Modifier.size(8.dp))
+            }
+            Text(stringResource(R.string.settings_voice_test))
+        }
+    }
+    if (hint != null) HelperText(hint)
+}
+
+@Composable
+private fun TestLanguagePicker(language: TestLanguage, enabled: Boolean, onSelect: (TestLanguage) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val name = stringResource(language.nameRes)
+    val description = stringResource(R.string.settings_test_language, name)
+    Box {
+        TextButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            modifier = Modifier.semantics { contentDescription = description }
+        ) {
+            Text(name)
+            Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            val selectedText = stringResource(R.string.settings_voice_selected)
+            TestLanguage.values().forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.nameRes)) },
+                    trailingIcon = if (option == language) {
+                        { Icon(Icons.Filled.Check, contentDescription = selectedText) }
+                    } else null,
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                    modifier = Modifier.heightIn(min = MIN_TOUCH)
+                )
+            }
         }
     }
 }

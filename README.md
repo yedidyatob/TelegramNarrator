@@ -58,7 +58,7 @@ System TTS is the default. No OpenAI key is required or shipped in the repo.
 1. Create an API key at <https://platform.openai.com/api-keys> (you pay OpenAI directly).
 2. In the app: **Voice settings** → **Engine** → **OpenAI**. Paste the key (tap the eye icon to check it) → **Save key**
    (the sheet then shows `Saved: sk-…abcd`) → pick **Standard (tts-1)** or **HD (tts-1-hd)** and a voice →
-   **Test voice** plays a Hebrew sample. **Remove key** deletes it from the device.
+   **Test voice** plays a sample in the language picked next to it. **Remove key** deletes it from the device.
 3. Pricing: <https://openai.com/api/pricing/> (tts-1 ≈ $15 per 1M characters, tts-1-hd ≈ $30 per 1M).
 4. **Warning:** when synthesizing, the key and cleaned message text leave the device to `api.openai.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache so they are not billed again.
 
@@ -70,7 +70,8 @@ System TTS is the default. No OpenAI key is required or shipped in the repo.
 
 - **Cost: $0.** No account, no API key (the only token involved is the public constant built into Edge).
 - **Needs a network connection.** Cleaned message text is sent to Microsoft (`speech.platform.bing.com`).
-- In the app: **Voice settings** → **Engine** → **Edge**, then choose **Male** or **Female** and tap **Test voice**.
+- In the app: **Voice settings** → **Engine** → **Edge**, then choose **Male** or **Female** and tap **Test voice**
+  (pick the sample language next to it; it defaults to your phone's language).
   Hebrew messages use Avri (Hila for female); messages in other languages switch automatically to the Andrew
   (Ava for female) multilingual voices. To force one specific Edge voice for every message, open **Advanced** and
   type its short name (`edge-tts --list-voices`); this overrides Male / Female until you clear it.

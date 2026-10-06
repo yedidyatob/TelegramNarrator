@@ -39,8 +39,12 @@ object VoiceSettingsLogic {
     fun systemSectionLoading(provider: SpeechProvider, systemTtsReady: Boolean): Boolean =
         provider == SpeechProvider.SYSTEM && !systemTtsReady
 
-    /** "Test voice" for System TTS needs an initialized engine; tests never interrupt the reading. */
-    fun canTestSystem(isPlaying: Boolean, systemTtsReady: Boolean): Boolean = !isPlaying && systemTtsReady
+    /**
+     * "Test voice" for System TTS needs an initialized engine and no sample still waiting to start; tests never
+     * interrupt the reading.
+     */
+    fun canTestSystem(isPlaying: Boolean, systemTtsReady: Boolean, testing: Boolean = false): Boolean =
+        !isPlaying && systemTtsReady && !testing
 
     /** "Test voice" for Edge: not while reading, not while a sample is already being fetched. */
     fun canTestEdge(isPlaying: Boolean, testing: Boolean): Boolean = !isPlaying && !testing

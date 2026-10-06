@@ -4,6 +4,7 @@ import android.os.SystemClock
 import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.audio.LanguageDetector
 import com.example.telegramnarrator.domain.edge.EdgeTts
+import com.example.telegramnarrator.domain.tts.FallbackReason
 import com.example.telegramnarrator.domain.tts.SpeechProvider
 import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
@@ -57,12 +58,11 @@ class EdgeSpeechSynthesizer @Inject constructor(
             // Never log the text; the exception message contains only status / protocol info
             android.util.Log.w("EdgeTts", "Edge TTS failed: ${e.javaClass.simpleName}: ${e.message}")
             backoffUntilMs = SystemClock.elapsedRealtime() + FAILURE_BACKOFF_MS
-            SpeechSynthesisOutcome.Fallback(FALLBACK_MESSAGE)
+            SpeechSynthesisOutcome.Fallback(FallbackReason.EDGE_FAILED)
         }
     }
 
     companion object {
         const val FAILURE_BACKOFF_MS = 60_000L
-        const val FALLBACK_MESSAGE = "Edge TTS (experimental) failed. Using system voice."
     }
 }

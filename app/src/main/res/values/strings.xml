@@ -31,6 +31,7 @@
     <string name="home_unread_suffix">messages</string>
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
+    <string name="home_preparing_audio">Preparing audio…</string>
     <string name="home_loading">Loading</string>
     <string name="home_play_chat">Play unread messages of %1$s</string>
     <string name="home_select_all">Select all</string>
@@ -78,6 +79,7 @@
     <string name="settings_voice_open">Voice settings</string>
     <string name="settings_voice_playing_note">Stop the reading to change or test voices</string>
     <string name="settings_voice_test">Test voice</string>
+    <string name="settings_test_language">Test language: %1$s</string>
     <string name="settings_voice_testing">Loading the voice sample</string>
     <string name="settings_voice_selected">Selected</string>
     <string name="settings_state_expanded">Expanded</string>
@@ -152,6 +154,24 @@
     <string name="settings_mark_read">Mark messages as read in Telegram</string>
     <string name="settings_mark_read_desc">Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
 
-    <!-- Network TTS fallback (playback) -->
+    <!-- Network TTS fallback toasts (playback) -->
     <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
+    <string name="tts_fallback_openai_no_key">OpenAI TTS needs an API key. Using system voice.</string>
+    <string name="tts_fallback_openai_too_long">Message too long for OpenAI TTS. Using system voice.</string>
+    <string name="tts_fallback_openai_failed">OpenAI TTS failed. Using system voice.</string>
+    <string name="tts_fallback_edge_failed">Edge TTS failed. Using system voice.</string>
+
+    <!-- Test voice samples: each language's own name and sentence (spoken content, never translated) -->
+    <string name="test_language_en" translatable="false">English</string>
+    <string name="test_language_he" translatable="false">עברית</string>
+    <string name="test_language_ar" translatable="false">العربية</string>
+    <string name="test_language_ru" translatable="false">Русский</string>
+    <string name="test_language_es" translatable="false">Español</string>
+    <string name="test_language_fr" translatable="false">Français</string>
+    <string name="test_sentence_en" translatable="false">Hello, this is a voice test. This is how your messages will sound.</string>
+    <string name="test_sentence_he" translatable="false">שלום, זהו קול לבדיקה. כך נשמעות ההודעות שלך.</string>
+    <string name="test_sentence_ar" translatable="false">مرحبًا، هذا اختبار للصوت. هكذا ستبدو رسائلك.</string>
+    <string name="test_sentence_ru" translatable="false">Здравствуйте, это проверка голоса. Так будут звучать ваши сообщения.</string>
+    <string name="test_sentence_es" translatable="false">Hola, esta es una prueba de voz. Así sonarán tus mensajes.</string>
+    <string name="test_sentence_fr" translatable="false">Bonjour, ceci est un test de voix. Voici comment vos messages vont sonner.</string>
 </resources>

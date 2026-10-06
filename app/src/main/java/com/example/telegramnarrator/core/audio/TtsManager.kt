@@ -28,6 +28,7 @@ class TtsManager @Inject constructor(
 
     private val lock = Any()
     private var onDoneCallback: ((Boolean) -> Unit)? = null
+    private var onStartCallback: (() -> Unit)? = null
     private var currentUtteranceId: String? = null
     private var utteranceCounter = 0L
 
@@ -67,7 +68,9 @@ class TtsManager @Inject constructor(
         if (generation != initGeneration) return // replaced by a newer engine in the meantime
         if (status == TextToSpeech.SUCCESS) {
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
+                override fun onStart(utteranceId: String?) {
+                    startUtterance(utteranceId)
+                }
 
                 override fun onDone(utteranceId: String?) {
                     finishUtterance(utteranceId, completed = true)
@@ -152,8 +155,14 @@ class TtsManager @Inject constructor(
      * text was spoken to the end and false if it couldn't be spoken (error / nothing was said).
      * It is not called at all if the utterance is cancelled with [stop] or replaced by a new speak().
      * [language] forces the language (used by the "Test voice" button); by default it is detected from the text.
+     * [onStart] is called once when the engine actually starts speaking (used to end loading indicators).
      */
-    fun speak(text: String, language: Locale? = null, onDone: (completed: Boolean) -> Unit) {
+    fun speak(
+        text: String,
+        language: Locale? = null,
+        onStart: (() -> Unit)? = null,
+        onDone: (completed: Boolean) -> Unit
+    ) {
         if (!_isInitialized.value || tts == null || text.isBlank()) {
             onDone(false)
             return
@@ -161,6 +170,7 @@ class TtsManager @Inject constructor(
 
         val utteranceId = synchronized(lock) {
             onDoneCallback = onDone
+            onStartCallback = onStart
             "utterance_${++utteranceCounter}".also { currentUtteranceId = it }
         }
 
@@ -175,12 +185,21 @@ class TtsManager @Inject constructor(
         }
     }
 
+    private fun startUtterance(utteranceId: String?) {
+        val callback = synchronized(lock) {
+            if (utteranceId == null || utteranceId != currentUtteranceId) return
+            onStartCallback.also { onStartCallback = null }
+        }
+        callback?.invoke()
+    }
+
     private fun finishUtterance(utteranceId: String?, completed: Boolean) {
         val callback = synchronized(lock) {
             // Ignore callbacks of utterances that were cancelled by stop() or replaced by a newer speak()
             if (utteranceId == null || utteranceId != currentUtteranceId) return
             val pending = onDoneCallback
             onDoneCallback = null
+            onStartCallback = null
             currentUtteranceId = null
             pending
         }
@@ -233,6 +252,7 @@ class TtsManager @Inject constructor(
         // Drop the callback first so a late onDone of the interrupted utterance can't fire it
         synchronized(lock) {
             onDoneCallback = null
+            onStartCallback = null
             currentUtteranceId = null
         }
         tts?.stop()

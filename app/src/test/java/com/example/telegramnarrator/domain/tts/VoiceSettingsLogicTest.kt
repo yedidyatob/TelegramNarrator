@@ -50,6 +50,8 @@ class VoiceSettingsLogicTest {
         assertTrue(VoiceSettingsLogic.canTestSystem(isPlaying = false, systemTtsReady = true))
         assertFalse(VoiceSettingsLogic.canTestSystem(isPlaying = true, systemTtsReady = true))
         assertFalse(VoiceSettingsLogic.canTestSystem(isPlaying = false, systemTtsReady = false))
+        // Disabled while the sample is still waiting for the engine to start speaking
+        assertFalse(VoiceSettingsLogic.canTestSystem(isPlaying = false, systemTtsReady = true, testing = true))
     }
 
     @Test
