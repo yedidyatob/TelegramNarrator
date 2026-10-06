@@ -241,7 +241,7 @@ class PlaybackService : Service() {
         val chats = LinkedHashMap<Long, RunChat>()
         chatIds.forEach { chatId ->
             val chat = chatRepository.getChat(chatId)
-            val title = chat?.title ?: "Chat $chatId"
+            val title = chat?.title ?: getString(R.string.playback_unknown_chat)
             chats[chatId] = RunChat(title, chat?.photoFileId)
             // Unread incoming messages, oldest first
             val messages = chatRepository.getChatMessages(chatId)

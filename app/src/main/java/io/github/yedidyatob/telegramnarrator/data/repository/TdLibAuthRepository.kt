@@ -1,5 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.data.repository
 
+import io.github.yedidyatob.telegramnarrator.domain.model.StartupFailure
 import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
@@ -58,11 +59,15 @@ class TdLibAuthRepository @Inject constructor(
                 val apiId = ApiCredentials.parse(BuildConfig.TELEGRAM_API_ID, BuildConfig.TELEGRAM_API_HASH)
                 if (apiId == null) {
                     // Without credentials TDLib never leaves this state: show why instead of spinning forever
-                    _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE)
+                    _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE, StartupFailure.MISSING_CREDENTIALS)
                     return
                 }
                 val failure = openDatabase(apiId)
-                if (failure != null) AuthState.Error(failure) else AuthState.Initializing
+                when (failure) {
+                    null -> AuthState.Initializing
+                    SECURE_STORAGE_UNAVAILABLE -> AuthState.Error(failure, StartupFailure.SECURE_STORAGE_UNAVAILABLE)
+                    else -> AuthState.Error(failure, StartupFailure.INIT_FAILED)
+                }
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.WaitPhoneNumber
             is TdApi.AuthorizationStateWaitCode -> AuthState.WaitCode

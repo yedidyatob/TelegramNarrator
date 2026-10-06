@@ -1,5 +1,8 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,12 +53,19 @@ fun ChatListItem(
     val selectDescription = stringResource(R.string.home_select_chat, chat.title)
     val unreadDescription = LocalContext.current.resources
         .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
+    val openLabel = stringResource(R.string.home_open_chat_preview)
+    val playLabel = stringResource(R.string.home_play_chat, chat.title)
 
     Card(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            // TalkBack: "double-tap to show messages"; Play is also a custom action on the row itself
+            .semantics {
+                onClick(label = openLabel) { onClick(); true }
+                customActions = listOf(CustomAccessibilityAction(playLabel) { onPlayClick(); true })
+            },
         border = if (isPlaying) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         colors = CardDefaults.cardColors(
             containerColor = when {

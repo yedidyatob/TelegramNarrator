@@ -37,7 +37,19 @@
     <string name="link_open_failed">No app found to open the link</string>
     <string name="login_status_initializing">Initializing Telegram...</string>
     <string name="login_status_redirecting">Redirecting...</string>
-    <string name="error_unknown">Unknown error</string>
+    <string name="error_unknown">Something went wrong. Try again.</string>
+    <!-- Login step failures (mapped from TDLib errors; never TDLib's raw text) -->
+    <string name="login_error_phone_invalid">Telegram doesn\'t recognize this phone number. Check it and try again.</string>
+    <string name="login_error_phone_banned">This phone number is banned from Telegram.</string>
+    <string name="login_error_code_invalid">Wrong code. Check the code Telegram sent and try again.</string>
+    <string name="login_error_code_expired">This code has expired. Go back and request a new one.</string>
+    <string name="login_error_password_invalid">Wrong password. Try again.</string>
+    <string name="login_error_too_many_attempts">Too many attempts. Wait a while and try again.</string>
+    <string name="login_error_network">No connection to Telegram. Check your internet connection and try again.</string>
+    <!-- "Could not start Telegram" screen -->
+    <string name="login_startup_missing_credentials">This build has no Telegram API credentials. Add TELEGRAM_API_ID and TELEGRAM_API_HASH to local.properties and rebuild.</string>
+    <string name="login_startup_secure_storage">Secure storage isn\'t available right now, so your Telegram data can\'t be opened. Try again.</string>
+    <string name="login_startup_failed">Telegram couldn\'t start. Try again.</string>
 
     <!-- Home Screen -->
     <string name="home_title">Unread Chats</string>
@@ -146,6 +158,8 @@
     <string name="playback_content_audio">Audio</string>
     <string name="playback_content_document">Document</string>
     <string name="playback_unknown_sender">Unknown</string>
+    <!-- Spoken / shown when a chat's title could not be loaded -->
+    <string name="playback_unknown_chat">Telegram chat</string>
     <string name="notification_channel_playback">Playback</string>
     <string name="notification_chat">Chat: %1$s</string>
     <string name="notification_from">From %1$s</string>
@@ -296,4 +310,6 @@
     <string name="sponsored_report_error">Could not report the ad. Try again later.</string>
     <!-- Home ⋮ menu: Material You dynamic color (Android 12+) -->
     <string name="home_menu_system_colors">Use system colors</string>
+    <!-- TalkBack click label of a chat row (opens the preview sheet) -->
+    <string name="home_open_chat_preview">show messages</string>
 </resources>

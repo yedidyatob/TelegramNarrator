@@ -25,6 +25,7 @@
     <string name="playback_content_audio">הודעת שמע</string>
     <string name="playback_content_document">מסמך</string>
     <string name="playback_unknown_sender">לא ידוע</string>
+    <string name="playback_unknown_chat">צ\'אט בטלגרם</string>
     <string name="playback_pause">השהה</string>
     <string name="playback_resume">המשך</string>
     <string name="playback_paused">מושהה</string>

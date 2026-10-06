@@ -1,5 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.auth
 
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
@@ -44,6 +45,7 @@ fun LoginScreen(
     }
 
     val authError by viewModel.error.collectAsStateWithLifecycle()
+    val authErrorText = authError?.let { stringResource(it.messageRes()) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
@@ -72,7 +74,7 @@ fun LoginScreen(
                     is AuthState.Unauthenticated, is AuthState.WaitPhoneNumber -> {
                         PhoneNumberInput(
                             isLoading = isLoading,
-                            error = authError,
+                            error = authErrorText,
                             normalizer = viewModel.phoneNumbers,
                             countries = { viewModel.phoneCountries },
                             defaultRegion = viewModel.defaultPhoneRegion,
@@ -82,14 +84,14 @@ fun LoginScreen(
                     is AuthState.WaitCode -> {
                         CodeInput(
                             isLoading = isLoading,
-                            error = authError,
+                            error = authErrorText,
                             onEnter = viewModel::onCodeEntered
                         )
                     }
                     is AuthState.WaitPassword -> {
                         PasswordInput(
                             isLoading = isLoading,
-                            error = authError,
+                            error = authErrorText,
                             onEnter = viewModel::onPasswordEntered
                         )
                     }
@@ -102,7 +104,7 @@ fun LoginScreen(
                         Text(stringResource(R.string.login_error_title), style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            state.message,
+                            stringResource(state.reason.messageRes()),
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                         )
@@ -232,7 +234,12 @@ internal fun LoginStepFrame(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Centered: the app name ("Unofficial Telegram Narrator") can wrap to two lines
-        Text(title, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() }
+        )
         Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
         input()

@@ -198,8 +198,8 @@ class TdLibChatRepository @Inject constructor(
         
         val senderName = when (val s = tdMessage.senderId) {
             is TdApi.MessageSenderUser -> userCache.getUserName(s.userId)
-            is TdApi.MessageSenderChat -> getChat(s.chatId)?.title ?: "Channel"
-            else -> "System"
+            is TdApi.MessageSenderChat -> getChat(s.chatId)?.title
+            else -> null
         }
 
         return Message(
