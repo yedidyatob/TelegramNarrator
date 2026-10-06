@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Telegram Narrator</string>
 
     <!-- Login Screen -->
@@ -118,7 +118,7 @@
     <string name="settings_edge_advanced">Advanced</string>
     <string name="settings_edge_custom_voice">Custom Edge voice</string>
     <string name="settings_edge_custom_voice_hint">e.g. en-GB-SoniaNeural</string>
-    <string name="settings_edge_custom_voice_desc">Any Edge voice short name (edge-tts --list-voices). Overrides Male / Female for every message.</string>
+    <string name="settings_edge_custom_voice_desc" tools:ignore="TypographyDashes">Any Edge voice short name (edge-tts --list-voices). Overrides Male / Female for every message.</string>
     <string name="settings_edge_custom_voice_invalid">Not a valid Edge voice name (expected something like en-US-AriaNeural)</string>
     <string name="settings_edge_custom_voice_use">Use voice</string>
     <string name="settings_edge_custom_voice_clear">Clear</string>

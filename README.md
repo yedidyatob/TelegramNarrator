@@ -19,7 +19,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device; system TTS remains default) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
-- **Experimental** Microsoft Edge neural voices (`he-IL-AvriNeural`, `he-IL-HilaNeural`, …): free, no key, unofficial - see [below](#experimental-microsoft-edge-neural-tts)
+- **Experimental** Microsoft Edge neural voices (just pick Male or Female; Hebrew and other languages switch automatically): free, no key, unofficial - see [below](#experimental-microsoft-edge-neural-tts)
 - Links are skipped by default (spoken as "Link")
 
 The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
@@ -56,7 +56,9 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
 System TTS is the default. No OpenAI key is required or shipped in the repo.
 
 1. Create an API key at <https://platform.openai.com/api-keys> (you pay OpenAI directly).
-2. In the app: **Voice settings** → **Text-to-speech engine** → **OpenAI** → paste the key → choose model (`tts-1` cheaper / `tts-1-hd`) and voice.
+2. In the app: **Voice settings** → **Engine** → **OpenAI**. Paste the key (tap the eye icon to check it) → **Save key**
+   (the sheet then shows `Saved: sk-…abcd`) → pick **Standard (tts-1)** or **HD (tts-1-hd)** and a voice →
+   **Test voice** plays a Hebrew sample. **Remove key** deletes it from the device.
 3. Pricing: <https://openai.com/api/pricing/> (tts-1 ≈ $15 per 1M characters, tts-1-hd ≈ $30 per 1M).
 4. **Warning:** when synthesizing, the key and cleaned message text leave the device to `api.openai.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache so they are not billed again.
 
@@ -68,10 +70,10 @@ System TTS is the default. No OpenAI key is required or shipped in the repo.
 
 - **Cost: $0.** No account, no API key (the only token involved is the public constant built into Edge).
 - **Needs a network connection.** Cleaned message text is sent to Microsoft (`speech.platform.bing.com`).
-- In the app: **Voice settings** → **Text-to-speech engine** → **Microsoft Edge neural voices (experimental)**,
-  then pick a voice: `he-IL-AvriNeural` (male), `he-IL-HilaNeural` (female), a multilingual voice, or type any
-  other Edge voice short name (`edge-tts --list-voices`). With a Hebrew voice, messages detected as non-Hebrew
-  are read by a multilingual Edge voice of the same gender.
+- In the app: **Voice settings** → **Engine** → **Edge**, then choose **Male** or **Female** and tap **Test voice**.
+  Hebrew messages use Avri (Hila for female); messages in other languages switch automatically to the Andrew
+  (Ava for female) multilingual voices. To force one specific Edge voice for every message, open **Advanced** and
+  type its short name (`edge-tts --list-voices`); this overrides Male / Female until you clear it.
 - Audio is cached on device by hash of text + voice (LRU, ~100 MB), so replays do not hit the network.
   The speech-rate slider is applied at playback.
 - **Fallback:** on any failure (offline, timeout, service change) the app shows a short toast and reads the
