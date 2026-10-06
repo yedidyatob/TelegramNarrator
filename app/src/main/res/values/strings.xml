@@ -4,6 +4,18 @@
     <!-- Login Screen -->
     <string name="login_title_phone">Enter your phone number</string>
     <string name="login_label_phone">Phone Number</string>
+    <string name="login_country_choose">Country</string>
+    <string name="login_country_choose_a11y">Choose country</string>
+    <string name="login_country_button_a11y">Country: %1$s, %2$s. Change country</string>
+    <string name="login_country_picker_title">Choose your country</string>
+    <string name="login_country_search">Search country or code</string>
+    <string name="login_country_none_found">No matching country</string>
+    <string name="login_country_cancel">Cancel</string>
+    <string name="login_phone_error_too_short">Too few digits for this country</string>
+    <string name="login_phone_error_too_long">Too many digits for this country</string>
+    <string name="login_phone_error_wrong_length">Wrong number of digits for this country</string>
+    <string name="login_phone_error_no_country">Choose your country, or start with + and the country code</string>
+    <string name="login_phone_error_invalid">Enter a valid phone number</string>
     <string name="login_btn_send_code">Send Code</string>
     <string name="login_title_code">Enter verification code</string>
     <string name="login_label_code">Verification Code</string>

@@ -107,6 +107,9 @@ dependencies {
     // Experimental Edge TTS (WebSocket)
     implementation(libs.okhttp)
 
+    // Login phone field: country dial codes, trunk prefix and length rules (pure Java, works in JVM unit tests)
+    implementation(libs.libphonenumber)
+
     testImplementation(libs.junit)
     // Unit tests run on the JVM, where the Android org.json stubs do nothing (used for the channel rules JSON)
     testImplementation("org.json:json:20231013")
