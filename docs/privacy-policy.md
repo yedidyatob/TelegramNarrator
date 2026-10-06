@@ -16,7 +16,7 @@ endorsed or supported by Telegram.
 - **No analytics, no advertising, no crash reporting, no tracking SDKs.** Your data is not sold or shared for
   advertising and is not used to train AI models.
 - Your Telegram data is exchanged **only with Telegram's servers** and is stored **on your device**, encrypted.
-- Message text leaves your device for speech synthesis **only if you choose an online voice engine**
+- Message text and chat titles leave your device for speech synthesis **only if you choose an online voice engine**
   (Microsoft Edge or OpenAI) in the app's voice settings. The default engine (System) works on the device.
 
 ## What the app handles and where it goes
@@ -47,11 +47,13 @@ You choose the voice engine in the app's voice settings:
 | Engine | What leaves your device | Recipient |
 |---|---|---|
 | **System** (default) | Nothing is sent by the app. The text is handed to the text-to-speech engine installed on your phone (for example Google Speech Services). The app lists only offline voices; what the engine itself does is governed by its own provider's policy. | None |
-| **Edge** (optional, experimental) | The cleaned text of each message to be spoken, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
-| **OpenAI** (optional, your own API key) | The cleaned text of each message to be spoken, the chosen voice and model, and your OpenAI API key (to authorize the request). | OpenAI ([Privacy Policy](https://openai.com/policies/privacy-policy), [API data usage](https://openai.com/policies/api-data-usage-policies)). Requests are billed to your own OpenAI account. |
+| **Edge** (optional, experimental) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
+| **OpenAI** (optional, your own API key) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice and model, and your OpenAI API key (to authorize the request). | OpenAI ([Privacy Policy](https://openai.com/policies/privacy-policy), [API data usage](https://openai.com/policies/api-data-usage-policies)). Requests are billed to your own OpenAI account. |
 
 "Cleaned text" means the message text after the app removes links, ads and similar parts it does not read
-aloud. Names of chats and senders are not sent to Microsoft or OpenAI unless they appear in the message text.
+aloud. Before a chat's messages the app speaks the chat's title (the group or channel name, or, for a one-on-one
+chat, the other person's name, without emoji and symbols), so with an online engine that title is sent too.
+Sender names of individual messages are not sent unless they appear in the message text.
 While one message plays, the app may already send the next few queued messages so that playback has no gaps.
 
 To save data and money, audio produced by Edge or OpenAI is **cached on your device** (in the app's cache

@@ -11,8 +11,8 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 |---|---|---|---|
 | Phone number, login code, 2FA password | Telegram (TDLib, MTProto) | Login | `TdLibAuthRepository` |
 | Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (setting, on by default) | `TdLibChatRepository` |
-| Cleaned message text, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
-| Cleaned message text, voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
+| Cleaned message text and chat titles (spoken before each chat), voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
+| Cleaned message text and chat titles (spoken before each chat), voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
 
 Nothing is sent to the developer: there is no backend, no analytics, ads, crash reporting or other SDK that
 phones home (dependencies: AndroidX, Compose, Hilt, TDLib, OkHttp, security-crypto). Stored on the device only:
@@ -40,7 +40,7 @@ rather than to the developer.
 |---|---|---|---|---|---|
 | Personal info → **Phone number** | Yes | No | No | Required | App functionality, Account management |
 | Personal info → **User IDs** (Telegram user / chat IDs in API requests) | Yes | No | No | Required | App functionality |
-| Messages → **Other in-app messages** (message text for online speech) | Yes | **Yes** (Microsoft or OpenAI, chosen by the user) | No | **Optional** (only with the Edge or OpenAI engine) | App functionality |
+| Messages → **Other in-app messages** (message text and chat titles for online speech) | Yes | **Yes** (Microsoft or OpenAI, chosen by the user) | No | **Optional** (only with the Edge or OpenAI engine) | App functionality |
 
 Everything else: **not collected** (location, contacts, photos/videos, audio, files, calendar, health, financial
 info, web browsing, app activity, app info and performance / crash logs, device or other IDs).
@@ -49,9 +49,12 @@ Notes on the choices:
 
 - Sending the login data to Telegram is the core, user-initiated function of a Telegram client, so it is not
   declared as *sharing*; it is declared as *collection* because the app transmits it.
-- Message text going to Microsoft / OpenAI happens only after the user picks that engine, and the voice settings
+- Message text and chat titles (for one-on-one chats the title is the other person's name) going to Microsoft /
+  OpenAI happens only after the user picks that engine, and the voice settings
   say so, which could qualify for Play's "user-initiated action" exemption from *sharing*. Declaring it as shared
   is the conservative, clearly accurate choice; keep it unless you have a reason to change it.
+- A one-on-one chat's title is a contact's name. It is declared under *Messages* (it is spoken as part of the
+  conversation) rather than *Personal info → Name*, which describes the user's own name.
 - The login code, the Telegram password and the OpenAI API key are authentication secrets passed to the
   service they belong to; Play has no data type for them. They are covered in the privacy policy.
 - Voice messages and chat lists are *downloaded* from Telegram to the device, which is not collection.
@@ -136,8 +139,8 @@ FEATURES
 
 VOICES
 • System: the text-to-speech engine on your phone, works offline (default)
-• Edge (optional, experimental): free natural voices from Microsoft's online "Read aloud" service; message text is sent to Microsoft
-• OpenAI (optional): high-quality voices with your own OpenAI API key, billed by OpenAI; message text is sent to OpenAI
+• Edge (optional, experimental): free natural voices from Microsoft's online "Read aloud" service; message text and chat names are sent to Microsoft
+• OpenAI (optional): high-quality voices with your own OpenAI API key, billed by OpenAI; message text and chat names are sent to OpenAI
 
 PRIVACY
 • No ads, no analytics, no tracking, and no developer servers
@@ -174,8 +177,8 @@ Unofficial Telegram Narrator מקריאה בקול את הצ'אטים שלא ק�
 
 קולות
 • מערכת: מנוע ההקראה של הטלפון, עובד בלי אינטרנט (ברירת מחדל)
-• Edge (אופציונלי, ניסיוני): קולות טבעיים בחינם משירות ההקראה המקוון של Microsoft; טקסט ההודעות נשלח ל־Microsoft
-• OpenAI (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של OpenAI; טקסט ההודעות נשלח ל־OpenAI
+• Edge (אופציונלי, ניסיוני): קולות טבעיים בחינם משירות ההקראה המקוון של Microsoft; טקסט ההודעות ושמות הצ'אטים נשלחים ל־Microsoft
+• OpenAI (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של OpenAI; טקסט ההודעות ושמות הצ'אטים נשלחים ל־OpenAI
 
 פרטיות
 • בלי פרסומות, בלי אנליטיקה, בלי מעקב ובלי שרתים של המפתח
