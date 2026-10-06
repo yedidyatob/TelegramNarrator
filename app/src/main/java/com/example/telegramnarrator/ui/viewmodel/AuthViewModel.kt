@@ -2,6 +2,11 @@ package com.example.telegramnarrator.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.telegramnarrator.data.auth.DeviceCountrySignals
+import com.example.telegramnarrator.domain.auth.PhoneCountries
+import com.example.telegramnarrator.domain.auth.PhoneCountry
+import com.example.telegramnarrator.domain.auth.PhoneCountryResolver
+import com.example.telegramnarrator.domain.auth.PhoneNumberNormalizer
 import com.example.telegramnarrator.domain.model.AuthState
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,8 +20,19 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    deviceCountrySignals: DeviceCountrySignals
 ) : ViewModel() {
+
+    /** Parses / validates the login phone field (libphonenumber). */
+    val phoneNumbers = PhoneNumberNormalizer()
+
+    /** Country preselected in the phone field: SIM, then network, then locale region; null = user picks. */
+    val defaultPhoneRegion: String? =
+        PhoneCountryResolver.resolve(deviceCountrySignals.read(), phoneNumbers::isSupportedRegion)
+
+    /** Countries for the picker, built on first use (names in the device language). */
+    val phoneCountries: List<PhoneCountry> by lazy { PhoneCountries.all(phoneNumbers) }
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -31,6 +47,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch { authRepository.retryInitialization() }
     }
 
+    /** [phoneNumber] is already normalized to E.164 by the phone field ([phoneNumbers]). */
     fun onPhoneNumberEntered(phoneNumber: String) {
         if (_isLoading.value) return
         viewModelScope.launch {

@@ -9,7 +9,7 @@ another; messages are marked as read in Telegram only after they were actually s
 
 ## Features
 
-- Telegram login (phone number, code, optional 2FA password) via TDLib
+- Telegram login (phone number with country picker, code, optional 2FA password) via TDLib; local formats like `052-123-4567` are accepted
 - Unread chat list, "Play all" or play a single chat, pause/resume, skip message, skip chat
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
 - Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read

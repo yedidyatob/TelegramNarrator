@@ -62,6 +62,9 @@ fun LoginScreen(
                         PhoneNumberInput(
                             isLoading = isLoading,
                             error = authError,
+                            normalizer = viewModel.phoneNumbers,
+                            countries = { viewModel.phoneCountries },
+                            defaultRegion = viewModel.defaultPhoneRegion,
                             onEnter = viewModel::onPhoneNumberEntered
                         )
                     }
@@ -101,23 +104,6 @@ fun LoginScreen(
             }
         }
     }
-}
-
-@Composable
-fun PhoneNumberInput(isLoading: Boolean, error: String?, onEnter: (String) -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
-    LoginStep(
-        title = stringResource(R.string.app_name),
-        subtitle = stringResource(R.string.login_title_phone),
-        label = stringResource(R.string.login_label_phone),
-        buttonText = stringResource(R.string.login_btn_send_code),
-        text = text,
-        onTextChange = { text = it },
-        keyboardType = KeyboardType.Phone,
-        isLoading = isLoading,
-        error = error,
-        onEnter = onEnter
-    )
 }
 
 @Composable
@@ -172,10 +158,15 @@ private fun LoginStep(
     isPassword: Boolean = false
 ) {
     val submit = { if (!isLoading && text.isNotBlank()) onEnter(text) }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, style = MaterialTheme.typography.headlineLarge)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(32.dp))
+    LoginStepFrame(
+        title = title,
+        subtitle = subtitle,
+        buttonText = buttonText,
+        canSubmit = text.isNotBlank(),
+        isLoading = isLoading,
+        error = error,
+        onSubmit = submit
+    ) {
         OutlinedTextField(
             value = text,
             onValueChange = onTextChange,
@@ -188,6 +179,26 @@ private fun LoginStep(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() })
         )
+    }
+}
+
+/** Layout shared by the login steps: headline, subtitle, [input], the server error and the action button. */
+@Composable
+internal fun LoginStepFrame(
+    title: String,
+    subtitle: String,
+    buttonText: String,
+    canSubmit: Boolean,
+    isLoading: Boolean,
+    error: String?,
+    onSubmit: () -> Unit,
+    input: @Composable () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, style = MaterialTheme.typography.headlineLarge)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(32.dp))
+        input()
         if (error != null) {
             Text(
                 error,
@@ -201,8 +212,8 @@ private fun LoginStep(
         }
         Spacer(Modifier.height(24.dp))
         Button(
-            onClick = { submit() },
-            enabled = !isLoading && text.isNotBlank(),
+            onClick = onSubmit,
+            enabled = !isLoading && canSubmit,
             modifier = Modifier.fillMaxWidth(0.8f).height(50.dp)
         ) {
             if (isLoading) {
