@@ -6,6 +6,7 @@ import com.example.telegramnarrator.domain.openai.OpenAiTts
 import com.example.telegramnarrator.domain.openai.OpenAiTtsOptions
 import com.example.telegramnarrator.domain.tts.EngineOption
 import com.example.telegramnarrator.domain.tts.SpeechProvider
+import com.example.telegramnarrator.domain.tts.TestLanguage
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
 import com.example.telegramnarrator.domain.tts.VoiceOption
 import com.example.telegramnarrator.domain.tts.VoiceSettingsLogic
@@ -28,7 +29,9 @@ data class SystemVoiceUiState(
     val engines: List<EngineOption> = emptyList(),
     /** Engine the user picked; null = the system default engine. */
     val selectedEngine: String? = null,
-    val groups: List<VoiceGroup> = emptyList()
+    val groups: List<VoiceGroup> = emptyList(),
+    /** True from Test voice until the engine starts speaking the sample. */
+    val testing: Boolean = false
 )
 
 /** Edge section. A non-null [customVoice] (Advanced) overrides [gender]. */
@@ -80,7 +83,9 @@ data class TtsSettingsUiState(
     val openAi: OpenAiVoiceUiState = OpenAiVoiceUiState(),
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     /** Mark played messages as read in Telegram. */
-    val markAsRead: Boolean = true
+    val markAsRead: Boolean = true,
+    /** Language of the Test voice sample (shared by all engines); defaults to the device UI language. */
+    val testLanguage: TestLanguage = TestLanguage.FALLBACK
 ) {
     val sections: List<VoiceSettingsSection> get() = VoiceSettingsLogic.visibleSections(provider)
 }

@@ -1,5 +1,6 @@
 package com.example.telegramnarrator.core.service
 
+import androidx.annotation.StringRes
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -27,6 +28,7 @@ import com.example.telegramnarrator.core.audio.TtsManager
 import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import com.example.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
+import com.example.telegramnarrator.domain.tts.FallbackReason
 import com.example.telegramnarrator.domain.tts.SpeechProvider
 import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import android.os.Handler
@@ -282,6 +284,8 @@ class PlaybackService : Service() {
         }
 
         val generation = itemGeneration.incrementAndGet()
+        // A new item never inherits the previous item's "Preparing audio…" state
+        playbackManager.clearAudioLoading()
         updateNotification(item)
         
         when (item) {
@@ -306,8 +310,13 @@ class PlaybackService : Service() {
                 // Voice notes: play the downloaded audio in the queue — never speak "Voice note" / sender.
                 // If the file cannot be downloaded or played, skip silently (still mark read) like a photo.
                 if (item.voiceNoteFileId != null) {
+                    val loading = playbackManager.beginAudioLoading()
                     scope.launch {
-                        val path = chatRepository.getVoiceFilePath(item.voiceNoteFileId)
+                        val path = try {
+                            chatRepository.getVoiceFilePath(item.voiceNoteFileId)
+                        } finally {
+                            playbackManager.endAudioLoading(loading)
+                        }
                         // Paused / skipped / stopped while the file was downloading
                         if (generation != itemGeneration.get()) return@launch
                         when (val outcome = VoiceNotePlayback.afterDownload(path)) {
@@ -357,8 +366,13 @@ class PlaybackService : Service() {
             return
         }
         val generation = itemGeneration.get()
+        val loading = playbackManager.beginAudioLoading()
         scope.launch {
-            val outcome = synthesize(speechText)
+            val outcome = try {
+                synthesize(speechText)
+            } finally {
+                playbackManager.endAudioLoading(loading)
+            }
             // Paused / skipped / stopped while the audio was being fetched
             if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
             when (outcome) {
@@ -379,7 +393,7 @@ class PlaybackService : Service() {
                 }
                 SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(item, speechText)
                 is SpeechSynthesisOutcome.Fallback -> {
-                    showFallbackToast(outcome.reason)
+                    showFallbackToast(getString(fallbackMessage(outcome.reason)))
                     speakWithSystemTts(item, speechText)
                 }
             }
@@ -387,10 +401,21 @@ class PlaybackService : Service() {
     }
 
     private fun speakWithSystemTts(item: PlaybackItem.MessageItem, speechText: String) {
-        ttsManager.speak(speechText) { completed ->
+        // Until the engine starts speaking (slow engine / first utterance) the bar shows "Preparing audio…"
+        val loading = playbackManager.beginAudioLoading()
+        ttsManager.speak(speechText, onStart = { playbackManager.endAudioLoading(loading) }) { completed ->
+            playbackManager.endAudioLoading(loading)
             if (completed) onMessageFullyPlayed(item)
             processQueue()
         }
+    }
+
+    @StringRes
+    private fun fallbackMessage(reason: FallbackReason): Int = when (reason) {
+        FallbackReason.OPENAI_NO_KEY -> R.string.tts_fallback_openai_no_key
+        FallbackReason.OPENAI_TOO_LONG -> R.string.tts_fallback_openai_too_long
+        FallbackReason.OPENAI_FAILED -> R.string.tts_fallback_openai_failed
+        FallbackReason.EDGE_FAILED -> R.string.tts_fallback_edge_failed
     }
 
     /**
@@ -623,6 +648,7 @@ class PlaybackService : Service() {
         // Invalidate in-flight audio first so late callbacks cannot start the next item
         itemGeneration.incrementAndGet()
         cancelPrefetch()
+        playbackManager.clearAudioLoading()
 
         val player = mediaPlayer
         if (player != null) {

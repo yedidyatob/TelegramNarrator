@@ -14,5 +14,13 @@ sealed class SpeechSynthesisOutcome {
     object UseSystem : SpeechSynthesisOutcome()
 
     /** The user picked a network engine but it failed: show [reason] as a toast and use system TTS. */
-    data class Fallback(val reason: String) : SpeechSynthesisOutcome()
+    data class Fallback(val reason: FallbackReason) : SpeechSynthesisOutcome()
+}
+
+/** Why a network engine fell back to system TTS; the UI maps each to a string resource. */
+enum class FallbackReason {
+    OPENAI_NO_KEY,
+    OPENAI_TOO_LONG,
+    OPENAI_FAILED,
+    EDGE_FAILED
 }

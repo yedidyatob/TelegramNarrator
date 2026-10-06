@@ -2,6 +2,7 @@ package com.example.telegramnarrator.data.openai
 
 import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.openai.OpenAiTts
+import com.example.telegramnarrator.domain.tts.FallbackReason
 import com.example.telegramnarrator.domain.tts.SpeechProvider
 import com.example.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import com.example.telegramnarrator.domain.tts.TtsVoiceLogic
@@ -41,11 +42,11 @@ class OpenAiSpeechSynthesizer @Inject constructor(
         val opts = settings.openAi
         val apiKey = keyStore.getApiKey()
         if (apiKey == null) {
-            return SpeechSynthesisOutcome.Fallback("OpenAI TTS needs an API key. Using system voice.")
+            return SpeechSynthesisOutcome.Fallback(FallbackReason.OPENAI_NO_KEY)
         }
         if (text.isBlank()) return SpeechSynthesisOutcome.UseSystem
         if (!OpenAiTts.isWithinApiLimit(text)) {
-            return SpeechSynthesisOutcome.Fallback("Message too long for OpenAI TTS. Using system voice.")
+            return SpeechSynthesisOutcome.Fallback(FallbackReason.OPENAI_TOO_LONG)
         }
 
         val model = OpenAiTts.normalizeModel(opts.model)
@@ -67,10 +68,10 @@ class OpenAiSpeechSynthesizer @Inject constructor(
             SpeechSynthesisOutcome.Ready(file, fromCache = false)
         } catch (e: IOException) {
             android.util.Log.w("OpenAiSpeech", "TTS request failed: ${e.message}")
-            SpeechSynthesisOutcome.Fallback("OpenAI TTS failed. Using system voice.")
+            SpeechSynthesisOutcome.Fallback(FallbackReason.OPENAI_FAILED)
         } catch (e: Exception) {
             android.util.Log.w("OpenAiSpeech", "TTS unexpected error: ${e.javaClass.simpleName}")
-            SpeechSynthesisOutcome.Fallback("OpenAI TTS failed. Using system voice.")
+            SpeechSynthesisOutcome.Fallback(FallbackReason.OPENAI_FAILED)
         }
     }
 }
