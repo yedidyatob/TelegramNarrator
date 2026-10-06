@@ -64,7 +64,8 @@ Notes on the choices:
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | `PlaybackService` keeps reading aloud with the screen off |
 | `POST_NOTIFICATIONS` | Optional media controls in the notification / lock screen; asked before the first playback, reading works without it |
 
-`WRITE_EXTERNAL_STORAGE` (declared by the TDLib AAR) is removed from the merged manifest; `WAKE_LOCK` was unused
+`WRITE_EXTERNAL_STORAGE` (declared by the TDLib AAR) and the `READ_EXTERNAL_STORAGE` it implies are removed from the
+merged manifest; `WAKE_LOCK` was unused
 and has been dropped.
 
 ## Foreground service declaration

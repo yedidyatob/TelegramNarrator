@@ -11,11 +11,16 @@
     <!-- Playback controls in the notification / lock screen (Android 13+ runtime permission, optional) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- The TDLib AAR (tdlibx) declares WRITE_EXTERNAL_STORAGE (which also implied READ_EXTERNAL_STORAGE).
-         TDLib only uses the app's private filesDir here, so neither is needed: keep them out of the APK. -->
+    <!-- The TDLib AAR (tdlibx, old targetSdk) declares WRITE_EXTERNAL_STORAGE, and the manifest merger then
+         adds an implied READ_EXTERNAL_STORAGE. TDLib only uses the app's private filesDir here, so neither is
+         needed: keep both out of the APK. (The merger warns that nothing declares READ: it is implied, and
+         this removal is still what keeps it out.) -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         tools:node="remove" />
 
     <application
