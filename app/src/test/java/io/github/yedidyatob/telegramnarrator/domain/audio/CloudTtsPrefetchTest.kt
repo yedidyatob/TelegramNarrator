@@ -80,4 +80,21 @@ class CloudTtsPrefetchTest {
         assertEquals(PlaybackItem.Intro("c", 1L), queue.next())
         assertEquals(msg("one", id = 1), queue.next())
     }
+
+    @Test
+    fun `spoken chat titles are prefetched like messages, the intro ding is not`() {
+        val items = listOf(
+            msg("last of chat 1", id = 1),
+            PlaybackItem.Silence(1000),
+            PlaybackItem.Intro("🔴 חדשות", 2L),
+            PlaybackItem.ChatTitle("חדשות", 2L, "🔴 חדשות"),
+            msg("first of chat 2", id = 2)
+        )
+        assertEquals(
+            listOf("last of chat 1", "חדשות", "first of chat 2"),
+            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 3)
+        )
+        assertEquals("חדשות", CloudTtsPrefetch.speechTextFor(PlaybackItem.ChatTitle("חדשות", 2L)))
+        assertEquals(null, CloudTtsPrefetch.speechTextFor(PlaybackItem.Intro("חדשות", 2L)))
+    }
 }

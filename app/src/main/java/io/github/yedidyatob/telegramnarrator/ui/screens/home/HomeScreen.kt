@@ -59,7 +59,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,6 +85,7 @@ fun HomeScreen(
     val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
     val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
     val playStatus by viewModel.playStatus.collectAsStateWithLifecycle()
+    val preparingAudio by viewModel.isPreparingAudio.collectAsStateWithLifecycle()
     val selectedMsgs by viewModel.selectedChatMessages.collectAsStateWithLifecycle()
     val selectedChat by viewModel.selectedChat.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedChatIds.collectAsStateWithLifecycle()
@@ -149,6 +152,7 @@ fun HomeScreen(
                 NowPlayingBar(
                     status = playStatus ?: stringResource(R.string.home_player_starting),
                     isPaused = isPaused,
+                    preparingAudio = preparingAudio && !isPaused,
                     onTogglePause = {
                         val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
                         context.startService(
@@ -358,6 +362,7 @@ fun HomeScreen(
 private fun NowPlayingBar(
     status: String,
     isPaused: Boolean,
+    preparingAudio: Boolean,
     onTogglePause: () -> Unit,
     onSkipMessage: () -> Unit,
     onSkipChat: () -> Unit,
@@ -376,11 +381,31 @@ private fun NowPlayingBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.home_now_playing),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                if (preparingAudio) {
+                    // The current message's audio is still being fetched / synthesized
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(12.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = stringResource(R.string.home_preparing_audio),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                } else {
+                    Text(
+                        text = stringResource(R.string.home_now_playing),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
                 Text(
                     text = status,
                     style = MaterialTheme.typography.bodyMedium,

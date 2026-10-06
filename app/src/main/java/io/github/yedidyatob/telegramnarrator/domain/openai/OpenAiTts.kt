@@ -7,6 +7,8 @@ import java.security.MessageDigest
  * System TTS stays the default until the user selects OpenAI as the engine and pastes a key.
  */
 object OpenAiTts {
+    /** Where users create a key ("Get an API key" link in Voice settings); the page handles sign-up / login. */
+    const val API_KEYS_URL = "https://platform.openai.com/api-keys"
     const val MODEL_TTS_1 = "tts-1"
     const val MODEL_TTS_1_HD = "tts-1-hd"
     const val DEFAULT_MODEL = MODEL_TTS_1

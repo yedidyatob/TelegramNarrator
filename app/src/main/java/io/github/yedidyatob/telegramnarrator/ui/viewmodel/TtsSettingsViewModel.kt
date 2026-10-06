@@ -21,6 +21,7 @@ import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
+import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsSettings
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsVoiceLogic
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsLogic
@@ -48,7 +49,9 @@ class TtsSettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(stateFrom(preferences.settings.value))
+    private val _state = MutableStateFlow(
+        stateFrom(preferences.settings.value).copy(testLanguage = TestLanguage.defaultFor(deviceUiLanguage()))
+    )
     val state: StateFlow<TtsSettingsUiState> = _state.asStateFlow()
 
     /** Voice changes and "Test voice" would interrupt the reading, so they are disabled while it plays. */
@@ -64,9 +67,20 @@ class TtsSettingsViewModel @Inject constructor(
         val current = _state.value
         _state.value = stateFrom(preferences.settings.value).copy(
             edge = EdgeVoiceUiState.from(preferences.settings.value.edge, testing = current.edge.testing),
-            openAi = openAiState(testing = current.openAi.testing)
+            openAi = openAiState(testing = current.openAi.testing),
+            testLanguage = current.testLanguage
         )
     }
+
+    private fun deviceUiLanguage(): String? =
+        ConfigurationCompat.getLocales(context.resources.configuration).get(0)?.language
+
+    /** Language of the Test voice sample, for every engine. */
+    fun setTestLanguage(language: TestLanguage) {
+        _state.update { it.copy(testLanguage = language) }
+    }
+
+    private fun testSentence(language: TestLanguage): String = context.getString(language.sentenceRes)
 
     private fun stateFrom(settings: TtsSettings) = TtsSettingsUiState(
         provider = settings.provider,
@@ -132,11 +146,18 @@ class TtsSettingsViewModel @Inject constructor(
         reload()
     }
 
-    /** Speaks the Hebrew sample with the system voice chosen for Hebrew and the current speech rate. */
+    /**
+     * Speaks the sample in the selected test language with the system voice chosen for that language and the
+     * current speech rate. The button shows progress until the engine starts speaking.
+     */
     fun testSystemVoice() {
-        if (!VoiceSettingsLogic.canTestSystem(isPlaying.value, ttsManager.isInitialized.value)) return
+        val system = _state.value.system
+        if (!VoiceSettingsLogic.canTestSystem(isPlaying.value, ttsManager.isInitialized.value, system.testing)) return
         stopTestPlayer()
-        ttsManager.speak(TtsVoiceLogic.TEST_SENTENCE_HE, Locale.forLanguageTag(TtsVoiceLogic.TEST_LANGUAGE)) { }
+        val language = _state.value.testLanguage
+        val done = { _state.update { it.copy(system = it.system.copy(testing = false)) } }
+        _state.update { it.copy(system = it.system.copy(testing = true)) }
+        ttsManager.speak(testSentence(language), Locale.forLanguageTag(language.code), onStart = { done() }) { done() }
     }
 
     // ---- Edge -----------------------------------------------------------------------------------
@@ -159,15 +180,20 @@ class TtsSettingsViewModel @Inject constructor(
         return true
     }
 
-    /** Plays the Hebrew sample with the voice Edge would use for a Hebrew message (custom voice if set). */
+    /**
+     * Plays the sample in the selected test language with the voice Edge would use for a message in that
+     * language: Avri / Hila for Hebrew, the same-gender multilingual voice otherwise, or the custom voice.
+     */
     fun testEdgeVoice() {
         val edge = _state.value.edge
         if (!VoiceSettingsLogic.canTestEdge(isPlaying.value, edge.testing)) return
-        val voice = EdgeTts.voiceFor(preferences.settings.value.edge, TtsVoiceLogic.TEST_LANGUAGE)
+        val language = _state.value.testLanguage
+        val voice = EdgeTts.voiceFor(preferences.settings.value.edge, language.code)
+        val sentence = testSentence(language)
         _state.update { it.copy(edge = it.edge.copy(testing = true)) }
         viewModelScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                edgeSpeech.synthesizeForTest(TtsVoiceLogic.TEST_SENTENCE_HE, voice)
+                edgeSpeech.synthesizeForTest(sentence, voice)
             }
             _state.update { it.copy(edge = it.edge.copy(testing = false)) }
             handleTestOutcome(outcome, R.string.settings_edge_test_failed, edgeSpeech::discard)
@@ -200,14 +226,18 @@ class TtsSettingsViewModel @Inject constructor(
         _state.update { it.copy(openAi = openAiState(testing = it.openAi.testing)) }
     }
 
-    /** Plays the Hebrew sample with the selected OpenAI model and voice (needs a saved key; billed to it). */
+    /**
+     * Plays the sample in the selected test language with the selected OpenAI model and voice (OpenAI voices
+     * are multilingual). Needs a saved key; billed to it.
+     */
     fun testOpenAiVoice() {
         val openAi = _state.value.openAi
         if (!VoiceSettingsLogic.canTestOpenAi(isPlaying.value, openAi.testing, openAi.hasKey)) return
+        val sentence = testSentence(_state.value.testLanguage)
         _state.update { it.copy(openAi = it.openAi.copy(testing = true)) }
         viewModelScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                openAiSpeech.synthesizeForTest(TtsVoiceLogic.TEST_SENTENCE_HE)
+                openAiSpeech.synthesizeForTest(sentence)
             }
             _state.update { it.copy(openAi = it.openAi.copy(testing = false)) }
             handleTestOutcome(outcome, R.string.settings_openai_test_failed, openAiSpeech::discard)
@@ -279,6 +309,8 @@ class TtsSettingsViewModel @Inject constructor(
     fun stopTest() {
         stopTestPlayer()
         if (!isPlaying.value) ttsManager.stop()
+        // stop() drops the pending onStart / onDone callbacks of a system test sample
+        _state.update { it.copy(system = it.system.copy(testing = false)) }
     }
 
     override fun onCleared() {

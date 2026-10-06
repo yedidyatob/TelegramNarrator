@@ -7,6 +7,18 @@
     <!-- Login Screen -->
     <string name="login_title_phone">Enter your phone number</string>
     <string name="login_label_phone">Phone Number</string>
+    <string name="login_country_choose">Country</string>
+    <string name="login_country_choose_a11y">Choose country</string>
+    <string name="login_country_button_a11y">Country: %1$s, %2$s. Change country</string>
+    <string name="login_country_picker_title">Choose your country</string>
+    <string name="login_country_search">Search country or code</string>
+    <string name="login_country_none_found">No matching country</string>
+    <string name="login_country_cancel">Cancel</string>
+    <string name="login_phone_error_too_short">Too few digits for this country</string>
+    <string name="login_phone_error_too_long">Too many digits for this country</string>
+    <string name="login_phone_error_wrong_length">Wrong number of digits for this country</string>
+    <string name="login_phone_error_no_country">Choose your country, or start with + and the country code</string>
+    <string name="login_phone_error_invalid">Enter a valid phone number</string>
     <string name="login_btn_send_code">Send Code</string>
     <string name="login_title_code">Enter verification code</string>
     <string name="login_label_code">Verification Code</string>
@@ -38,6 +50,7 @@
     <string name="home_unread_suffix">messages</string>
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
+    <string name="home_preparing_audio">Preparing audio…</string>
     <string name="home_loading">Loading</string>
     <string name="home_play_chat">Play unread messages of %1$s</string>
     <string name="home_select_all">Select all</string>
@@ -85,6 +98,7 @@
     <string name="settings_voice_open">Voice settings</string>
     <string name="settings_voice_playing_note">Stop the reading to change or test voices</string>
     <string name="settings_voice_test">Test voice</string>
+    <string name="settings_test_language">Test language: %1$s</string>
     <string name="settings_voice_testing">Loading the voice sample</string>
     <string name="settings_voice_selected">Selected</string>
     <string name="settings_state_expanded">Expanded</string>
@@ -121,7 +135,7 @@
     <string name="settings_edge_gender_female">Female</string>
     <string name="settings_edge_voices_desc">Hebrew messages use Avri (Hila for female); other languages switch automatically to Andrew (Ava for female) multilingual voices.</string>
     <string name="settings_edge_custom_active">Custom voice %1$s reads every message. Clear it under Advanced to use Male / Female.</string>
-    <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet: the text of each message is sent to Microsoft to be spoken. Falls back to the system voice if unavailable.</string>
+    <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet: the text of each message and the chat name are sent to Microsoft to be spoken. Falls back to the system voice if unavailable.</string>
     <string name="settings_edge_advanced">Advanced</string>
     <string name="settings_edge_custom_voice">Custom Edge voice</string>
     <string name="settings_edge_custom_voice_hint">e.g. en-GB-SoniaNeural</string>
@@ -137,6 +151,9 @@
     <string name="settings_openai_api_key_hint">sk-…</string>
     <string name="settings_openai_show_key">Show key</string>
     <string name="settings_openai_hide_key">Hide key</string>
+    <string name="settings_openai_get_key">Get an API key</string>
+    <string name="settings_openai_get_key_a11y">Get an API key, opens platform.openai.com in the browser</string>
+    <string name="settings_openai_get_key_no_browser">No browser found to open platform.openai.com/api-keys</string>
     <string name="settings_openai_key_saved">Saved: %1$s</string>
     <string name="settings_openai_key_none">No key saved</string>
     <string name="settings_openai_save_key">Save key</string>
@@ -146,7 +163,7 @@
     <string name="settings_openai_model_hd">HD (tts-1-hd)</string>
     <string name="settings_openai_voice">Voice</string>
     <string name="settings_openai_test_needs_key">Save a key to test the voice</string>
-    <string name="settings_openai_cost_privacy">About $15 per 1M characters ($30 for HD), billed to your key. Text and key go only to api.openai.com; the key is stored encrypted on this device.</string>
+    <string name="settings_openai_cost_privacy">About $15 per 1M characters ($30 for HD), billed to your key. Message text, chat names and the key go only to api.openai.com; the key is stored encrypted on this device.</string>
     <string name="settings_openai_test_failed">OpenAI voice test failed (check the key and the network).</string>
 
     <!-- 3. Playback -->
@@ -159,6 +176,24 @@
     <string name="settings_about_version">Version %1$s</string>
     <string name="settings_mark_read_desc">Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
 
-    <!-- Network TTS fallback (playback) -->
+    <!-- Network TTS fallback toasts (playback) -->
     <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
+    <string name="tts_fallback_openai_no_key">OpenAI TTS needs an API key. Using system voice.</string>
+    <string name="tts_fallback_openai_too_long">Message too long for OpenAI TTS. Using system voice.</string>
+    <string name="tts_fallback_openai_failed">OpenAI TTS failed. Using system voice.</string>
+    <string name="tts_fallback_edge_failed">Edge TTS failed. Using system voice.</string>
+
+    <!-- Test voice samples: each language's own name and sentence (spoken content, never translated) -->
+    <string name="test_language_en" translatable="false">English</string>
+    <string name="test_language_he" translatable="false">עברית</string>
+    <string name="test_language_ar" translatable="false">العربية</string>
+    <string name="test_language_ru" translatable="false">Русский</string>
+    <string name="test_language_es" translatable="false">Español</string>
+    <string name="test_language_fr" translatable="false">Français</string>
+    <string name="test_sentence_en" translatable="false">Hello, this is a voice test. This is how your messages will sound.</string>
+    <string name="test_sentence_he" translatable="false">שלום, זהו קול לבדיקה. כך נשמעות ההודעות שלך.</string>
+    <string name="test_sentence_ar" translatable="false">مرحبًا، هذا اختبار للصوت. هكذا ستبدو رسائلك.</string>
+    <string name="test_sentence_ru" translatable="false">Здравствуйте, это проверка голоса. Так будут звучать ваши сообщения.</string>
+    <string name="test_sentence_es" translatable="false">Hola, esta es una prueba de voz. Así sonarán tus mensajes.</string>
+    <string name="test_sentence_fr" translatable="false">Bonjour, ceci est un test de voix. Voici comment vos messages vont sonner.</string>
 </resources>

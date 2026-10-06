@@ -4,7 +4,8 @@ import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
 
 sealed class PlaybackItem {
     /**
-     * Chat boundary cue (played as a short language-neutral ding, not spoken TTS).
+     * Chat boundary cue (played as a short language-neutral ding, not spoken TTS). The chat title
+     * itself follows as a separate [ChatTitle] item.
      *
      * @param silent every message of the chat is dropped by the channel rules, so the chat isn't cued
      */
@@ -12,6 +13,19 @@ sealed class PlaybackItem {
         val chatName: String,
         val chatId: Long,
         val silent: Boolean = false
+    ) : PlaybackItem()
+    /**
+     * The chat title, spoken (with the active TTS engine, in the title's own language) right after the
+     * [Intro] ding. Lives inside the chat, so skip-chat skips it with the rest of the chat; skip-message
+     * moves on to the first message. Never marked as read (it is not a message).
+     *
+     * @param text the cleaned, speakable title ([ChatTitleSpeech.speakableTitle])
+     * @param chatName the title as shown in the notification
+     */
+    data class ChatTitle(
+        val text: String,
+        val chatId: Long,
+        val chatName: String = text
     ) : PlaybackItem()
     data class MessageItem(
         val sender: String?,

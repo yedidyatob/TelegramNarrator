@@ -15,7 +15,7 @@ How to build, sign, version and publish the app on Google Play. Companion docs:
 | Display name | `Unofficial Telegram Narrator` (`app_name`) | Telegram API ToS 2.3: the title may only contain "Telegram" when preceded by "Unofficial". See [play-data-safety.md](play-data-safety.md#telegram-api-terms-of-service-checklist). |
 | `minSdk` / `targetSdk` / `compileSdk` | 26 / 36 / 36 | Play requires `targetSdk` 36 for new apps and updates since Aug 31, 2026. |
 
-> Changing the `applicationId` from `com.example.telegramnarrator` makes the new build a **different app**:
+> The `applicationId` replaced the old placeholder ID used by earlier builds, so the new build is a **different app**:
 > it installs next to an old debug build instead of updating it. Uninstall the old one (or keep it) and log in
 > again in the new one.
 

@@ -95,12 +95,6 @@ class TtsVoiceLogicTest {
     }
 
     @Test
-    fun `test sample is hebrew`() {
-        assertTrue(TtsVoiceLogic.TEST_SENTENCE_HE.contains("שלום"))
-        assertEquals("he", TtsVoiceLogic.TEST_LANGUAGE)
-    }
-
-    @Test
     fun `quality buckets`() {
         assertEquals(VoiceQuality.HIGH, TtsVoiceLogic.qualityOf(heHigh))
         assertEquals(VoiceQuality.HIGH, TtsVoiceLogic.qualityOf(heLocal))

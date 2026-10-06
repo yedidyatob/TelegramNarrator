@@ -78,4 +78,46 @@ class AudioQueueTest {
         assertEquals(1L, PlaybackItem.Intro("chat", 1L).chatId)
         assertEquals(true, PlaybackItem.MessageItem("s", "", 2, 1, dropped = true).dropped)
     }
+
+    private fun chatWithTitle(id: Long, vararg messageIds: Long): List<PlaybackItem> =
+        ChatTitleSpeech.chatOpening(id, "chat $id", "chat $id", silent = false) +
+            messageIds.map { message(id, it) } +
+            listOf(PlaybackItem.Silence(1000))
+
+    @Test
+    fun `the spoken title comes right after the ding and before the messages`() {
+        val queue = AudioQueue()
+        queue.addAll(chatWithTitle(1, 10))
+        assertEquals(PlaybackItem.Intro("chat 1", 1L), queue.next())
+        assertEquals(PlaybackItem.ChatTitle("chat 1", 1L), queue.next())
+        assertEquals(message(1, 10), queue.next())
+    }
+
+    @Test
+    fun `skipToNextChat while the title is spoken skips the whole chat`() {
+        val queue = AudioQueue()
+        queue.addAll(chatWithTitle(1, 10, 11))
+        queue.addAll(chatWithTitle(2, 20))
+        queue.add(PlaybackItem.Outro)
+
+        queue.next() // ding of chat 1
+        queue.next() // title of chat 1 is being spoken
+        queue.skipToNextChat()
+
+        assertEquals(PlaybackItem.Intro("chat 2", 2L), queue.next())
+        assertEquals(PlaybackItem.ChatTitle("chat 2", 2L), queue.next())
+        assertEquals(message(2, 20), queue.next())
+    }
+
+    @Test
+    fun `a title paused mid-speech is put back and replayed on resume`() {
+        val queue = AudioQueue()
+        queue.addAll(chatWithTitle(1, 10))
+        queue.next() // ding
+        val title = queue.next()!!
+        // pause: the in-progress item is pushed back, like a message
+        PlaybackReadProgress.itemToRequeueOnPause(title)?.let { queue.addFirst(it) }
+        assertEquals(PlaybackItem.ChatTitle("chat 1", 1L), queue.next())
+        assertEquals(message(1, 10), queue.next())
+    }
 }

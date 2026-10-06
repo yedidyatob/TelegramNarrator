@@ -55,4 +55,9 @@ class OpenAiTtsTest {
         assertEquals("", OpenAiTts.safeErrorSummary("<html>Bad gateway</html>"))
         assertEquals("", OpenAiTts.safeErrorSummary("""{"error": {"code": null}}"""))
     }
+
+    @Test
+    fun `Get an API key link points to the OpenAI API keys page over https`() {
+        assertEquals("https://platform.openai.com/api-keys", OpenAiTts.API_KEYS_URL)
+    }
 }
