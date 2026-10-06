@@ -198,7 +198,7 @@
         errorLine1="                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {"
         errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/telegramnarrator/MainActivity.kt"
+            file="src/main/java/io/github/yedidyatob/telegramnarrator/MainActivity.kt"
             line="80"
             column="25"/>
     </issue>
@@ -209,7 +209,7 @@
         errorLine1="        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/telegramnarrator/core/service/PlaybackService.kt"
+            file="src/main/java/io/github/yedidyatob/telegramnarrator/core/service/PlaybackService.kt"
             line="477"
             column="13"/>
     </issue>
@@ -227,7 +227,7 @@
         errorLine1="    @ApplicationContext private val context: Context"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/telegramnarrator/ui/viewmodel/TtsSettingsViewModel.kt"
+            file="src/main/java/io/github/yedidyatob/telegramnarrator/ui/viewmodel/TtsSettingsViewModel.kt"
             line="47"
             column="5"/>
     </issue>

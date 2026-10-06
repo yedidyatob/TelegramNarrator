@@ -13,4 +13,4 @@ and silent skips instead of TTS announcements.
 
 Message **body** language is still detected per utterance for TTS voice selection (`LanguageDetector` in `TtsManager`). The UI stays English; a few UI/link strings have Hebrew overrides in `values-he/` when the device locale is Hebrew (e.g. link replacement "Link" / "קישור").
 
-See also [VoiceNotePlayback](../app/src/main/java/com/example/telegramnarrator/domain/audio/VoiceNotePlayback.kt) and [MessageSpeechBody](../app/src/main/java/com/example/telegramnarrator/domain/audio/MessageSpeechBody.kt).
+See also [VoiceNotePlayback](../app/src/main/java/io/github/yedidyatob/telegramnarrator/domain/audio/VoiceNotePlayback.kt) and [MessageSpeechBody](../app/src/main/java/io/github/yedidyatob/telegramnarrator/domain/audio/MessageSpeechBody.kt).

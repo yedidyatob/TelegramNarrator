@@ -21,7 +21,7 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 ## Layers and packages
 
 ```
-com.example.telegramnarrator
+io.github.yedidyatob.telegramnarrator
 ├── MainActivity, TelegramNarratorApp      Single activity + @HiltAndroidApp
 ├── ui/        Presentation (Compose)
 │   ├── screens/auth/LoginScreen           phone → code → 2FA password

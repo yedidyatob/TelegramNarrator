@@ -106,7 +106,7 @@ See [docs/mark-as-read.md](docs/mark-as-read.md) for the TDLib call sequence and
 ## Project layout
 
 ```
-app/src/main/java/com/example/telegramnarrator
+app/src/main/java/io/github/yedidyatob/telegramnarrator
   core/       Android glue: PlaybackService (foreground service, notification, media session),
               TtsManager, DI modules
   data/       TDLib client + repositories (auth, chats), channel rules loader, TTS preferences
@@ -156,7 +156,7 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 ## Publishing status
 
 Not published. Before a Play release see the publishing checklist in the roadmap (applicationId is still
-`com.example.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
+`io.github.yedidyatob.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
 
 ## TDLib / 16 KB page size
 

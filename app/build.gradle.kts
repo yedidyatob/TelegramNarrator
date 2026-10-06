@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.telegramnarrator"
+    namespace = "io.github.yedidyatob.telegramnarrator"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.telegramnarrator"
+        applicationId = "io.github.yedidyatob.telegramnarrator"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
