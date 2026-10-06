@@ -36,7 +36,10 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioQueue
+import io.github.yedidyatob.telegramnarrator.domain.audio.ChatPlaybackHistory
 import io.github.yedidyatob.telegramnarrator.domain.audio.ChatTitleSpeech
+import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
+import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackPlan
 import io.github.yedidyatob.telegramnarrator.domain.audio.CloudTtsPrefetch
 import io.github.yedidyatob.telegramnarrator.domain.audio.MessageCleaner
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackItem
@@ -102,6 +105,13 @@ class PlaybackService : Service() {
     private var prefetchJob: Job? = null
     private var statusText = ""
     private var currentItem: PlaybackItem? = null
+
+    // Positions ("message 3 of 12", "chat 2 of 5") and chat titles / photos of the current run, for the Player
+    @Volatile private var plan = PlaybackPlan.EMPTY
+    @Volatile private var runChats: Map<Long, RunChat> = emptyMap()
+    private data class RunChat(val title: String, val photoFileId: Int?)
+    // Messages of the current chat that started playing, for "previous message"
+    private val chatHistory = ChatPlaybackHistory()
     
     private lateinit var mediaSession: MediaSessionCompat
 
@@ -126,6 +136,8 @@ class PlaybackService : Service() {
         const val ACTION_RESUME = "ACTION_RESUME"
         const val ACTION_SKIP_MSG = "ACTION_SKIP_MSG"
         const val ACTION_SKIP_CHAT = "ACTION_SKIP_CHAT"
+        /** Replays the previous message of the current chat (restarts the current one on the chat's first). */
+        const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
         
         const val CHANNEL_ID = "PlaybackChannel"
@@ -199,6 +211,7 @@ class PlaybackService : Service() {
             ACTION_RESUME -> userResume()
             ACTION_SKIP_MSG -> skipMessage()
             ACTION_SKIP_CHAT -> skipChat()
+            ACTION_PREVIOUS_MSG -> previousMessage()
         }
         return START_NOT_STICKY
     }
@@ -223,10 +236,13 @@ class PlaybackService : Service() {
         
         // Wait for TTS engine to initialize before grabbing the mic/audio focus
         ttsManager.isInitialized.first { it }
-        
+
+        val runItems = mutableListOf<PlaybackItem>()
+        val chats = LinkedHashMap<Long, RunChat>()
         chatIds.forEach { chatId ->
             val chat = chatRepository.getChat(chatId)
             val title = chat?.title ?: "Chat $chatId"
+            chats[chatId] = RunChat(title, chat?.photoFileId)
             // Unread incoming messages, oldest first
             val messages = chatRepository.getChatMessages(chatId)
             // Per-channel cleaning rules decide which messages are dropped and cut/replace text before
@@ -252,12 +268,16 @@ class PlaybackService : Service() {
                 }
                 // Official sponsored message (channels / bot chats) after the last unread message, before the
                 // next chat's ding. Channel cleaning rules never see it.
-                audioQueue.addAll(SponsoredSlotPlacement.withSlot(chatItems, chatId, title, silent))
-                audioQueue.add(PlaybackItem.Silence(1000))
+                runItems.addAll(SponsoredSlotPlacement.withSlot(chatItems, chatId, title, silent))
+                runItems.add(PlaybackItem.Silence(1000))
             }
         }
-        
-        audioQueue.add(PlaybackItem.Outro)
+        runItems.add(PlaybackItem.Outro)
+
+        plan = PlaybackPlan.from(runItems)
+        runChats = chats
+        chatHistory.onChatStarted()
+        audioQueue.addAll(runItems)
         
         if (!isPlaying) {
             isPlaying = true
@@ -304,6 +324,8 @@ class PlaybackService : Service() {
         when (item) {
             is PlaybackItem.Intro -> {
                 playbackManager.setPlayingChatId(item.chatId)
+                chatHistory.onChatStarted()
+                if (!item.silent) publishChatOpening(item.chatId, item.chatName)
                 // The previous chat's sponsored card is shown until the next chat starts
                 playbackManager.clearSponsoredAd()
                 // "Opening" the chat: fetch its sponsored messages now (5-minute cache) so the slot after its
@@ -320,6 +342,7 @@ class PlaybackService : Service() {
             }
             is PlaybackItem.ChatTitle -> {
                 playbackManager.setPlayingChatId(item.chatId)
+                publishChatOpening(item.chatId, item.chatName)
                 // Just the title, with the selected engine, in the title's own language. Not a message, so
                 // nothing is marked as read; only clear currentItem so a racing pause does not replay it.
                 speakText(item.text) {
@@ -338,6 +361,8 @@ class PlaybackService : Service() {
                 // Voice notes: play the downloaded audio in the queue — never speak "Voice note" / sender.
                 // If the file cannot be downloaded or played, skip silently (still mark read) like a photo.
                 if (item.voiceNoteFileId != null) {
+                    chatHistory.onMessageStarted(item)
+                    publishMessage(item, isVoiceNote = true)
                     val loading = playbackManager.beginAudioLoading()
                     scope.launch {
                         val path = try {
@@ -367,6 +392,8 @@ class PlaybackService : Service() {
                     return
                 }
                 val text = MessageSpeechBody.resolve(cleanedText, item.contentType).orEmpty()
+                chatHistory.onMessageStarted(item)
+                publishMessage(item, isVoiceNote = false)
                 // No "Message from X:" — speak the body only (notification still shows the sender).
                 speakText(text) { onMessageFullyPlayed(item) }
             }
@@ -402,6 +429,7 @@ class PlaybackService : Service() {
                 return@launch
             }
             playbackManager.showSponsoredAd(ad)
+            publishSponsored(item)
             setStatusText(
                 getString(
                     if (ad.isRecommended) R.string.notification_recommended else R.string.notification_sponsored,
@@ -448,6 +476,8 @@ class PlaybackService : Service() {
             speakWithSystemTts(speechText, onSpoken)
             return
         }
+        val provider = ttsPreferences.settings.value.provider
+        playbackManager.setNowPlayingEngine(provider)
         val generation = itemGeneration.get()
         val loading = playbackManager.beginAudioLoading()
         scope.launch {
@@ -460,6 +490,7 @@ class PlaybackService : Service() {
             if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
             when (outcome) {
                 is SpeechSynthesisOutcome.Ready -> {
+                    playbackManager.setNowPlayingEngine(provider)
                     // Warm the next few messages into the disk cache while this one plays
                     scheduleCloudPrefetch(generation)
                     playAudioFile(
@@ -484,6 +515,7 @@ class PlaybackService : Service() {
     }
 
     private fun speakWithSystemTts(speechText: String, onSpoken: () -> Unit) {
+        playbackManager.setNowPlayingEngine(SpeechProvider.SYSTEM)
         // Until the engine starts speaking (slow engine / first utterance) the bar shows "Preparing audio…"
         val loading = playbackManager.beginAudioLoading()
         ttsManager.speak(speechText, onStart = { playbackManager.endAudioLoading(loading) }) { completed ->
@@ -712,6 +744,31 @@ class PlaybackService : Service() {
         // but currently ttsManager.speak handles the callback.
         // We need to ensure processQueue() is called exactly once.
         processQueue() 
+    }
+
+    /**
+     * Previous message: replays the message before the current one in this chat, then continues with the
+     * current one; on the chat's first message it restarts it. Also resumes when paused. Replaying a message
+     * that was already marked as read changes nothing in Telegram.
+     */
+    private fun previousMessage() {
+        if (!isPlaying) return
+        cancelPrefetch()
+        ttsManager.stop()
+        releaseMediaPlayer()
+        // Paused in the middle of an item: it was pushed back to the front of the queue
+        val current = currentItem ?: if (isPaused) audioQueue.next() else null
+        currentItem = null
+        flushReadCheckpoints()
+        chatHistory.previous(current).asReversed().forEach { audioQueue.addFirst(it) }
+        if (isPaused) {
+            focusPolicy.onUserAction()
+            focusController.request()
+            isPaused = false
+            playbackManager.setPaused(false)
+            updateMediaSessionState()
+        }
+        processQueue()
     }
 
     private fun skipChat() {
@@ -962,6 +1019,62 @@ class PlaybackService : Service() {
      * template ("Chat: חדשות") or the other way round keeps the template's order and punctuation.
      */
     private fun bidiIsolate(name: String): String = BidiFormatter.getInstance().unicodeWrap(name)
+
+    private fun runChat(chatId: Long, fallbackTitle: String): RunChat = runChats[chatId] ?: RunChat(fallbackTitle, null)
+
+    /** The chat opens (ding + spoken title): Player shows the chat and how many messages it has. */
+    private fun publishChatOpening(chatId: Long, chatName: String) {
+        val chat = runChat(chatId, chatName)
+        playbackManager.setNowPlaying(
+            NowPlaying(
+                chatId = chatId,
+                chatTitle = chat.title,
+                chatPhotoFileId = chat.photoFileId,
+                content = NowPlaying.Content.ChatOpening,
+                chatPosition = plan.chatPosition(chatId),
+                messageCount = plan.messageCount(chatId),
+                engine = playbackManager.nowPlaying.value?.engine ?: ttsPreferences.settings.value.provider
+            )
+        )
+    }
+
+    private fun publishMessage(item: PlaybackItem.MessageItem, isVoiceNote: Boolean) {
+        val chat = runChat(item.chatId, playbackManager.nowPlaying.value?.chatTitle.orEmpty())
+        playbackManager.setNowPlaying(
+            NowPlaying(
+                chatId = item.chatId,
+                chatTitle = chat.title,
+                chatPhotoFileId = chat.photoFileId,
+                content = NowPlaying.Content.Message(
+                    messageId = item.messageId,
+                    sender = item.sender,
+                    text = item.text,
+                    contentType = item.contentType,
+                    isVoiceNote = isVoiceNote
+                ),
+                chatPosition = plan.chatPosition(item.chatId),
+                messagePosition = plan.messagePosition(item.chatId, item.messageId),
+                messageCount = plan.messageCount(item.chatId),
+                // A voice note plays its own audio; text is spoken by the chosen engine (updated on fallback)
+                engine = if (isVoiceNote) null else ttsPreferences.settings.value.provider
+            )
+        )
+    }
+
+    private fun publishSponsored(item: PlaybackItem.SponsoredSlot) {
+        val chat = runChat(item.chatId, item.chatName)
+        playbackManager.setNowPlaying(
+            NowPlaying(
+                chatId = item.chatId,
+                chatTitle = chat.title,
+                chatPhotoFileId = chat.photoFileId,
+                content = NowPlaying.Content.Sponsored,
+                chatPosition = plan.chatPosition(item.chatId),
+                messageCount = plan.messageCount(item.chatId),
+                engine = ttsPreferences.settings.value.provider
+            )
+        )
+    }
 
     private fun setStatusText(text: String) {
         playbackManager.setStatus(text)

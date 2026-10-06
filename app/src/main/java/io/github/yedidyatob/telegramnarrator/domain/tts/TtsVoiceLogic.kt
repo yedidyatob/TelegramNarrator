@@ -71,7 +71,7 @@ object TtsVoiceLogic {
     const val DEFAULT_RATE = 1.0f
     const val RATE_STEP = 0.1f
 
-    private const val HEBREW = "he"
+    const val HEBREW = "he"
     private const val ENGLISH = "en"
 
     /** Lower-case language code with the legacy Java codes mapped to the modern ones ("iw" -> "he"). */

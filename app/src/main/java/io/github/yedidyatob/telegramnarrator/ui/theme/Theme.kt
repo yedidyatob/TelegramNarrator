@@ -12,28 +12,52 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = TelegramBlueNight,
-    secondary = TelegramSecondaryNight,
-    background = TelegramBackgroundNight,
-    surface = TelegramSurfaceNight,
     onPrimary = TelegramSurfaceDay,
+    primaryContainer = TelegramBlueContainerNight,
+    onPrimaryContainer = TelegramOnBlueContainerNight,
+    secondary = TelegramSecondaryNight,
     onSecondary = TelegramSurfaceDay,
+    secondaryContainer = TelegramSecondaryContainerNight,
+    onSecondaryContainer = TelegramOnSecondaryContainerNight,
+    tertiary = TelegramTertiaryNight,
+    background = TelegramBackgroundNight,
     onBackground = TelegramSurfaceDay,
+    surface = TelegramSurfaceNight,
     onSurface = TelegramSurfaceDay,
     surfaceVariant = TelegramDarkNight,
-    onSurfaceVariant = TelegramSecondaryNight
+    onSurfaceVariant = TelegramOnSurfaceVariantNight,
+    outline = TelegramOutlineNight,
+    outlineVariant = TelegramOutlineVariantNight,
+    surfaceContainerLowest = TelegramContainerLowestNight,
+    surfaceContainerLow = TelegramContainerLowNight,
+    surfaceContainer = TelegramContainerNight,
+    surfaceContainerHigh = TelegramContainerHighNight,
+    surfaceContainerHighest = TelegramContainerHighestNight
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = TelegramBlueDay,
-    secondary = TelegramSecondaryDay,
-    background = TelegramSurfaceDay,
-    surface = TelegramSurfaceDay,
     onPrimary = TelegramSurfaceDay,
+    primaryContainer = TelegramBlueContainerDay,
+    onPrimaryContainer = TelegramOnBlueContainerDay,
+    secondary = TelegramSecondaryDay,
     onSecondary = TelegramDarkDay,
+    secondaryContainer = TelegramSecondaryContainerDay,
+    onSecondaryContainer = TelegramOnSecondaryContainerDay,
+    tertiary = TelegramTertiaryDay,
+    background = TelegramSurfaceDay,
     onBackground = TelegramDarkDay,
+    surface = TelegramSurfaceDay,
     onSurface = TelegramDarkDay,
-    surfaceVariant = TelegramSurfaceDay,
-    onSurfaceVariant = TelegramSecondaryDay
+    surfaceVariant = TelegramSurfaceVariantDay,
+    onSurfaceVariant = TelegramOnSurfaceVariantDay,
+    outline = TelegramOutlineDay,
+    outlineVariant = TelegramOutlineVariantDay,
+    surfaceContainerLowest = TelegramContainerLowestDay,
+    surfaceContainerLow = TelegramContainerLowDay,
+    surfaceContainer = TelegramContainerDay,
+    surfaceContainerHigh = TelegramContainerHighDay,
+    surfaceContainerHighest = TelegramContainerHighestDay
 )
 
 @Composable

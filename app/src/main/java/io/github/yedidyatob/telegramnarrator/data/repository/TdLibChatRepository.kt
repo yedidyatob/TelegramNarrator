@@ -1,6 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.data.repository
 
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
@@ -45,7 +46,11 @@ class TdLibChatRepository @Inject constructor(
                 when (val u = update) {
                     is TdApi.UpdateAuthorizationState -> {
                         if (u.authorizationState is TdApi.AuthorizationStateReady) {
-                            loadChats()
+                            try {
+                                loadChats()
+                            } catch (e: Exception) {
+                                // Home retries (and shows the error) on its own
+                            }
                         }
                     }
                     is TdApi.UpdateNewChat -> {
@@ -55,6 +60,12 @@ class TdLibChatRepository @Inject constructor(
                     is TdApi.UpdateChatTitle -> {
                         chatCache[u.chatId]?.let {
                             it.title = u.title
+                            refreshUnreadList()
+                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
+                    }
+                    is TdApi.UpdateChatPhoto -> {
+                        chatCache[u.chatId]?.let {
+                            it.photo = u.photo
                             refreshUnreadList()
                         } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
                     }
@@ -139,7 +150,8 @@ class TdLibChatRepository @Inject constructor(
             title = tdChat.title ?: "Unknown",
             unreadCount = tdChat.unreadCount,
             lastMessage = null,
-            order = position?.order ?: 0L
+            order = position?.order ?: 0L,
+            photoFileId = tdChat.photo?.small?.id
         )
     }
 
@@ -272,8 +284,11 @@ class TdLibChatRepository @Inject constructor(
             Log.d("ChatRepository", "Requesting LoadChats(Main, 100)...")
             client.send<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
             Log.d("ChatRepository", "LoadChats request sent successfully")
-        } catch (e: Exception) {
+        } catch (e: TdLibException) {
+            // 404: every chat of the list is already loaded - not an error
+            if (e.code == 404) return
             Log.e("ChatRepository", "LoadChats failed", e)
+            throw e
         }
     }
 }

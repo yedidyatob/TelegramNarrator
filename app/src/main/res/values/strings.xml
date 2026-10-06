@@ -43,10 +43,28 @@
     <string name="home_title">Unread Chats</string>
     <string name="home_btn_play_all">Play All</string>
     <string name="home_btn_stop">Stop</string>
-    <string name="home_btn_logout">Logout</string>
-    <string name="home_no_chats">No unread chats</string>
-    <string name="home_empty_title">You\'re all caught up!</string>
-    <string name="home_empty_subtitle">No unread chats to narrate.</string>
+    <string name="home_btn_logout">Log out</string>
+    <string name="home_empty_title">You\'re all caught up</string>
+    <string name="home_empty_subtitle">No unread chats right now. New messages show up here (muted chats are left out).</string>
+    <string name="home_refresh">Refresh</string>
+    <string name="home_retry">Try again</string>
+    <string name="home_loading_chats">Loading your chats</string>
+    <string name="home_error_title">Couldn\'t load your chats</string>
+    <string name="home_error_body">Telegram didn\'t answer. Check your connection and try again.</string>
+    <string name="home_error_detail">Details: %1$s</string>
+    <string name="home_offline_title">You\'re offline</string>
+    <string name="home_offline_body">Your chats load by themselves as soon as you\'re back online.</string>
+    <string name="home_banner_offline">Waiting for network…</string>
+    <string name="home_banner_connecting">Connecting to Telegram…</string>
+    <string name="home_refresh_failed">Couldn\'t refresh your chats</string>
+    <string name="home_more_options">More options</string>
+    <string name="home_logout_title">Log out?</string>
+    <string name="home_logout_body">You\'ll be signed out of Telegram on this device. Your voice settings stay.</string>
+    <string name="home_selected_count">%1$d of %2$d selected</string>
+    <string name="home_chat_playing">Reading now</string>
+    <string name="home_sheet_loading">Loading messages…</string>
+    <string name="home_sheet_empty">No unread messages to show</string>
+    <string name="home_sheet_play">Play</string>
     <string name="home_unread_suffix">messages</string>
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
@@ -66,6 +84,55 @@
         <item quantity="other">%d unread messages</item>
     </plurals>
     <string name="message_unsupported_content">Unsupported content</string>
+
+    <!-- Player screen and mini player -->
+    <string name="player_title">Now playing</string>
+    <string name="player_open">Open player</string>
+    <string name="player_close">Close player</string>
+    <string name="player_previous">Previous message</string>
+    <string name="player_next">Next message</string>
+    <string name="player_next_chat">Next chat</string>
+    <string name="player_message_position">Message %1$d of %2$d</string>
+    <string name="player_chat_position">Chat %1$d of %2$d</string>
+    <string name="player_chat_opening">Starting this chat</string>
+    <string name="mini_player_message">%1$s · %2$d of %3$d</string>
+    <string name="player_engine_system">System voice</string>
+    <string name="player_engine_edge">Edge voice</string>
+    <string name="player_engine_openai">OpenAI voice</string>
+    <string name="player_engine_original">Original audio</string>
+    <string name="player_engine_fallback">%1$s (fallback)</string>
+    <string name="player_engine_a11y">Voice: %1$s. Opens voice settings</string>
+
+    <!-- First-run onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_step">Step %1$d of %2$d</string>
+    <string name="onboarding_welcome_title">Your unread chats, read aloud</string>
+    <string name="onboarding_welcome_body">Catch up on Telegram while you drive, walk or cook. The app reads your unread messages chat by chat, even with the screen off.</string>
+    <string name="onboarding_welcome_point_listen">Pick the chats, press Play, and listen</string>
+    <string name="onboarding_welcome_point_control">Pause, replay or skip a message or a whole chat</string>
+    <string name="onboarding_welcome_point_languages">Hebrew and English messages each get the right voice</string>
+    <string name="onboarding_privacy_title">Unofficial and private</string>
+    <string name="onboarding_privacy_point_device">Your login, messages and settings stay on this device</string>
+    <string name="onboarding_privacy_point_read">A message is marked as read in Telegram only after it was read aloud or skipped</string>
+    <string name="onboarding_privacy_point_ads">Channels can include Telegram\'s official sponsored messages</string>
+    <string name="onboarding_voice_title">Choose a voice</string>
+    <string name="onboarding_voice_body">You can change it any time in Voice settings.</string>
+    <string name="onboarding_voice_recommended">Recommended</string>
+    <string name="onboarding_voice_system_title">System voice</string>
+    <string name="onboarding_voice_system_desc">Built into your phone. Free and offline: nothing leaves the device.</string>
+    <string name="onboarding_voice_edge_title">Edge voice</string>
+    <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet; message text is sent to Microsoft.</string>
+    <string name="onboarding_voice_openai_title">OpenAI voice</string>
+    <string name="onboarding_voice_openai_desc">Premium voices with your own OpenAI API key, billed to you. Message text is sent to OpenAI.</string>
+    <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
+    <string name="onboarding_voice_hebrew_missing">No Hebrew voice found. Install one to hear Hebrew messages.</string>
+    <string name="onboarding_voice_openai_later">You can also add the key later in Voice settings. Until then the system voice reads.</string>
+    <string name="onboarding_voice_openai_saved">Key saved</string>
+    <string name="onboarding_notifications_title">Controls on your lock screen</string>
+    <string name="onboarding_notifications_body">Allow notifications to pause, skip and stop from the notification and the lock screen. Reading works without it, but you won\'t see the controls.</string>
 
     <!-- Playback Service -->
     <string name="playback_skip_msg">Skip Message</string>

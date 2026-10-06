@@ -6,6 +6,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.drinkless.tdlib.Client
 import org.drinkless.tdlib.TdApi
 import javax.inject.Inject
@@ -27,6 +30,13 @@ class TdLibClient @Inject constructor(
     )
     val updates: Flow<TdApi.Object> = _updates
 
+    // Kept here (the first thing created) rather than in a collector of [updates]: TDLib only reports changes,
+    // and a late subscriber would miss the current state
+    private val _connectionState = MutableStateFlow<TdApi.ConnectionState?>(null)
+
+    /** The last UpdateConnectionState from TDLib; null until the first one arrives. */
+    val connectionState: StateFlow<TdApi.ConnectionState?> = _connectionState.asStateFlow()
+
     init {
         Client.execute(TdApi.SetLogVerbosityLevel(1))
         recreateClient()
@@ -35,6 +45,7 @@ class TdLibClient @Inject constructor(
     fun recreateClient() {
         Log.d("TdLibClient", "Recreating TDLib client")
         client = Client.create({ `object` ->
+            if (`object` is TdApi.UpdateConnectionState) _connectionState.value = `object`.state
             _updates.tryEmit(`object`)
         }, null, null)
     }

@@ -27,6 +27,14 @@ interface ChatRepository {
      */
     suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>)
     suspend fun getVoiceFilePath(fileId: Int): String?
+
+    /** Downloads a small TDLib file (e.g. a chat photo) and returns its local path, or null. */
+    suspend fun getFilePath(fileId: Int): String? = getVoiceFilePath(fileId)
+
+    /**
+     * Asks TDLib to load the main chat list (the chats arrive through [getUnreadChats]). Returns normally when
+     * the list is loaded (or was already complete); throws when TDLib reports an error.
+     */
     suspend fun loadChats()
     
     /** Always true in release builds; debug builds can turn it off in Voice settings. */
