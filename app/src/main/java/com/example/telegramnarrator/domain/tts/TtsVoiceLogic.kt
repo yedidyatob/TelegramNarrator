@@ -136,13 +136,6 @@ object TtsVoiceLogic {
         voice.quality >= 300 -> VoiceQuality.NORMAL
         else -> VoiceQuality.BASIC
     }
-
-    /**
-     * The sample every "Test voice" button speaks. Always Hebrew (the app's main language), so each engine is
-     * heard with the voice it would really use for a Hebrew message.
-     */
-    const val TEST_SENTENCE_HE = "שלום, זהו קול לבדיקה. כך נשמעות ההודעות שלך."
-    const val TEST_LANGUAGE = HEBREW
 }
 
 /** Coarse voice quality shown next to each system voice. */

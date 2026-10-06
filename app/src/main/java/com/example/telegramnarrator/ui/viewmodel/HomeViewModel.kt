@@ -32,6 +32,8 @@ class HomeViewModel @Inject constructor(
     val isPlaying: StateFlow<Boolean> = playbackManager.isPlaying
     val isPaused: StateFlow<Boolean> = playbackManager.isPaused
     val playStatus: StateFlow<String?> = playbackManager.currentStatus
+    /** The current message's audio is still being fetched / synthesized (shown after a short delay). */
+    val isPreparingAudio: StateFlow<Boolean> = playbackManager.isPreparingAudio
     val selectedChatIds: StateFlow<Set<Long>> = playbackManager.selectedChatIds
     val currentPlayingChatId: StateFlow<Long?> = playbackManager.currentPlayingChatId
 

@@ -26,12 +26,36 @@ Playback                              (heading)
 
 The system engine/voice pickers are never shown for Edge or OpenAI (they do not use them; system TTS is only
 their silent fallback). While the system TTS engine (re)starts, only the System section shows a loading row;
-the engine choice and Playback work immediately. Every **Test voice** plays the same Hebrew sample with the voice
-that engine would actually use for a Hebrew message. Voice changes and tests are disabled while the reading plays.
+the engine choice and Playback work immediately. Voice changes and tests are disabled while the reading plays.
+
+### Test voice
+
+Every engine section ends with a compact **language dropdown** next to **Test voice**: English, עברית, العربية,
+Русский, Español, Français (sample sentences are string resources, `test_sentence_*`, never translated). The default
+is the device UI language when it is in that list (legacy `iw` counts as Hebrew), otherwise English
+(`TestLanguage.defaultFor`, `TestLanguageTest`). The choice is shared by all engines while the sheet is open.
+Each engine speaks the sample with the voice it would really use for a message in that language:
+
+| Engine | Voice used for the test |
+|--------|-------------------------|
+| System | The voice chosen for that language (or the engine default), via the same per-language switching as playback |
+| Edge | Hebrew: Avri / Hila; any other language: the same-gender multilingual voice (Andrew / Ava); a custom voice always wins |
+| OpenAI | The selected voice and model (OpenAI voices are multilingual) |
+
+While the sample loads, the button is disabled and shows a small spinner: for Edge / OpenAI until the audio is
+synthesized (or found in the cache), for System until the engine starts speaking.
+
+### "Preparing audio…" during playback
+
+`PlaybackManager.isPreparingAudio` (`StateFlow<Boolean>`) is true while the current message's audio is not ready:
+Edge / OpenAI synthesis, a voice-note download, or system TTS before the utterance starts (`TtsManager.speak(onStart)`).
+The Home now-playing bar then shows a small spinner and "Preparing audio…" instead of "Now playing". The flag only
+turns on after 300 ms (`DelayedLoading`, `DelayedLoadingTest`), so cache hits and fast starts never flash it; it is
+cleared on every new queue item, pause, skip and stop, and a superseded load's late completion is ignored.
 
 Section visibility and Test-voice enablement are pure functions in `domain/tts/VoiceSettingsLogic.kt`
 (`VoiceSettingsLogicTest`). The sheet is a stateless `VoiceSettingsContent(state, isPlaying, actions)` with
-`@Preview`s in `VoiceSettingsPreviews.kt` (System, System loading, Edge, Edge + custom voice, OpenAI, OpenAI dark).
+`@Preview`s in `VoiceSettingsPreviews.kt` (System, System loading, Edge, Edge testing in French, Edge + custom voice, OpenAI, OpenAI dark).
 
 ## Text-to-speech engine
 
@@ -54,7 +78,8 @@ Everything uses the **system text-to-speech** engines installed on the device by
 - **Voices**: one dropdown per language - Hebrew first, then the device languages, then English. Pick a voice or
   "Default voice"; each voice shows its locale and quality. Only installed offline voices are listed.
 - **Open system TTS settings** (`com.android.settings.TTS_SETTINGS`) to install more voices.
-- **Test voice** speaks the Hebrew sample with the voice chosen for Hebrew and the current speech rate.
+- **Test voice** speaks the sample in the selected test language with the voice chosen for that language and the
+  current speech rate.
 
 ## Microsoft Edge neural TTS (unofficial)
 
@@ -93,8 +118,8 @@ hears does not change (`EdgeTtsTest`).
 4. **Fallback:** connection error, handshake rejection, 15 s without data, or no audio → toast (throttled to one
    per 30 s) and system TTS for that message; Edge is then skipped for 60 s. An unplayable cached file is
    deleted and the message is read by system TTS.
-5. **Test voice** fetches the Hebrew sample with the voice Edge would use for Hebrew (Avri / Hila, or the custom
-   voice) and plays it.
+5. **Test voice** fetches the sample in the selected test language with the voice Edge would use for it (Avri /
+   Hila for Hebrew, Andrew / Ava multilingual otherwise, or the custom voice) and plays it.
 
 Pure logic (URL / token / SSML builders, text splitting, frame parsing, cache key, gender -> voice, prefs migration) is in
 `domain/edge/EdgeTts.kt` and unit tested (`EdgeTtsTest`). An opt-in live smoke test hits the real service:
@@ -115,6 +140,7 @@ Off by default. When OpenAI is the selected engine **and** an API key is saved:
 3. Playback uses the existing `MediaPlayer` queue path (same as voice notes).
 
 If there is no key, the request fails, or the text exceeds OpenAI's 4096-character limit, the app shows a short toast and **falls back to system TTS**.
+(All fallback toasts are string resources, `tts_fallback_*`; the synthesizers return a `FallbackReason`.)
 
 Settings (OpenAI section):
 
@@ -125,8 +151,8 @@ Settings (OpenAI section):
   not saved in instance state (`VoiceSettingsUiStateTest`).
 - **Quality**: Standard (`tts-1`, default, cheaper) or HD (`tts-1-hd`)
 - **Voice**: `alloy`, `ash`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer` (tts-1 / tts-1-hd set)
-- **Test voice** synthesizes the Hebrew sample with the selected model and voice; it is enabled only once a key is
-  saved (the request is billed to it).
+- **Test voice** synthesizes the sample in the selected test language with the selected model and voice; it is
+  enabled only once a key is saved (the request is billed to it).
 
 There is **no cloud key in the repo**. Get a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 Pricing: [OpenAI API pricing](https://openai.com/api/pricing/) (tts-1 ≈ $15 / 1M characters, tts-1-hd ≈ $30 / 1M).
