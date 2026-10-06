@@ -49,7 +49,7 @@ class TdLibClient @Inject constructor(
         
         currentClient.send(function) { result ->
             if (result is TdApi.Error) {
-                continuation.resumeWithException(RuntimeException("TDLib Error: ${result.code} - ${result.message}"))
+                continuation.resumeWithException(TdLibException(result.code, result.message))
             } else {
                 @Suppress("UNCHECKED_CAST")
                 continuation.resume(result as T)
@@ -57,3 +57,7 @@ class TdLibClient @Inject constructor(
         }
     }
 }
+
+/** A TDLib `Error` reply. The message format is unchanged from the previous plain RuntimeException. */
+class TdLibException(val code: Int, val tdMessage: String?) :
+    RuntimeException("TDLib Error: $code - $tdMessage")

@@ -145,7 +145,10 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
   "Read aloud" endpoint (`speech.platform.bing.com`); no key or account is involved. Audio is cached on device.
 - The Telegram session and message cache live in the app's private storage (`filesDir/tdlib`). Android backup is
   disabled, so the session is never uploaded or transferred; after a reinstall you log in again.
-- The TDLib database is **not** encrypted at rest yet (tracked in the roadmap).
+- The TDLib database (session, chats, message cache) is **encrypted at rest** with a random 32-byte key that is
+  wrapped by a non-exportable Android Keystore key and stored in `noBackupFilesDir`. Existing unencrypted
+  databases are re-keyed in place on first start, so you stay logged in. If the Keystore key is ever lost, the
+  database is reset and you log in again.
 - Message text is never written to the log; debug logging is stripped from release builds. The OpenAI API key is never logged.
 
 ## Publishing status

@@ -2,9 +2,12 @@ package com.example.telegramnarrator.data.repository
 
 import com.example.telegramnarrator.BuildConfig
 import com.example.telegramnarrator.data.tdlib.TdLibClient
+import com.example.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
+import com.example.telegramnarrator.data.tdlib.TdLibException
 import com.example.telegramnarrator.domain.model.ApiCredentials
 import com.example.telegramnarrator.domain.model.AuthState
 import com.example.telegramnarrator.domain.repository.AuthRepository
+import com.example.telegramnarrator.domain.security.DatabaseEncryptionPolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,8 +22,18 @@ import java.io.File
 @Singleton
 class TdLibAuthRepository @Inject constructor(
     private val client: TdLibClient,
-    private val filesDir: File
+    private val filesDir: File,
+    private val keyStore: TdLibDatabaseKeyStore
 ) : AuthRepository {
+
+    private companion object {
+        const val TAG = "AuthRepository"
+        const val TDLIB_DIR = "tdlib"
+        /** TDLib's binlog in the database directory (`td_test.binlog` only on the test DC). */
+        const val BINLOG_FILE = "td.binlog"
+        const val SECURE_STORAGE_UNAVAILABLE =
+            "Secure storage is not available right now, so the Telegram database cannot be opened. Please retry."
+    }
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -48,28 +61,7 @@ class TdLibAuthRepository @Inject constructor(
                     _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE)
                     return
                 }
-                var failure: String? = null
-                try {
-                    client.send<TdApi.Ok>(TdApi.SetTdlibParameters(
-                        false,                                          // useTestDc
-                        File(filesDir, "tdlib").absolutePath,           // databaseDirectory
-                        null,                                           // filesDirectory
-                        null,                                           // databaseEncryptionKey
-                        true,                                           // useFileDatabase
-                        true,                                           // useChatInfoDatabase
-                        true,                                           // useMessageDatabase
-                        false,                                          // useSecretChats
-                        apiId,                                          // apiId
-                        BuildConfig.TELEGRAM_API_HASH,                  // apiHash
-                        "en",                                           // systemLanguageCode
-                        "Android",                                      // deviceModel
-                        "",                                             // systemVersion
-                        "1.0"                                           // applicationVersion
-                    ))
-                } catch (e: Exception) {
-                    Log.e("AuthRepository", "Failed to set TDLib parameters", e)
-                    failure = e.message ?: "Could not initialize Telegram"
-                }
+                val failure = openDatabase(apiId)
                 if (failure != null) AuthState.Error(failure) else AuthState.Initializing
             }
             is TdApi.AuthorizationStateWaitPhoneNumber -> AuthState.WaitPhoneNumber
@@ -85,6 +77,107 @@ class TdLibAuthRepository @Inject constructor(
             else -> AuthState.Unauthenticated
         }
         _authState.value = newState
+    }
+
+    /**
+     * Sends `setTdlibParameters` with the Keystore-protected database key (issue #15), migrating an
+     * unencrypted database from older installs and resetting a database whose key was lost.
+     * @return an error message for the login screen, or null on success.
+     */
+    private suspend fun openDatabase(apiId: Int): String? {
+        val databaseDir = File(filesDir, TDLIB_DIR)
+        val appKey = keyStore.getOrCreateKey()
+        val keyAvailable = appKey != null
+        val order = DatabaseEncryptionPolicy.openOrder(
+            databaseExists = File(databaseDir, BINLOG_FILE).exists(),
+            markedEncrypted = keyStore.markedEncrypted,
+            appKeyAvailable = keyAvailable
+        )
+        for (choice in order) {
+            when (val result = trySetParameters(apiId, databaseDir, keyFor(choice, appKey))) {
+                OpenResult.Ok -> {
+                    onDatabaseOpened(choice, appKey)
+                    return null
+                }
+                OpenResult.WrongKey -> Log.w(TAG, "TDLib rejected the database key ($choice)")
+                is OpenResult.Failed -> return result.message
+            }
+        }
+        if (!DatabaseEncryptionPolicy.mayResetAfterWrongKey(keyAvailable)) {
+            return SECURE_STORAGE_UNAVAILABLE
+        }
+        // The key that encrypted the database is gone (e.g. Keystore entry lost): the local database
+        // cannot be read anymore. Start over with an empty encrypted database; the user logs in again.
+        Log.w(TAG, "No key opens the TDLib database; resetting it (re-login required)")
+        databaseDir.deleteRecursively()
+        val choice = DatabaseEncryptionPolicy.keyAfterReset(keyAvailable)
+        return when (val result = trySetParameters(apiId, databaseDir, keyFor(choice, appKey))) {
+            OpenResult.Ok -> {
+                onDatabaseOpened(choice, appKey)
+                null
+            }
+            OpenResult.WrongKey -> "Could not open the Telegram database"
+            is OpenResult.Failed -> result.message
+        }
+    }
+
+    private suspend fun onDatabaseOpened(choice: DatabaseEncryptionPolicy.KeyChoice, appKey: ByteArray?) {
+        if (choice == DatabaseEncryptionPolicy.KeyChoice.APP_KEY) {
+            if (!keyStore.markedEncrypted) keyStore.markedEncrypted = true
+            return
+        }
+        if (!DatabaseEncryptionPolicy.needsRekey(choice, appKey != null)) {
+            keyStore.markedEncrypted = false
+            return
+        }
+        try {
+            client.send<TdApi.Ok>(TdApi.SetDatabaseEncryptionKey(appKey))
+            keyStore.markedEncrypted = true
+            Log.i(TAG, "TDLib database re-encrypted with the Keystore-protected key")
+        } catch (e: Exception) {
+            // Still usable with the empty key; the migration is retried at the next start.
+            Log.w(TAG, "Could not re-encrypt the TDLib database", e)
+            keyStore.markedEncrypted = false
+        }
+    }
+
+    private fun keyFor(choice: DatabaseEncryptionPolicy.KeyChoice, appKey: ByteArray?): ByteArray? =
+        if (choice == DatabaseEncryptionPolicy.KeyChoice.APP_KEY) appKey else null
+
+    private sealed class OpenResult {
+        object Ok : OpenResult()
+        object WrongKey : OpenResult()
+        class Failed(val message: String) : OpenResult()
+    }
+
+    private suspend fun trySetParameters(apiId: Int, databaseDir: File, key: ByteArray?): OpenResult = try {
+        client.send<TdApi.Ok>(TdApi.SetTdlibParameters(
+            false,                                          // useTestDc
+            databaseDir.absolutePath,                       // databaseDirectory
+            null,                                           // filesDirectory
+            key,                                            // databaseEncryptionKey (never logged)
+            true,                                           // useFileDatabase
+            true,                                           // useChatInfoDatabase
+            true,                                           // useMessageDatabase
+            false,                                          // useSecretChats
+            apiId,                                          // apiId
+            BuildConfig.TELEGRAM_API_HASH,                  // apiHash
+            "en",                                           // systemLanguageCode
+            "Android",                                      // deviceModel
+            "",                                             // systemVersion
+            "1.0"                                           // applicationVersion
+        ))
+        OpenResult.Ok
+    } catch (e: TdLibException) {
+        if (DatabaseEncryptionPolicy.isWrongKeyError(e.code, e.tdMessage)) {
+            OpenResult.WrongKey
+        } else {
+            Log.e(TAG, "Failed to set TDLib parameters", e)
+            OpenResult.Failed(e.message ?: "Could not initialize Telegram")
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to set TDLib parameters", e)
+        OpenResult.Failed(e.message ?: "Could not initialize Telegram")
     }
 
     override suspend fun retryInitialization() {

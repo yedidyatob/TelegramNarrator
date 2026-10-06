@@ -2,8 +2,8 @@
 
 This document describes how Telegram Narrator is **actually built today** and the **target architecture** it
 is moving towards. It replaces the original design spec (`TelegramReader_TDLib_Architecture.md`), which
-described components that were never built (encrypted TDLib database, `TtsRepository`, DataStore-backed
-preferences, "Encrypted File Storage", Onboarding/Player screens, a use-case layer).
+described components that were never built (`TtsRepository`, DataStore-backed preferences, "Encrypted File
+Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted TDLib database long before #15 added one.
 
 ## At a glance
 
@@ -15,7 +15,7 @@ preferences, "Encrypted File Storage", Onboarding/Player screens, a use-case lay
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
 | Speech | Android `TextToSpeech` (default); optional OpenAI TTS (BYOK) and experimental Microsoft Edge neural TTS |
 | Playback | Foreground `PlaybackService` + `MediaSessionCompat`, `MediaPlayer` for voice notes, dings and cloud TTS audio |
-| Persistence | TDLib's own database in `filesDir/tdlib` (**not** encrypted); settings in `SharedPreferences`; OpenAI key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
+| Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; OpenAI key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
 | Backend | None. The app talks only to Telegram, plus OpenAI / Microsoft if the user opts into those engines |
 
 ## Layers and packages
@@ -40,9 +40,11 @@ com.example.telegramnarrator
 │   ├── home/         UnreadChatFilter, ChatSelectionLogic
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── openai/       OpenAiTts (models, voices, cost estimate)
+│   ├── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
 │   └── edge/         EdgeTts (SSML/protocol helpers, voice mapping)
 ├── data/      Implementations that touch TDLib, Android or the network
 │   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send()
+│   ├── tdlib/TdLibDatabaseKeyStore  database key wrapped by an Android Keystore AES-GCM key
 │   ├── repository/                  TdLibAuthRepository, TdLibChatRepository, TdLibUserCache, UnreadHistoryPager
 │   ├── rules/                       ChannelRulesParser + ChannelRulesRepository (assets/channel_rules.json)
 │   ├── tts/TtsPreferences           SharedPreferences (read synchronously by TtsManager)
@@ -63,8 +65,11 @@ There is **no use-case layer**: ViewModels and `PlaybackService` call repositori
 
 **Login.** `AuthViewModel` observes `AuthRepository.authState` (driven by TDLib `updateAuthorizationState`).
 `TdLibAuthRepository` sends `setTdlibParameters` with `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` from
-`BuildConfig` (injected from `local.properties`, or from Actions secrets in CI) and a database directory in
-`filesDir/tdlib` with no encryption key. `AppNavigation` in `MainActivity` switches between the `login` and
+`BuildConfig` (injected from `local.properties`, or from Actions secrets in CI), a database directory in
+`filesDir/tdlib`, and the database encryption key from `TdLibDatabaseKeyStore`. `DatabaseEncryptionPolicy`
+decides the order of keys to try: a database from before encryption is opened with the empty key once and
+re-keyed with `setDatabaseEncryptionKey`. If no key opens it, the database is reset and the user logs in again;
+it is never reset while the Keystore is unavailable. `AppNavigation` in `MainActivity` switches between the `login` and
 `home` routes based on the auth state.
 
 **Unread list.** `TdLibChatRepository.getUnreadChats()` turns TDLib chat updates into a `Flow<List<Chat>>`;
@@ -93,9 +98,9 @@ Pause/resume/skip come from the Home UI, the notification, the lock screen and h
 
 | Original spec said | Reality |
 |---|---|
-| TDLib database "encrypted by default" | Not encrypted at rest (`databaseEncryptionKey = null`), see #15. Android backup is disabled. |
-| `Preferences: DataStore` | `SharedPreferences` (`TtsPreferences`), because `TtsManager` needs values synchronously. The DataStore dependency is still declared in `app/build.gradle.kts` but unused. |
-| `Security: Encrypted File Storage` | Only the optional OpenAI key uses `EncryptedSharedPreferences`. |
+| TDLib database "encrypted by default" | Encrypted since #15 with a random key wrapped by the Android Keystore (TDLib's default empty key is not a secret). Android backup is disabled. |
+| `Preferences: DataStore` | `SharedPreferences` (`TtsPreferences`), because `TtsManager` needs values synchronously. The unused DataStore dependency was removed. |
+| `Security: Encrypted File Storage` | TDLib database encrypted (above); the optional OpenAI key uses `EncryptedSharedPreferences`. |
 | `TtsRepository` | `TtsManager` (core) + `SpeechProvider` synthesizers (data). |
 | Use cases (`GetUnreadChats`, `PlayChatMessages`, `LoginUser`) | None; logic lives in `PlaybackService`, ViewModels and domain helpers. |
 | Screens: Onboarding, Login, ChatList, Player | Login, Home (chat list + controls), Voice settings sheet. No onboarding or Player screen (#20). |
@@ -110,7 +115,7 @@ The direction (details and plans live in the linked issues, tracked by the "Poli
   where it helps, small use cases such as "build narration queue" and "mark played messages read"), leaving
   the service as thin Android glue; then migrate to **Media3** (`MediaSessionService`).
 - **TdLibClient robustness** (#13): no lost updates, cancellable sends, thread safety.
-- **Encrypt the TDLib database** (#15) with a key held in the Android Keystore.
+- **Keep less data on disk**: consider `useMessageDatabase = false` (follow-up from #15).
 - **UI**: a dedicated Player screen, onboarding and Home empty/error states (#20).
 - **Tooling currency** (#21): AGP/Kotlin/Compose BOM upgrades, Hilt via KSP, SDK 35.
 - **Publishing readiness** (#24): real `applicationId`, signing config, privacy policy, Data safety form.

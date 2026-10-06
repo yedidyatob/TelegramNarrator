@@ -6,6 +6,7 @@ import com.example.telegramnarrator.data.repository.TdLibAuthRepository
 import com.example.telegramnarrator.data.repository.TdLibChatRepository
 import com.example.telegramnarrator.data.repository.TdLibUserCache
 import com.example.telegramnarrator.data.tdlib.TdLibClient
+import com.example.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
 import com.example.telegramnarrator.data.tts.TtsPreferences
 import com.example.telegramnarrator.domain.repository.AuthRepository
 import com.example.telegramnarrator.domain.repository.ChatRepository
@@ -43,9 +44,10 @@ object AppModule {
     @Singleton
     fun provideAuthRepository(
         client: TdLibClient,
-        filesDir: File
+        filesDir: File,
+        databaseKeyStore: TdLibDatabaseKeyStore
     ): AuthRepository {
-        return TdLibAuthRepository(client, filesDir)
+        return TdLibAuthRepository(client, filesDir, databaseKeyStore)
     }
 
     @Provides
