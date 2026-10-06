@@ -37,4 +37,22 @@ class OpenAiTtsTest {
         assertTrue(OpenAiTts.isWithinApiLimit("x".repeat(OpenAiTts.MAX_INPUT_CHARS)))
         assertFalse(OpenAiTts.isWithinApiLimit("x".repeat(OpenAiTts.MAX_INPUT_CHARS + 1)))
     }
+
+    @Test
+    fun `error summary keeps only code and type, never the message`() {
+        val body = """
+            {"error": {"message": "Incorrect API key provided: sk-proj-abc*****wxyz.",
+                       "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}}
+        """.trimIndent()
+        val summary = OpenAiTts.safeErrorSummary(body)
+        assertEquals("invalid_request_error/invalid_api_key", summary)
+        assertFalse(summary.contains("sk-"))
+    }
+
+    @Test
+    fun `error summary is empty for missing or non-JSON bodies`() {
+        assertEquals("", OpenAiTts.safeErrorSummary(null))
+        assertEquals("", OpenAiTts.safeErrorSummary("<html>Bad gateway</html>"))
+        assertEquals("", OpenAiTts.safeErrorSummary("""{"error": {"code": null}}"""))
+    }
 }

@@ -311,17 +311,6 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.home_title` appears to be unused"
-        errorLine1="    &lt;string name=&quot;home_title&quot;>Unread Chats&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="20"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
         message="The resource `R.string.home_unread_suffix` appears to be unused"
         errorLine1="    &lt;string name=&quot;home_unread_suffix&quot;>messages&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">

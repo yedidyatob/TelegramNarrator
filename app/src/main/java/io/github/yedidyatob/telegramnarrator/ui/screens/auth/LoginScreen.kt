@@ -22,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AuthViewModel
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun LoginScreen(
@@ -116,8 +118,29 @@ fun PhoneNumberInput(isLoading: Boolean, error: String?, onEnter: (String) -> Un
         keyboardType = KeyboardType.Phone,
         isLoading = isLoading,
         error = error,
-        onEnter = onEnter
+        onEnter = onEnter,
+        footer = { UnofficialAppNotice() }
     )
+}
+
+/**
+ * Shown before the user enters their phone number: the app is unofficial and built on the Telegram API
+ * (Telegram API Terms of Service 2.2 / 2.3), plus the in-app privacy policy link Google Play requires.
+ */
+@Composable
+private fun UnofficialAppNotice() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(0.8f).padding(top = 24.dp)
+    ) {
+        Text(
+            stringResource(R.string.login_unofficial_notice),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        PrivacyPolicyLink()
+    }
 }
 
 @Composable
@@ -169,11 +192,12 @@ private fun LoginStep(
     isLoading: Boolean,
     error: String?,
     onEnter: (String) -> Unit,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    footer: @Composable () -> Unit = {}
 ) {
     val submit = { if (!isLoading && text.isNotBlank()) onEnter(text) }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, style = MaterialTheme.typography.headlineLarge)
+        Text(title, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
@@ -215,5 +239,6 @@ private fun LoginStep(
                 Text(buttonText)
             }
         }
+        footer()
     }
 }

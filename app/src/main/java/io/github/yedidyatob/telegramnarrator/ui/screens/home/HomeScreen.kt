@@ -108,7 +108,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = { Text(stringResource(R.string.home_title)) },
                 actions = {
                     IconButton(onClick = { showVoiceSettings = true }) {
                         Icon(

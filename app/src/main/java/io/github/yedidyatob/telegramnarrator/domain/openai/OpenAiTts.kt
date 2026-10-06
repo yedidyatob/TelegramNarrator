@@ -53,6 +53,19 @@ object OpenAiTts {
         if (trimmed.length < MIN_KEY_LENGTH_FOR_HINT) return "••••"
         return trimmed.take(3) + "…" + trimmed.takeLast(4)
     }
+
+    private val ERROR_FIELD = Regex(""""(code|type)"\s*:\s*"([A-Za-z0-9_.\-]{1,64})"""")
+
+    /**
+     * Loggable summary of an OpenAI error response: only its machine-readable `code` / `type` values
+     * (e.g. "invalid_api_key", "insufficient_quota"). The human-readable `message` is dropped because it can
+     * echo part of the API key ("Incorrect API key provided: sk-…") or the request.
+     */
+    fun safeErrorSummary(body: String?): String =
+        ERROR_FIELD.findAll(body.orEmpty())
+            .map { it.groupValues[2] }
+            .distinct()
+            .joinToString("/")
 }
 
 /** Non-secret OpenAI TTS choices persisted with the rest of [io.github.yedidyatob.telegramnarrator.domain.tts.TtsSettings]. */

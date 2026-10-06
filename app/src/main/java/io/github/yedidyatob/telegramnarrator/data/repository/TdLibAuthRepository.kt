@@ -165,7 +165,7 @@ class TdLibAuthRepository @Inject constructor(
             "en",                                           // systemLanguageCode
             "Android",                                      // deviceModel
             "",                                             // systemVersion
-            "1.0"                                           // applicationVersion
+            BuildConfig.VERSION_NAME                        // applicationVersion
         ))
         OpenResult.Ok
     } catch (e: TdLibException) {

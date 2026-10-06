@@ -1,5 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.data.openai
 
+import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -49,10 +50,11 @@ class OpenAiSpeechClient @Inject constructor() {
 
             val code = connection.responseCode
             if (code !in 200..299) {
-                val err = (connection.errorStream ?: connection.inputStream)
-                    ?.bufferedReader()?.use { it.readText() }
-                    ?.take(200)
-                    .orEmpty()
+                val body = runCatching {
+                    connection.errorStream?.bufferedReader()?.use { it.readText().take(2_000) }
+                }.getOrNull()
+                // Only the error code/type: OpenAI's error message can echo part of the API key
+                val err = OpenAiTts.safeErrorSummary(body)
                 throw IOException("OpenAI TTS HTTP $code${if (err.isNotBlank()) ": $err" else ""}")
             }
             val bytes = connection.inputStream.use { it.readBytes() }

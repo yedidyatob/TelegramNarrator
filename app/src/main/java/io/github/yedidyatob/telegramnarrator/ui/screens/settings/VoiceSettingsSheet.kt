@@ -75,6 +75,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
@@ -90,6 +91,7 @@ import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
+import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Edge | OpenAI), then only the selected engine's own section,
@@ -193,6 +195,7 @@ fun VoiceSettingsContent(
                 VoiceSettingsSection.PLAYBACK -> PlaybackSection(state.speechRate, state.markAsRead, actions)
             }
         }
+        AboutSection()
     }
 }
 
@@ -491,6 +494,16 @@ private fun PlaybackSection(speechRate: Float, markAsRead: Boolean, actions: Voi
             }
             Switch(checked = markAsRead, onCheckedChange = null)
         }
+    }
+}
+
+/** Unofficial-app notice (Telegram API Terms of Service 2.2), app version and the privacy policy link. */
+@Composable
+private fun AboutSection() {
+    SettingsSection(R.string.settings_section_about) {
+        HelperText(stringResource(R.string.settings_about_unofficial))
+        HelperText(stringResource(R.string.settings_about_version, BuildConfig.VERSION_NAME))
+        PrivacyPolicyLink()
     }
 }
 

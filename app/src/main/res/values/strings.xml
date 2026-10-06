@@ -1,5 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">Telegram Narrator</string>
+    <!-- Telegram API Terms of Service 2.3: an app title may only contain "Telegram" when it is preceded by
+         "Unofficial". See docs/play-data-safety.md before changing it. -->
+    <string name="app_name">Unofficial Telegram Narrator</string>
+    <string name="privacy_policy_url" translatable="false">https://yedidyatob.github.io/TelegramNarrator/privacy-policy.html</string>
 
     <!-- Login Screen -->
     <string name="login_title_phone">Enter your phone number</string>
@@ -16,6 +19,10 @@
     <string name="login_label_password">Password</string>
     <string name="login_btn_login">Login</string>
     <string name="login_btn_unlock">Unlock</string>
+    <!-- Telegram API Terms of Service 2.2 / 2.3: say that the app is unofficial and built on the Telegram API -->
+    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages stay on this device unless you pick an online voice.</string>
+    <string name="login_privacy_policy">Privacy policy</string>
+    <string name="link_open_failed">No app found to open the link</string>
     <string name="login_status_initializing">Initializing Telegram...</string>
     <string name="login_status_redirecting">Redirecting...</string>
     <string name="error_unknown">Unknown error</string>
@@ -147,6 +154,9 @@
     <string name="settings_rate">Speech rate</string>
     <string name="settings_rate_value">%1$.1f×</string>
     <string name="settings_mark_read">Mark messages as read in Telegram</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_unofficial">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram.</string>
+    <string name="settings_about_version">Version %1$s</string>
     <string name="settings_mark_read_desc">Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
 
     <!-- Network TTS fallback (playback) -->
