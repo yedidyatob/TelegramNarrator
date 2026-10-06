@@ -5,7 +5,7 @@ and silent skips instead of TTS announcements.
 
 | Cue | Behavior |
 |-----|----------|
-| Chat boundary | Short ding (`R.raw.chat_boundary_ding`). Silent intros (every message dropped by channel rules) skip the ding. Notification still shows the chat title. |
+| Chat boundary | Short ding (`R.raw.chat_boundary_ding`), then **only the chat title** is spoken (no "New chat" words) with the selected engine (System / Edge / OpenAI), in the language of the title text (`LanguageDetector`: Hebrew voice for a Hebrew title, etc.). The title is cleaned like a message (`ChatTitleSpeech`: emoji, URLs, markdown and symbol-only parts such as `|` or `•` removed); if nothing speakable is left, only the ding plays. Silent intros (every message dropped by channel rules) skip both. Skip chat during the title skips the whole chat; skip message moves on to the first message; pause/resume behaves like a message. The title is never marked as read. Notification shows the chat title. |
 | Sender ("Message from X") | **Removed.** Message body is spoken as-is; the notification can still show the sender. |
 | Voice note | **No** spoken "Voice note" label. If a downloadable file is available, MediaPlayer plays it in the queue. If not, skip silently (still mark read), like a caption-less photo. |
 | End of messages | Distinct ding (`R.raw.end_of_messages_ding`) — not speech, not the chat-boundary tone — then stop. |

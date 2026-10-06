@@ -82,7 +82,7 @@ read without playing them.
 1. loads each chat's oldest unread messages via `ChatRepository.getChatMessages` (paged by
    `UnreadHistoryPager`, up to 100 per chat),
 2. applies the per-channel rules (`ChannelRulesEngine`: drop / cut / replace) and builds an `AudioQueue` of
-   `PlaybackItem`s (`Intro` = chat-boundary ding, `MessageItem`, `Silence`, `Outro` = end ding),
+   `PlaybackItem`s (`Intro` = chat-boundary ding, `ChatTitle` = spoken chat title, `MessageItem`, `Silence`, `Outro` = end ding),
 3. plays each item, running the generic `MessageCleaner` and `MessageSpeechBody` (silent skip of media-only /
    symbol-only rows) just before speaking: voice notes and dings through `MediaPlayer`; text through the selected `SpeechProvider`
    (`SYSTEM` → `TtsManager`; `OPENAI` / `EDGE` → synthesize to an MP3 in the disk cache, prefetching the next
@@ -104,7 +104,7 @@ Pause/resume/skip come from the Home UI, the notification, the lock screen and h
 | `TtsRepository` | `TtsManager` (core) + `SpeechProvider` synthesizers (data). |
 | Use cases (`GetUnreadChats`, `PlayChatMessages`, `LoginUser`) | None; logic lives in `PlaybackService`, ViewModels and domain helpers. |
 | Screens: Onboarding, Login, ChatList, Player | Login, Home (chat list + controls), Voice settings sheet. No onboarding or Player screen (#20). |
-| Spoken intros/outros | Language-neutral dings; sender labels are not spoken ([spoken-phrases.md](spoken-phrases.md)). |
+| Spoken intros/outros | Dings; after the chat-boundary ding only the chat title is spoken; sender labels are not spoken ([spoken-phrases.md](spoken-phrases.md)). |
 
 ## Target architecture
 
