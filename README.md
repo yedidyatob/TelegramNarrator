@@ -14,7 +14,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
 - Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
 - Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
-- Chat boundaries and end-of-queue use distinct language-neutral dings (not spoken "New chat" / "End of messages")
+- Chat boundaries play a ding followed by the spoken chat title (in the title's own language); end-of-queue plays a distinct ding (no spoken "New chat" / "End of messages")
 - Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)

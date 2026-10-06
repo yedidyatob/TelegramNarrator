@@ -22,7 +22,7 @@ Playback                              (heading)
 |-----------------|---------------|----------|
 | **System** | System voice | Speech engine dropdown, one voice dropdown per language, "only offline voices" line + **Open system TTS settings**, Test voice |
 | **Edge** | Edge voice | **Male \| Female** toggle, helper line, Test voice, small info line, collapsed **Advanced** (custom voice name) |
-| **OpenAI** | OpenAI voice | API key field (masked, show/hide), "Saved: sk-…abcd" / "No key saved", Save / Remove key, **Standard (tts-1) \| HD (tts-1-hd)**, voice dropdown, Test voice, cost / privacy line |
+| **OpenAI** | OpenAI voice | API key field (masked, show/hide), **Get an API key** link (opens platform.openai.com/api-keys in the browser), "Saved: sk-…abcd" / "No key saved", Save / Remove key, **Standard (tts-1) \| HD (tts-1-hd)**, voice dropdown, Test voice, cost / privacy line |
 
 The system engine/voice pickers are never shown for Edge or OpenAI (they do not use them; system TTS is only
 their silent fallback). While the system TTS engine (re)starts, only the System section shows a loading row;

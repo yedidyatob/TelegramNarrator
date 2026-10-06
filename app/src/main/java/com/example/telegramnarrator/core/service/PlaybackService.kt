@@ -35,6 +35,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import com.example.telegramnarrator.domain.audio.AudioQueue
+import com.example.telegramnarrator.domain.audio.ChatTitleSpeech
 import com.example.telegramnarrator.domain.audio.CloudTtsPrefetch
 import com.example.telegramnarrator.domain.audio.MessageCleaner
 import com.example.telegramnarrator.domain.audio.PlaybackItem
@@ -224,10 +225,12 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
-                audioQueue.add(
-                    PlaybackItem.Intro(
-                        title,
+                // Boundary ding, then the chat title spoken on its own (no "New chat" words)
+                audioQueue.addAll(
+                    ChatTitleSpeech.chatOpening(
                         chatId,
+                        rawTitle = chat?.title,
+                        displayTitle = title,
                         silent = decisions.all { it.dropped }
                     )
                 )
@@ -294,8 +297,16 @@ class PlaybackService : Service() {
                 if (item.silent) {
                     processQueue()
                 } else {
-                    // Language-neutral ding (no spoken "New chat" / "שיחה חדשה")
+                    // Language-neutral ding (no spoken "New chat" / "שיחה חדשה"); the title follows as ChatTitle
                     playChatBoundaryDing(generation)
+                }
+            }
+            is PlaybackItem.ChatTitle -> {
+                playbackManager.setPlayingChatId(item.chatId)
+                // Just the title, with the selected engine, in the title's own language. Not a message, so
+                // nothing is marked as read; only clear currentItem so a racing pause does not replay it.
+                speakText(item.text) {
+                    if (currentItem === item) currentItem = null
                 }
             }
             is PlaybackItem.MessageItem -> {
@@ -321,7 +332,7 @@ class PlaybackService : Service() {
                         if (generation != itemGeneration.get()) return@launch
                         when (val outcome = VoiceNotePlayback.afterDownload(path)) {
                             is VoiceNotePlayback.Outcome.Play ->
-                                playAudioFile(outcome.path, generation, item)
+                                playAudioFile(outcome.path, generation, onPlayed = { onMessageFullyPlayed(item) })
                             VoiceNotePlayback.Outcome.SkipSilently -> {
                                 onMessageFullyPlayed(item)
                                 processQueue()
@@ -340,7 +351,7 @@ class PlaybackService : Service() {
                 }
                 val text = MessageSpeechBody.resolve(cleanedText, item.contentType).orEmpty()
                 // No "Message from X:" — speak the body only (notification still shows the sender).
-                speakMessage(item, text)
+                speakText(text) { onMessageFullyPlayed(item) }
             }
             is PlaybackItem.Silence -> {
                 processQueue()
@@ -352,17 +363,19 @@ class PlaybackService : Service() {
         }
     }
 
-    // Speaks a message; it counts as played (and gets marked as read) only if the speech finished.
+    // Speaks a message body or a chat title with the selected engine, then moves on. [onSpoken] runs only if the
+    // speech finished (for messages: counts as played and gets marked as read). Every engine picks the
+    // language / voice from [speechText] itself (LanguageDetector), so a Hebrew title gets a Hebrew voice.
     // Network engines (OpenAI BYOK / experimental Edge) synthesize a cached MP3 that is played via the
     // MediaPlayer queue path; any failure shows a toast and falls back to system TTS.
-    private fun speakMessage(item: PlaybackItem.MessageItem, speechText: String) {
+    private fun speakText(speechText: String, onSpoken: () -> Unit) {
         val synthesize: ((String) -> SpeechSynthesisOutcome)? = when (ttsPreferences.settings.value.provider) {
             SpeechProvider.SYSTEM -> null
             SpeechProvider.OPENAI -> openAiSpeech::synthesize
             SpeechProvider.EDGE -> edgeSpeech::synthesize
         }
         if (synthesize == null) {
-            speakWithSystemTts(item, speechText)
+            speakWithSystemTts(speechText, onSpoken)
             return
         }
         val generation = itemGeneration.get()
@@ -380,32 +393,32 @@ class PlaybackService : Service() {
                     // Warm the next few messages into the disk cache while this one plays
                     scheduleCloudPrefetch(generation)
                     playAudioFile(
-                        outcome.file.absolutePath, generation, item,
+                        outcome.file.absolutePath, generation, onPlayed = onSpoken,
                         speed = outcome.playbackSpeed,
                         onPlaybackError = {
-                            // Corrupt / unplayable synthesized file: drop it and read the message with system TTS
+                            // Corrupt / unplayable synthesized file: drop it and read the text with system TTS
                             openAiSpeech.discard(outcome.file)
                             edgeSpeech.discard(outcome.file)
                             showFallbackToast(getString(R.string.tts_fallback_unplayable))
-                            speakWithSystemTts(item, speechText)
+                            speakWithSystemTts(speechText, onSpoken)
                         }
                     )
                 }
-                SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(item, speechText)
+                SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(speechText, onSpoken)
                 is SpeechSynthesisOutcome.Fallback -> {
                     showFallbackToast(getString(fallbackMessage(outcome.reason)))
-                    speakWithSystemTts(item, speechText)
+                    speakWithSystemTts(speechText, onSpoken)
                 }
             }
         }
     }
 
-    private fun speakWithSystemTts(item: PlaybackItem.MessageItem, speechText: String) {
+    private fun speakWithSystemTts(speechText: String, onSpoken: () -> Unit) {
         // Until the engine starts speaking (slow engine / first utterance) the bar shows "Preparing audio…"
         val loading = playbackManager.beginAudioLoading()
         ttsManager.speak(speechText, onStart = { playbackManager.endAudioLoading(loading) }) { completed ->
             playbackManager.endAudioLoading(loading)
-            if (completed) onMessageFullyPlayed(item)
+            if (completed) onSpoken()
             processQueue()
         }
     }
@@ -477,12 +490,13 @@ class PlaybackService : Service() {
     /**
      * Plays [path] (a voice note or a synthesized message) through the [mediaPlayer] slot. [speed] != 1 sets
      * the MediaPlayer playback speed (used for Edge TTS, whose audio is cached at normal speed).
+     * [onPlayed] runs when the file played to the end (for messages: mark as read).
      * [onPlaybackError] replaces the default "skip silently but mark read" handling of unplayable files.
      */
     private fun playAudioFile(
         path: String,
         generation: Int,
-        item: PlaybackItem.MessageItem,
+        onPlayed: () -> Unit,
         speed: Float = 1f,
         onPlaybackError: (() -> Unit)? = null
     ) {
@@ -490,7 +504,7 @@ class PlaybackService : Service() {
         val handleError = {
             if (onPlaybackError != null) onPlaybackError()
             else {
-                onMessageFullyPlayed(item)
+                onPlayed()
                 processQueue()
             }
         }
@@ -507,8 +521,8 @@ class PlaybackService : Service() {
                 setOnCompletionListener { 
                     it.release()
                     if (mediaPlayer === it) mediaPlayer = null
-                    // The voice note played to the end
-                    onMessageFullyPlayed(item)
+                    // The voice note / synthesized text played to the end
+                    onPlayed()
                     processQueue()
                 }
                 setOnErrorListener { mp, _, _ ->
@@ -728,7 +742,7 @@ class PlaybackService : Service() {
                 player.start()
                 refreshNotification()
                 // Resume warming the next cloud-TTS items for the remaining playback time
-                if (currentItem is PlaybackItem.MessageItem &&
+                if ((currentItem is PlaybackItem.MessageItem || currentItem is PlaybackItem.ChatTitle) &&
                     (ttsPreferences.settings.value.provider == SpeechProvider.OPENAI ||
                         ttsPreferences.settings.value.provider == SpeechProvider.EDGE)
                 ) {
@@ -864,6 +878,7 @@ class PlaybackService : Service() {
     private fun updateNotification(item: PlaybackItem) {
         val text = when(item) {
              is PlaybackItem.Intro -> getString(R.string.notification_chat, item.chatName)
+             is PlaybackItem.ChatTitle -> getString(R.string.notification_chat, item.chatName)
              is PlaybackItem.MessageItem -> getString(R.string.notification_from, item.sender ?: getString(R.string.playback_unknown_sender))
              else -> getString(R.string.notification_playing)
         }
