@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.core.labelRes
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
@@ -288,7 +289,7 @@ private fun ChatHeader(state: PlayerUiState, loadPhoto: suspend (Int) -> String?
         }
         Column(Modifier.weight(1f)) {
             Text(
-                text = nowPlaying?.chatTitle ?: stringResource(R.string.home_now_playing),
+                text = bidiSafe(nowPlaying?.chatTitle ?: stringResource(R.string.home_now_playing)),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
@@ -331,7 +332,7 @@ private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, mod
                 when {
                     content is NowPlaying.Content.Message && content.isVoiceNote ->
                         CenteredInfo(Icons.Rounded.GraphicEq, stringResource(R.string.playback_voice_note), senderLine(content))
-                    content is NowPlaying.Content.Message -> MessageText(content)
+                    content is NowPlaying.Content.Message -> MessageText(content, nowPlaying.distinctSender)
                     content is NowPlaying.Content.Sponsored && state.sponsoredAd != null -> Column(
                         Modifier
                             .fillMaxSize()
@@ -347,7 +348,8 @@ private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, mod
                         )
                     }
                     content == NowPlaying.Content.ChatOpening || content == NowPlaying.Content.Sponsored ->
-                        CenteredInfo(Icons.Rounded.Forum, stringResource(R.string.player_chat_opening), chatOpeningText(nowPlaying.messageCount))
+                        // The ding and the chat title are what is heard now; the count is in the position row below
+                        CenteredInfo(Icons.Rounded.Forum, stringResource(R.string.player_chat_opening), bidiSafe(nowPlaying.chatTitle))
                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
@@ -407,7 +409,7 @@ private fun senderLine(content: NowPlaying.Content.Message): String =
     content.sender ?: stringResource(R.string.playback_unknown_sender)
 
 @Composable
-private fun MessageText(content: NowPlaying.Content.Message) {
+private fun MessageText(content: NowPlaying.Content.Message, sender: String?) {
     val scroll = rememberScrollState()
     LaunchedEffect(content.messageId) { scroll.scrollTo(0) }
     val mediaLabel = content.contentType.takeIf { it != MessageContentType.TEXT }?.labelRes()
@@ -420,13 +422,16 @@ private fun MessageText(content: NowPlaying.Content.Message) {
                 .padding(horizontal = 24.dp, vertical = 20.dp)
                 .padding(bottom = 40.dp)
         ) {
-            Text(
-                text = senderLine(content),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+            // Groups name the sender; in channels and private chats it is the chat itself (already in the header)
+            if (sender != null) {
+                Text(
+                    text = sender,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             if (mediaLabel != null) {
-                Spacer(Modifier.height(8.dp))
+                if (sender != null) Spacer(Modifier.height(8.dp))
                 Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
                     Text(
                         text = stringResource(mediaLabel),

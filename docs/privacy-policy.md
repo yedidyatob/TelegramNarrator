@@ -32,7 +32,7 @@ session on your device so that you stay logged in.
 ### 2. Your chats and messages
 
 To find and read your unread messages the app downloads, from Telegram, your chat list (chat names, unread
-counts), the text of unread messages, sender names and voice messages. This data is stored by TDLib in a
+counts, chat photos shown as avatars), the text of unread messages, sender names and voice messages. This data is stored by TDLib in a
 database in the app's private storage on your device. That database is **encrypted** with a random key that is
 itself protected by the Android Keystore of your device.
 
@@ -77,7 +77,7 @@ folder), named by a one-way hash of the text, so that the same message is not se
 
 ### 4. Settings and your OpenAI API key
 
-Voice and playback settings are stored on your device. If you enter an OpenAI API key it is stored on your
+Voice and playback settings, and whether you have finished the first-run introduction, are stored on your device. If you enter an OpenAI API key it is stored on your
 device **encrypted** (Android EncryptedSharedPreferences) and is sent only to OpenAI. You can remove it at any
 time with **Remove key** in the voice settings.
 

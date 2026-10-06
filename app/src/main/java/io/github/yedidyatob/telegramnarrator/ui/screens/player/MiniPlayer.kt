@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.ui.components.ChatAvatar
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
 
@@ -110,7 +111,7 @@ fun MiniPlayer(
                         .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
                 ) {
                     Text(
-                        text = nowPlaying?.chatTitle ?: stringResource(R.string.home_now_playing),
+                        text = bidiSafe(nowPlaying?.chatTitle ?: stringResource(R.string.home_now_playing)),
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

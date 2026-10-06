@@ -35,6 +35,13 @@ data class NowPlaying(
     val messageCount: Int = 0,
     val engine: SpeechProvider? = null
 ) {
+    /**
+     * The current message's sender when it adds something to the chat title: null in channels and private
+     * chats (where the sender is the chat itself) and for anything that isn't a message.
+     */
+    val distinctSender: String?
+        get() = (content as? Content.Message)?.sender?.takeIf { it.isNotBlank() && it.trim() != chatTitle.trim() }
+
     sealed interface Content {
         /** The chat-boundary ding and the spoken chat title. */
         data object ChatOpening : Content

@@ -11,7 +11,9 @@ another; messages are marked as read in Telegram only after they were actually s
 ## Features
 
 - Telegram login (phone number with country picker, code, optional 2FA password) via TDLib; local formats like `052-123-4567` are accepted
-- Unread chat list, "Play all" or play a single chat, pause/resume, skip message, skip chat
+- Short first-run introduction (what the app does, privacy, voice engine choice, notification permission), skippable and shown once
+- Unread chat list with chat avatars and clear loading / empty / error / offline states (reloads by itself when the connection is back)
+- "Play all" or play a single chat; a mini player opens the full **Player** screen: the message being read (in its own direction), message and chat position, previous / next message, next chat, pause/resume, the voice engine in use
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
 - Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
 - Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
@@ -121,7 +123,7 @@ app/src/main/java/io/github/yedidyatob/telegramnarrator
   data/       TDLib client + repositories (auth, chats), channel rules loader, TTS preferences
   domain/     Pure Kotlin: models, repository interfaces, audio queue, message cleaning, language detection,
               channel-rules engine (unit tested on the JVM)
-  ui/         Jetpack Compose screens (auth, home, settings), ViewModels, theme
+  ui/         Jetpack Compose screens (onboarding, auth, home, player, settings), ViewModels, theme
 app/src/main/assets/channel_rules.json   per-channel cleaning rules
 docs/                                     feature documentation
 ```

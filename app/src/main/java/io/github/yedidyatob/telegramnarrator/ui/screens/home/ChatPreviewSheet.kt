@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.core.labelRes
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
@@ -73,7 +74,7 @@ fun ChatPreviewSheet(
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        chat.title,
+                        bidiSafe(chat.title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -81,11 +82,13 @@ fun ChatPreviewSheet(
                         modifier = Modifier.semantics { heading() }
                     )
                     Text(
-                        text = when {
-                            messages == null -> stringResource(R.string.home_sheet_loading)
-                            chat.unreadCount > messages.size -> stringResource(R.string.home_sheet_showing_partial, messages.size, chat.unreadCount)
-                            else -> stringResource(R.string.home_sheet_showing_all, messages.size)
-                        },
+                        text = bidiSafe(
+                            when {
+                                messages == null -> stringResource(R.string.home_sheet_loading)
+                                chat.unreadCount > messages.size -> stringResource(R.string.home_sheet_showing_partial, messages.size, chat.unreadCount)
+                                else -> stringResource(R.string.home_sheet_showing_all, messages.size)
+                            }
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

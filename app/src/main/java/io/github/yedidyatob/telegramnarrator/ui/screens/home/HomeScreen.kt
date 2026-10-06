@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.domain.home.ConnectionBanner
 import io.github.yedidyatob.telegramnarrator.domain.home.HomeContent
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
@@ -339,7 +340,7 @@ internal fun ChatList(
                     .padding(start = 20.dp, end = 8.dp, top = 4.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.home_selected_count, selectedCount, chats.size),
+                    text = bidiSafe(stringResource(R.string.home_selected_count, selectedCount, chats.size)),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
