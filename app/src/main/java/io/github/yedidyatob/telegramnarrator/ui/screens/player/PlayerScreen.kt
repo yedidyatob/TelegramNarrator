@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -307,6 +308,13 @@ private fun ChatHeader(state: PlayerUiState, loadPhoto: suspend (Int) -> String?
     }
 }
 
+private fun readingKey(nowPlaying: NowPlaying?): String = when (val content = nowPlaying?.content) {
+    is NowPlaying.Content.Message -> "m${nowPlaying.chatId}:${content.messageId}"
+    NowPlaying.Content.ChatOpening -> "c${nowPlaying.chatId}"
+    NowPlaying.Content.Sponsored -> "s${nowPlaying.chatId}"
+    null -> "none"
+}
+
 /** The message being read (direction-aware), the voice note / chat opening placeholder, or the ad. */
 @Composable
 private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, modifier: Modifier) {
@@ -316,46 +324,45 @@ private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, mod
         modifier = modifier
     ) {
         Box {
-            val nowPlaying = state.nowPlaying
-            val key = when (val content = nowPlaying?.content) {
-                is NowPlaying.Content.Message -> "m${nowPlaying.chatId}:${content.messageId}"
-                NowPlaying.Content.ChatOpening -> "c${nowPlaying.chatId}"
-                NowPlaying.Content.Sponsored -> "s${nowPlaying.chatId}"
-                null -> "none"
-            }
+            // Cross-fade only when the item changes (not on pause / preparing / engine updates)
             AnimatedContent(
-                targetState = key,
+                targetState = state,
+                contentKey = { readingKey(it.nowPlaying) },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "now-reading"
-            ) { _ ->
+            ) { shown ->
+                val nowPlaying = shown.nowPlaying
                 val content = nowPlaying?.content
                 when {
                     content is NowPlaying.Content.Message && content.isVoiceNote ->
                         CenteredInfo(Icons.Rounded.GraphicEq, stringResource(R.string.playback_voice_note), senderLine(content))
                     content is NowPlaying.Content.Message -> MessageText(content, nowPlaying.distinctSender)
-                    content is NowPlaying.Content.Sponsored && state.sponsoredAd != null -> Column(
+                    content is NowPlaying.Content.Sponsored && shown.sponsoredAd != null -> Column(
                         Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
                             .padding(12.dp)
                     ) {
                         SponsoredCard(
-                            ad = state.sponsoredAd,
+                            ad = shown.sponsoredAd,
                             onFullyVisible = adActions.onFullyVisible,
                             onLinkClicked = adActions.onLinkClicked,
                             onReport = adActions.onReport,
                             loadFile = adActions.loadFile
                         )
                     }
-                    content == NowPlaying.Content.ChatOpening || content == NowPlaying.Content.Sponsored ->
+                    content == NowPlaying.Content.ChatOpening ->
                         // The ding and the chat title are what is heard now; the count is in the position row below
                         CenteredInfo(Icons.Rounded.Forum, stringResource(R.string.player_chat_opening), bidiSafe(nowPlaying.chatTitle))
+                    content == NowPlaying.Content.Sponsored ->
+                        // The ad's card appears as soon as it is known
+                        CenteredInfo(Icons.Rounded.Campaign, stringResource(R.string.sponsored_label), bidiSafe(nowPlaying.chatTitle))
                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
                             Spacer(Modifier.height(16.dp))
                             Text(
-                                state.status ?: stringResource(R.string.home_player_starting),
+                                shown.status ?: stringResource(R.string.home_player_starting),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center

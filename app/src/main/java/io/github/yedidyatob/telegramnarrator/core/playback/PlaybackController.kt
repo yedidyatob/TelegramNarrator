@@ -2,7 +2,6 @@ package io.github.yedidyatob.telegramnarrator.core.playback
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.yedidyatob.telegramnarrator.core.service.PlaybackService
 import javax.inject.Inject
@@ -15,7 +14,7 @@ class PlaybackController @Inject constructor(@ApplicationContext private val con
     /** Starts (or restarts) reading the unread messages of [chatIds], in that order. */
     fun playChats(chatIds: List<Long>) {
         val intent = intent(PlaybackService.ACTION_PLAY_ALL).putExtra(PlaybackService.EXTRA_CHAT_IDS, chatIds.toLongArray())
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent) else context.startService(intent)
+        context.startForegroundService(intent)
     }
 
     fun togglePause(isPaused: Boolean) = send(if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE)

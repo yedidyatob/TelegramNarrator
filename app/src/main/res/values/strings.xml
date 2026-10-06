@@ -69,7 +69,6 @@
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
     <string name="home_preparing_audio">Preparing audio…</string>
-    <string name="home_loading">Loading</string>
     <string name="home_play_chat">Play unread messages of %1$s</string>
     <string name="home_select_all">Select all</string>
     <string name="home_deselect_all">Deselect all</string>
