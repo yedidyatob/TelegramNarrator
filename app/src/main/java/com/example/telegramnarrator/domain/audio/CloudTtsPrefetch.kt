@@ -15,7 +15,7 @@ object CloudTtsPrefetch {
     /**
      * Walks [items] in order and returns up to [limit] speech texts that cloud TTS would synthesize
      * (same cleaning / skip rules as [com.example.telegramnarrator.core.service.PlaybackService]).
-     * Skips intros, silence, outro, dropped rows, voice notes, and symbol-/media-only bodies.
+     * Includes spoken chat titles; skips intro dings, silence, outro, dropped rows, voice notes, and symbol-/media-only bodies.
      */
     fun upcomingSpeechTexts(items: Iterable<PlaybackItem>, limit: Int = COUNT): List<String> {
         if (limit <= 0) return emptyList()
@@ -30,6 +30,8 @@ object CloudTtsPrefetch {
 
     /** Speech body for a queue item, or null when it would not be sent to cloud TTS. */
     fun speechTextFor(item: PlaybackItem): String? {
+        // Chat titles are spoken through the same engine, so warm them too
+        if (item is PlaybackItem.ChatTitle) return item.text.takeIf { it.isNotBlank() }
         if (item !is PlaybackItem.MessageItem) return null
         if (item.dropped || item.voiceNoteFileId != null) return null
         val cleaned = MessageCleaner.clean(item.text)
