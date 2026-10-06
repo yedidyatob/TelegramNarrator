@@ -166,7 +166,9 @@ fun HomeScreen(
                         onLinkClicked = sponsoredViewModel::onLinkClicked,
                         onReport = sponsoredViewModel::startReport,
                         loadFile = sponsoredViewModel::localFile,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier
+                            .then(if (isPlaying) Modifier else Modifier.navigationBarsPadding())
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
                 androidx.compose.animation.AnimatedVisibility(

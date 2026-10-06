@@ -27,8 +27,8 @@ io.github.yedidyatob.telegramnarrator
 │   ├── screens/auth/LoginScreen           phone (country picker, PhoneNumberField) → code → 2FA password
 │   ├── screens/home/HomeScreen            unread chat list, multi-select, Play all / per chat, controls
 │   ├── screens/settings/VoiceSettingsSheet engine / voice per language / rate / mark-as-read
-│   ├── components/NotificationPermissionGate
-│   ├── viewmodel/  AuthViewModel, HomeViewModel, TtsSettingsViewModel
+│   ├── components/NotificationPermissionGate, SponsoredCard (+ report option dialog)
+│   ├── viewmodel/  AuthViewModel, HomeViewModel, TtsSettingsViewModel, SponsoredViewModel
 │   └── theme/
 ├── domain/    Pure Kotlin (no Android types), unit-tested on the JVM
 │   ├── model/        Chat, Message, AuthState, AudioState, MessageContentType, ApiCredentials
@@ -36,6 +36,8 @@ io.github.yedidyatob.telegramnarrator
 │   ├── audio/        AudioQueue + PlaybackItem, MessageCleaner, MessageSpeechBody, LanguageDetector,
 │   │                 ReadCheckpointer, PlaybackReadProgress, AudioFocusPolicy, VoiceNotePlayback,
 │   │                 CloudTtsPrefetch, PlaybackSpeedCycle, PlaybackManager (shared playback UI state)
+│   ├── sponsored/    SponsoredMessagesRepository (cache, view-once, click / report), SponsoredAd, SponsoredSpeech,
+│   │                 SponsoredLinkPolicy, SponsoredReportFlow, SponsoredAdCache, SponsoredViewTracker
 │   ├── cleaning/     ChannelRules model + ChannelRulesEngine
 │   ├── home/         UnreadChatFilter, ChatSelectionLogic
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
@@ -47,6 +49,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send()
 │   ├── tdlib/TdLibDatabaseKeyStore  database key wrapped by an Android Keystore AES-GCM key
 │   ├── repository/                  TdLibAuthRepository, TdLibChatRepository, TdLibUserCache, UnreadHistoryPager
+│   ├── sponsored/                   TdLibSponsoredMessagesSource (getChatSponsoredMessages, viewMessages, click, report)
 │   ├── rules/                       ChannelRulesParser + ChannelRulesRepository (assets/channel_rules.json)
 │   ├── auth/DeviceCountrySignals    SIM / network / locale country for the login default country
 │   ├── tts/TtsPreferences           SharedPreferences (read synchronously by TtsManager)
@@ -90,7 +93,8 @@ read without playing them.
 1. loads each chat's oldest unread messages via `ChatRepository.getChatMessages` (paged by
    `UnreadHistoryPager`, up to 100 per chat),
 2. applies the per-channel rules (`ChannelRulesEngine`: drop / cut / replace) and builds an `AudioQueue` of
-   `PlaybackItem`s (`Intro` = chat-boundary ding, `ChatTitle` = spoken chat title, `MessageItem`, `Silence`, `Outro` = end ding),
+   `PlaybackItem`s (`Intro` = chat-boundary ding, `ChatTitle` = spoken chat title, `MessageItem`, `SponsoredSlot` =
+   the chat's official sponsored message, `Silence`, `Outro` = end ding),
 3. plays each item, running the generic `MessageCleaner` and `MessageSpeechBody` (silent skip of media-only /
    symbol-only rows) just before speaking: voice notes and dings through `MediaPlayer`; text through the selected `SpeechProvider`
    (`SYSTEM` → `TtsManager`; `OPENAI` / `EDGE` → synthesize to an MP3 in the disk cache, prefetching the next
@@ -101,6 +105,21 @@ read without playing them.
 
 Pause/resume/skip come from the Home UI, the notification, the lock screen and headset buttons
 (`MediaSessionCompat` callbacks), and audio focus changes (`AudioFocusPolicy`).
+
+## Sponsored messages
+
+Telegram API Terms of Service 3.3: "If your app allows accessing content from Telegram channels, you must include
+support for official sponsored messages in Telegram channels and may not interfere with this functionality."
+Implementation details follow <https://core.telegram.org/api/sponsored-messages>, mapped to TDLib 1.8.56.
+
+| Piece | What it does |
+|---|---|
+| `TdLibSponsoredMessagesSource` (data) | `GetChat` / `GetUser` to tell channels (`ChatTypeSupergroup.isChannel`) and bots (`UserTypeBot`) from other chats; `GetChatSponsoredMessages`; views via `ViewMessages(chatId, [id], null, forceRead = false)` after a best-effort `OpenChat` (this TDLib has no `viewSponsoredMessage`); `ClickChatSponsoredMessage`; `ReportChatSponsoredMessage`; `DownloadFile` for the sponsor photo / media |
+| `SponsoredMessagesRepository` (domain, singleton) | 5-minute per-chat cache (`SponsoredAdCache`; each fetch gets a fetch id), chat kind remembered, errors not cached; `reportViewed` at most once per ad per fetch (`SponsoredViewTracker`, retried if the request failed); click / report wrappers (a reported or expired ad leaves the cache, "ads hidden" clears it) |
+| Queue (`PlaybackService`) | `SponsoredSlotPlacement` adds a `SponsoredSlot` after a non-silent chat's last message, before the next chat's ding. The `Intro` of such a chat prefetches its ads. At the slot: `adFor(chatId)` (5 s timeout; no ad / not a channel or bot → passed silently), the card is shown (`PlaybackManager.sponsoredAd`), the notification says "Sponsored · {title}" (or "Recommended · …") and `SponsoredSpeech` speaks the cue in the ad's language ("Sponsored" / "ממומן", "Recommended" / "מומלץ"; `values-he` via a locale-specific `Resources`) followed by the `MessageCleaner`-cleaned title and text — never the button text, never the channel rules. When the utterance finishes, the view is reported (also with the screen off). Skip message / skip chat / pause behave like a message; nothing is marked as read |
+| `SponsoredCard` + `SponsoredViewModel` (ui) | Card above the now-playing bar from when the ad is spoken until the next chat, a new Play All, a report or 5 minutes; also at the bottom of the chat's preview sheet (opening the sheet "opens" the chat and fetches). Label ("Sponsored" / "Recommended", "Ad" in bot chats) and title in the TDLib accent color (built-in ids 0-6, else the theme color), sponsor photo, text with formatting entities, media only once downloaded (photo; JPEG thumbnail / cover of GIFs and videos), button. Opening the link reports a click (`isMediaClick` for photo / GIF media; videos have no fullscreen player here, so their thumbnail is not clickable); non-Telegram hosts need confirmation (`SponsoredLinkPolicy`), `t.me` / `tg:` links open in a Telegram app. ⋮ menu: Sponsor info (when present), About these ads (<https://ads.telegram.org>), Report (when `canBeReported`) with Telegram's option dialog(s) and result toasts (`SponsoredReportFlow`). A view is reported when the label, title and text are entirely inside the window while the app is resumed |
+
+Test with <https://t.me/SecretAdTestChannel> (join it in Telegram first): Telegram always returns an ad there.
 
 ## Known gaps vs. the original spec
 

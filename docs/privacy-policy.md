@@ -13,8 +13,9 @@ endorsed or supported by Telegram.
 
 - The app has **no servers of its own**. I (the developer) never receive your phone number, your messages, your
   contacts or anything else from the app.
-- **No analytics, no advertising, no crash reporting, no tracking SDKs.** Your data is not sold or shared for
-  advertising and is not used to train AI models.
+- **No analytics, no crash reporting, no tracking SDKs, and no ads of the app's own.** Your data is not sold or
+  shared for advertising and is not used to train AI models. In channels and bot chats the app shows Telegram's
+  official sponsored messages, because Telegram requires it (see section 2a).
 - Your Telegram data is exchanged **only with Telegram's servers** and is stored **on your device**, encrypted.
 - Message text and chat titles leave your device for speech synthesis **only if you choose an online voice engine**
   (Microsoft Edge or OpenAI) in the app's voice settings. The default engine (System) works on the device.
@@ -41,6 +42,19 @@ haven't reached yet stay unread. This cannot be turned off, because Telegram's A
 that messages were read.
 
 Your use of Telegram is also subject to [Telegram's Privacy Policy](https://telegram.org/privacy).
+
+### 2a. Telegram sponsored messages
+
+Telegram requires every app that shows channel content to show its official sponsored messages
+([Telegram API Terms of Service](https://core.telegram.org/api/terms), section 3.3). When you play a channel or a
+chat with a bot, or open its preview, the app asks Telegram for that chat's sponsored message, reads it aloud
+after the chat's messages (marked "Sponsored" or "Recommended") and shows it on screen. The app tells Telegram,
+through TDLib, when an ad was **viewed** (read aloud in full, or its text fully shown on screen), when you
+**open its link**, and when you **report** it; these reports contain only the chat and the ad, nothing else
+from your device. The ads are selected and served by Telegram
+([About these ads](https://ads.telegram.org), [Telegram's Privacy Policy](https://telegram.org/privacy)); the
+developer does not choose them, receives nothing about them and earns nothing from them. If you use an online
+voice engine, the ad's text is sent to it like a message.
 
 ### 3. Speech synthesis (text-to-speech)
 
@@ -76,7 +90,7 @@ database, your settings and your API key are never copied to Google Drive or to 
 
 | Permission | Why |
 |---|---|
-| Internet | Connect to Telegram and, if you choose them, to the Edge or OpenAI voice services |
+| Internet | Connect to Telegram (including its sponsored messages) and, if you choose them, to the Edge or OpenAI voice services |
 | Foreground service (media playback) | Keep reading aloud while the screen is off or another app is open |
 | Notifications (optional) | Show playback controls (pause, skip, stop) in the notification and on the lock screen |
 

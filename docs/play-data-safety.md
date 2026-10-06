@@ -11,11 +11,13 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 |---|---|---|---|
 | Phone number, login code, 2FA password | Telegram (TDLib, MTProto) | Login | `TdLibAuthRepository` |
 | Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (always on in release builds) | `TdLibChatRepository` |
-| Cleaned message text and chat titles (spoken before each chat), voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
-| Cleaned message text and chat titles (spoken before each chat), voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
+| Sponsored-message requests, views, clicks and reports (chat ID + sponsored message ID) | Telegram | Telegram's official sponsored messages in channels and bot chats (Telegram API ToS 3.3): fetched when a channel / bot chat is played or its preview opened; a view when the ad was read aloud in full or its text was fully on screen; a click when its link is opened; a report when the user reports it | `TdLibSponsoredMessagesSource` |
+| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
+| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
 
-Nothing is sent to the developer: there is no backend, no analytics, ads, crash reporting or other SDK that
-phones home (dependencies: AndroidX, Compose, Hilt, TDLib, OkHttp, security-crypto). Stored on the device only:
+Nothing is sent to the developer: there is no backend, no analytics, no ad SDK, no crash reporting or other SDK that
+phones home (dependencies: AndroidX, Compose, Hilt, TDLib, OkHttp, security-crypto). The only ads are Telegram's
+own sponsored messages, served by Telegram through TDLib; the developer earns nothing from them. Stored on the device only:
 the TDLib database (encrypted), settings, the encrypted OpenAI key and the cloud-TTS audio cache; Android backup
 and device transfer are disabled. The app cannot create Telegram accounts (it only logs in to existing ones).
 
@@ -58,6 +60,10 @@ Notes on the choices:
 - The login code, the Telegram password and the OpenAI API key are authentication secrets passed to the
   service they belong to; Play has no data type for them. They are covered in the privacy policy.
 - Voice messages and chat lists are *downloaded* from Telegram to the device, which is not collection.
+- Sponsored-message views, clicks and reports go to Telegram (the service the user is logged in to), like read
+  receipts, and carry no data beyond the chat and ad IDs. If Play asks, they fit *App activity → App interactions*
+  (collected, not shared, purpose *Advertising or marketing* + *App functionality*); declaring them is the
+  conservative choice.
 
 ## Permissions (for review questions)
 
@@ -110,7 +116,9 @@ Suggested text (option 2):
 terms allow "Telegram" in a title only when preceded by "Unofficial", which does not work with Hebrew word order.
 
 **Category:** Communication (alternative: Productivity). **Tags:** text to speech, messaging, accessibility.
-**Contains ads:** No. **In-app purchases:** No. **Contact email:** [CONTACT EMAIL]. **Privacy policy:** the
+**Contains ads:** **Yes**: the app shows Telegram's official sponsored messages in channels and bot chats, which
+Telegram requires of every app that shows channel content (Telegram API ToS 3.3); Play counts any ads shown in the
+app, including ones served by a third party. **In-app purchases:** No. **Contact email:** [CONTACT EMAIL]. **Privacy policy:** the
 hosted URL of [privacy-policy.md](privacy-policy.md).
 
 ### English
@@ -118,7 +126,7 @@ hosted URL of [privacy-policy.md](privacy-policy.md).
 **Short description** (80 max):
 
 ```
-Your unread Telegram messages, read aloud. Unofficial app. No ads, no tracking.
+Your unread Telegram messages, read aloud. Unofficial app. No tracking.
 ```
 
 **Full description:**
@@ -143,7 +151,8 @@ VOICES
 • OpenAI (optional): high-quality voices with your own OpenAI API key, billed by OpenAI; message text and chat names are sent to OpenAI
 
 PRIVACY
-• No ads, no analytics, no tracking, and no developer servers
+• No analytics, no tracking, and no developer servers
+• Channels and bot chats include Telegram's official sponsored messages, as Telegram requires; the app has no ads of its own and earns nothing from them
 • Your messages are stored only on your device, in an encrypted database, and are exchanged only with Telegram
 • Message text leaves your device only if you choose an online voice (Edge or OpenAI)
 • Log out at any time to remove your Telegram data from the device
@@ -156,7 +165,7 @@ Privacy policy: [PRIVACY POLICY URL]
 **Short description** (80 max):
 
 ```
-ההודעות שלא קראת בטלגרם, בהקראה קולית. אפליקציה לא רשמית, בלי פרסומות ומעקב.
+ההודעות שלא קראת בטלגרם, בהקראה קולית. אפליקציה לא רשמית, בלי מעקב.
 ```
 
 **Full description:**
@@ -172,7 +181,7 @@ Unofficial Telegram Narrator מקריאה בקול את הצ'אטים שלא ק�
 • הודעות קוליות מושמעות בתור
 • זיהוי שפה לכל הודעה (מצוין לערוצים בעברית ובאנגלית)
 • ניקוי פוסטים בערוצים: דילוג על קישורים, פרסומות, חתימות ושורות של סמלים
-• סימון הודעות כנקראו בטלגרם רק אחרי שהוקראו בפועל (אפשר לכבות)
+• סימון הודעות כנקראו בטלגרם רק אחרי שהוקראו בפועל
 • מהירות דיבור מתכווננת
 
 קולות
@@ -181,7 +190,8 @@ Unofficial Telegram Narrator מקריאה בקול את הצ'אטים שלא ק�
 • OpenAI (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של OpenAI; טקסט ההודעות ושמות הצ'אטים נשלחים ל־OpenAI
 
 פרטיות
-• בלי פרסומות, בלי אנליטיקה, בלי מעקב ובלי שרתים של המפתח
+• בלי אנליטיקה, בלי מעקב ובלי שרתים של המפתח
+• בערוצים ובצ'אטים עם בוטים מוצגות ההודעות הממומנות הרשמיות של Telegram, כפי ש־Telegram דורשת; לאפליקציה אין פרסומות משלה והיא לא מרוויחה מהן
 • ההודעות נשמרות רק במכשיר, במסד נתונים מוצפן, ומוחלפות רק עם Telegram
 • טקסט ההודעות יוצא מהמכשיר רק אם בחרתם קול מקוון (Edge או OpenAI)
 • אפשר להתנתק בכל רגע כדי למחוק את נתוני הטלגרם מהמכשיר
@@ -220,8 +230,8 @@ Source: <https://core.telegram.org/api/terms>. Status of this commit:
 | 2.2 Say prominently that the app uses the Telegram API (store description + in-app intro) | OK | Second paragraph of the store descriptions above; notice on the login screen and in *Voice settings → About* |
 | 2.3 Title must not contain "Telegram" unless preceded by "Unofficial" | OK (fixed) | Display name changed from "Telegram Narrator" (non-compliant) to "Unofficial Telegram Narrator". Alternatives without the word: "Chat Narrator", "Unread Aloud", "Narrator for chats" |
 | 2.4 No official Telegram logo | OK | Own icon (white ring on purple). Do not use the paper plane in store graphics or screenshots' frames |
-| 3.1 / 3.2 Monetization disclosed in store descriptions | OK | No monetization. If you ever add any, list every method in the store descriptions |
-| 3.3 Apps that show channel content must support official sponsored messages | **Open** | The app reads channel posts but does not fetch, read or report sponsored messages (TDLib 1.8.56: `getChatSponsoredMessages`, views through `viewMessages`, `clickChatSponsoredMessage`, `reportChatSponsoredMessage`). Needs a follow-up feature (e.g. read the channel's sponsored message, labeled "Sponsored", after its unread posts and report the view) |
+| 3.1 / 3.2 Monetization disclosed in store descriptions | OK | No monetization by the developer. Telegram's sponsored messages (3.3) are Telegram's, not the app's; the store descriptions still mention them. If you ever add your own monetization, list every method in the store descriptions |
+| 3.3 Apps that show channel content must support official sponsored messages | OK | Channels and bot chats: `getChatSponsoredMessages` (5-minute cache) when the chat is played or its preview opened. After the chat's last unread message the ad is read aloud ("Sponsored" / "ממומן", or "Recommended" / "מומלץ", then title and text) and shown as a card (label, accent color, sponsor photo, title, text, media, button; confirmation before non-Telegram links; ⋮ Sponsor info / About these ads / Report with Telegram's option flow); it is also at the bottom of the chat's preview sheet. Views through `viewMessages` (TDLib 1.8.56 has no `viewSponsoredMessage`), at most once per ad per fetch, when read aloud in full or fully on screen; clicks via `clickChatSponsoredMessage`; reports via `reportChatSponsoredMessage`. Channel cleaning rules never touch it. See [architecture.md](architecture.md#sponsored-messages) |
 | 4 Breach handling | Note | Telegram contacts the account that owns the `api_id`, with 10 days to fix. Keep that account active and read its service notifications |
 
 Google Play side: Play's impersonation / metadata policies can also object to third-party brand names in a title,

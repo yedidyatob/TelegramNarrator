@@ -17,6 +17,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
 - Chat boundaries play a ding followed by the spoken chat title (in the title's own language); end-of-queue plays a distinct ding (no spoken "New chat" / "End of messages")
 - Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
+- Channels and bot chats include Telegram's official sponsored messages (Telegram API ToS 3.3): read aloud after the chat's messages with a "Sponsored" / "ממומן" cue and shown as a card with Sponsor info, About these ads and Report (see [docs/architecture.md](docs/architecture.md#sponsored-messages))
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device; system TTS remains default) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
