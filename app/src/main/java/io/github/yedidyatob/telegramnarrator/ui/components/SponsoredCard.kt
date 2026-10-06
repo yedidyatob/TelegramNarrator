@@ -32,6 +32,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,6 +74,8 @@ import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredChatKind
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredLinkPolicy
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredReportOption
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredTextSpan
+import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
+import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -130,49 +133,54 @@ fun SponsoredCard(
     ) {
         Column(Modifier.padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .onGloballyPositioned { textFullyVisible = it.isFullyVisible() }
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (sponsorPhoto != null) {
-                            Image(
-                                bitmap = sponsorPhoto,
-                                contentDescription = stringResource(R.string.sponsored_sponsor_photo),
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .clickable { openLink(false) }
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Column {
-                            Text(
-                                text = stringResource(sponsoredLabelRes(ad)),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = accent
-                            )
-                            if (ad.title.isNotBlank()) {
-                                Text(
-                                    text = ad.title,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = accent,
-                                    modifier = Modifier.clickable { openLink(false) }
+                // Label, sponsor photo, title and text start on the ad's side (right for a Hebrew ad even on an
+                // English device); the ⋮ menu stays at the UI's end like every other overflow menu.
+                ProvideContentDirection(ad.title, ad.text) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { textFullyVisible = it.isFullyVisible() }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (sponsorPhoto != null) {
+                                Image(
+                                    bitmap = sponsorPhoto,
+                                    contentDescription = stringResource(R.string.sponsored_sponsor_photo),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .clickable { openLink(false) }
                                 )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Column {
+                                Text(
+                                    text = stringResource(sponsoredLabelRes(ad)),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accent
+                                )
+                                if (ad.title.isNotBlank()) {
+                                    Text(
+                                        text = ad.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = accent,
+                                        modifier = Modifier.clickable { openLink(false) }
+                                    )
+                                }
                             }
                         }
-                    }
-                    if (ad.text.isNotBlank()) {
-                        Spacer(Modifier.padding(top = 4.dp))
-                        Text(
-                            text = sponsoredText(ad),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        if (ad.text.isNotBlank()) {
+                            Spacer(Modifier.padding(top = 4.dp))
+                            Text(
+                                text = sponsoredText(ad),
+                                style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
                 Column {
@@ -240,7 +248,13 @@ fun SponsoredCard(
         AlertDialog(
             onDismissRequest = { showSponsorInfo = false },
             title = { Text(stringResource(R.string.sponsored_menu_info)) },
-            text = { Text(ad.sponsorInfoText) },
+            text = {
+                Text(
+                    ad.sponsorInfoText,
+                    style = LocalTextStyle.current.merge(ContentTextStyle),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { showSponsorInfo = false }) { Text(stringResource(R.string.sponsored_close)) }
             }
@@ -282,7 +296,8 @@ fun SponsoredReportDialog(
             LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 items(options) { option ->
                     TextButton(onClick = { onChoose(option) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(option.text, modifier = Modifier.fillMaxWidth())
+                        // Telegram localizes the options (they may be Hebrew on an English UI)
+                        Text(option.text, style = LocalTextStyle.current.merge(ContentTextStyle), modifier = Modifier.fillMaxWidth())
                     }
                 }
             }

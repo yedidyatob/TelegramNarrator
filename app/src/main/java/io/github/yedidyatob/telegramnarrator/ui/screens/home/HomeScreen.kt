@@ -74,6 +74,8 @@ import io.github.yedidyatob.telegramnarrator.core.service.PlaybackService
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
+import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
+import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.HomeViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
 
@@ -349,35 +351,13 @@ fun HomeScreen(
                 } else {
                     LazyColumn(contentPadding = PaddingValues(16.dp)) {
                         items(sheetMsgs, key = { it.id }) { msg ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (msg.isOutgoing) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    }
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = msg.senderName
-                                            ?: stringResource(R.string.playback_unknown_sender),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    val displayText = msg.text.ifBlank {
-                                        stringResource(
-                                            msg.contentType.labelRes()
-                                                ?: R.string.message_unsupported_content
-                                        )
-                                    }
-                                    Text(text = displayText, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                            SheetMessageCard(
+                                senderName = msg.senderName ?: stringResource(R.string.playback_unknown_sender),
+                                text = msg.text.ifBlank {
+                                    stringResource(msg.contentType.labelRes() ?: R.string.message_unsupported_content)
+                                },
+                                isOutgoing = msg.isOutgoing
+                            )
                         }
                         // The channel's / bot's sponsored message, at the bottom of the sheet
                         previewAd?.takeIf { it.chatId == currentChat.id }?.let { ad ->
@@ -409,7 +389,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun NowPlayingBar(
+internal fun NowPlayingBar(
     status: String,
     isPaused: Boolean,
     preparingAudio: Boolean,
@@ -456,6 +436,9 @@ private fun NowPlayingBar(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+                // Always a UI template ("Chat: {title}", "From {sender}", "Sponsored · {title}"), so it aligns with the
+                // UI like the label above. The service bidi-isolates the name inside it, so a Hebrew chat title in an
+                // English template (or the other way round) keeps its own order and punctuation.
                 Text(
                     text = status,
                     style = MaterialTheme.typography.bodyMedium,
@@ -495,6 +478,42 @@ private fun NowPlayingBar(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * One unread message in the chat's preview sheet. The card follows the message's direction (a Hebrew message
+ * is right-aligned, sender name included, even on an English device); each paragraph aligns by its own text.
+ */
+@Composable
+internal fun SheetMessageCard(senderName: String, text: String, isOutgoing: Boolean) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOutgoing) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        ProvideContentDirection(text) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = senderName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
