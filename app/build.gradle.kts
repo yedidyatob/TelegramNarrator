@@ -56,14 +56,14 @@ val useDebugSigningForRelease = !hasReleaseKeystore && setting("TN_RELEASE_DEBUG
 
 android {
     namespace = "io.github.yedidyatob.telegramnarrator"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // Permanent: Google Play never allows the applicationId to change after the first upload.
         applicationId = "io.github.yedidyatob.telegramnarrator"
         minSdk = 26
-        // Google Play requires targetSdk 35 (Android 15) for new apps and updates since Aug 31, 2025.
-        targetSdk = 35
+        // Google Play requires targetSdk 36 (Android 16) for new apps and updates since Aug 31, 2026.
+        targetSdk = 36
         versionCode = tnVersionCode
         versionName = tnVersionName
 
