@@ -37,4 +37,9 @@ class OpenAiTtsTest {
         assertTrue(OpenAiTts.isWithinApiLimit("x".repeat(OpenAiTts.MAX_INPUT_CHARS)))
         assertFalse(OpenAiTts.isWithinApiLimit("x".repeat(OpenAiTts.MAX_INPUT_CHARS + 1)))
     }
+
+    @Test
+    fun `Get an API key link points to the OpenAI API keys page over https`() {
+        assertEquals("https://platform.openai.com/api-keys", OpenAiTts.API_KEYS_URL)
+    }
 }

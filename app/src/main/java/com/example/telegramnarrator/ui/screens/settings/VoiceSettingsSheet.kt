@@ -2,6 +2,7 @@ package com.example.telegramnarrator.ui.screens.settings
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +24,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -371,6 +373,35 @@ private fun EdgeAdvanced(customVoice: String?, enabled: Boolean, onSetCustomVoic
     }
 }
 
+/**
+ * "Get an API key" link under the key field: opens the OpenAI API keys page in the browser (that page handles
+ * sign-up / login). A text button with a 48dp minimum touch target; TalkBack hears that it opens the browser.
+ */
+@Composable
+private fun GetOpenAiKeyLink() {
+    val context = LocalContext.current
+    val opensInBrowser = stringResource(R.string.settings_openai_get_key_a11y)
+    TextButton(
+        onClick = {
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse(OpenAiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (e: ActivityNotFoundException) {
+                Toast.makeText(context, context.getString(R.string.settings_openai_get_key_no_browser), Toast.LENGTH_SHORT).show()
+            }
+        },
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = opensInBrowser }
+    ) {
+        Text(stringResource(R.string.settings_openai_get_key))
+        Spacer(Modifier.size(4.dp))
+        // Decorative: the button's content description already says it opens the browser
+        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OpenAiSection(openAi: OpenAiVoiceUiState, isPlaying: Boolean, actions: VoiceSettingsActions) {
@@ -400,6 +431,7 @@ private fun OpenAiSection(openAi: OpenAiVoiceUiState, isPlaying: Boolean, action
             singleLine = true,
             enabled = enabled
         )
+        GetOpenAiKeyLink()
         Text(
             if (openAi.keyHint != null) stringResource(R.string.settings_openai_key_saved, openAi.keyHint)
             else stringResource(R.string.settings_openai_key_none),
