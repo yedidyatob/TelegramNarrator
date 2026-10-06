@@ -7,8 +7,9 @@ After a message finishes TTS (or is deliberately skipped), `PlaybackService` rec
 
 `TdLibChatRepository.markChatAsRead`:
 
-1. **Gate**: no-op when the Voice-settings switch is off (`markAsReadEnabled` / `TtsSettings.markAsReadOverride`).
-   Default is **on** for both debug and release builds.
+1. **Gate**: `markAsReadEnabled` (`TtsSettings.markAsReadEnabled(BuildConfig.DEBUG)`), see
+   [Release vs debug builds](#release-vs-debug-builds). Always true in release builds; in debug builds it is a
+   no-op only when the Voice-settings switch is off.
 2. **`OpenChat(chatId)`** (best-effort) — TDLib treats the chat as being viewed. Some channel /
    supergroup paths update `lastReadInboxMessageId` more reliably after this.
 3. **`ViewMessages(chatId, messageIds, source=null, forceRead=true)`** — `forceRead=true` marks the
@@ -18,6 +19,22 @@ After a message finishes TTS (or is deliberately skipped), `PlaybackService` rec
 
 `UpdateChatReadInbox` usually arrives afterwards and also refreshes the list; the explicit GetChat
 avoids a race after pause/stop.
+
+## Release vs debug builds
+
+| Build | Voice settings switch | Behaviour |
+|-------|-----------------------|-----------|
+| Release | **Not shown** | Always marks played / skipped messages as read. A stored `mark_as_read = false` (e.g. from an older build) is **ignored**, and `TtsSettingsViewModel.setMarkAsRead` does nothing. |
+| Debug | Shown (*Playback → Mark messages as read in Telegram*), on by default | Turning it off leaves chats unread, for device testing. |
+
+Why: Telegram API Terms of Service 1.4 forbid "tampering with the 'read' statuses of messages (e.g. implementing
+a 'ghost mode')". A user-facing "listen without marking as read" switch could be read that way, so the
+published app does not offer one. The logic is `TtsSettings.markAsReadEnabled(isDebugBuild)` and
+`TtsSettings.markAsReadSwitchVisible(isDebugBuild)` (unit tested in `MarkAsReadSettingTest`); the UI hides the
+row via `TtsSettingsUiState.markAsReadSwitchVisible`.
+
+The granular checkpoint below is unchanged: only messages that were actually read aloud (or deliberately
+skipped) are marked, so stopping half-way leaves the rest unread — that is honest read state, not a ghost mode.
 
 ## Why debug APKs used to look "broken"
 

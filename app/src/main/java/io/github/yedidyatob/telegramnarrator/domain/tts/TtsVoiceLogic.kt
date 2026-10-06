@@ -31,7 +31,10 @@ data class TtsSettings(
     val enginePackage: String? = null,
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     val voices: Map<String, String> = emptyMap(),
-    /** User's choice for "mark messages as read in Telegram"; null = not chosen, default on. */
+    /**
+     * Debug-only choice for "mark messages as read in Telegram"; null = not chosen (on). Ignored in release
+     * builds, see [markAsReadEnabled].
+     */
     val markAsReadOverride: Boolean? = null,
     /** Engine that speaks messages: system TTS (default), OpenAI (BYOK) or Edge (experimental). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
@@ -41,15 +44,24 @@ data class TtsSettings(
     val edge: EdgeTtsOptions = EdgeTtsOptions()
 ) {
     /**
-     * Whether played messages are marked as read in Telegram. Defaults to **on** for every build
-     * (debug and release). Device testing previously left this off in debug APKs, so listening never
-     * marked messages read and "Play from start" replayed the same unread set. The Voice settings
-     * switch still lets the user turn it off explicitly ([markAsReadOverride] = false).
+     * Whether played messages are marked as read in Telegram.
      *
-     * [isDebugBuild] is kept for call-site compatibility; it no longer changes the default.
+     * - **Release builds: always on.** A user-facing "listen without marking as read" switch could be seen
+     *   as a "ghost mode" (Telegram API Terms of Service 1.4), so release builds ignore any stored
+     *   [markAsReadOverride] (for example an "off" saved by an older build) and do not show the switch.
+     * - **Debug builds:** on by default; the Voice settings switch can turn it off for device testing
+     *   ([markAsReadOverride] = false).
+     *
+     * Either way only messages that were actually read aloud (or deliberately skipped) are marked, see
+     * `ReadCheckpointer`.
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean = markAsReadOverride ?: true
+    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean =
+        if (isDebugBuild) markAsReadOverride ?: true else true
+
+    companion object {
+        /** The "Mark messages as read" switch exists only in debug builds (Telegram API ToS 1.4). */
+        fun markAsReadSwitchVisible(isDebugBuild: Boolean): Boolean = isDebugBuild
+    }
 }
 
 /** Pure helpers behind the TTS settings (no Android dependencies, unit tested). */

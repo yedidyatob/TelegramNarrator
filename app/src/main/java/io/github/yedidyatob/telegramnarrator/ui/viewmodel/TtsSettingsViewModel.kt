@@ -88,7 +88,8 @@ class TtsSettingsViewModel @Inject constructor(
         edge = EdgeVoiceUiState.from(settings.edge),
         openAi = openAiState(testing = false),
         speechRate = settings.speechRate,
-        markAsRead = settings.markAsReadEnabled(BuildConfig.DEBUG)
+        markAsRead = settings.markAsReadEnabled(BuildConfig.DEBUG),
+        markAsReadSwitchVisible = TtsSettings.markAsReadSwitchVisible(BuildConfig.DEBUG)
     )
 
     private fun systemState(settings: TtsSettings): SystemVoiceUiState {
@@ -252,9 +253,11 @@ class TtsSettingsViewModel @Inject constructor(
         _state.update { it.copy(speechRate = preferences.settings.value.speechRate) }
     }
 
+    /** Debug builds only: release builds have no switch and always mark played messages as read. */
     fun setMarkAsRead(enabled: Boolean) {
+        if (!TtsSettings.markAsReadSwitchVisible(BuildConfig.DEBUG)) return
         preferences.update { it.copy(markAsReadOverride = enabled) }
-        _state.update { it.copy(markAsRead = enabled) }
+        _state.update { it.copy(markAsRead = preferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)) }
     }
 
     // ---- Test playback --------------------------------------------------------------------------

@@ -102,7 +102,7 @@ import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Edge | OpenAI), then only the selected engine's own section,
- * then **Playback** (speech rate, mark as read). See docs/tts-voice-settings.md.
+ * then **Playback** (speech rate; mark as read in debug builds only). See docs/tts-voice-settings.md.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -201,7 +201,12 @@ fun VoiceSettingsContent(
                 VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.EDGE_VOICE -> EdgeSection(state.edge, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.OPENAI_VOICE -> OpenAiSection(state.openAi, state.testLanguage, isPlaying, actions)
-                VoiceSettingsSection.PLAYBACK -> PlaybackSection(state.speechRate, state.markAsRead, actions)
+                VoiceSettingsSection.PLAYBACK -> PlaybackSection(
+                    speechRate = state.speechRate,
+                    markAsRead = state.markAsRead,
+                    showMarkAsReadSwitch = state.markAsReadSwitchVisible,
+                    actions = actions
+                )
             }
         }
         AboutSection()
@@ -516,7 +521,12 @@ private fun OpenAiSection(
 }
 
 @Composable
-private fun PlaybackSection(speechRate: Float, markAsRead: Boolean, actions: VoiceSettingsActions) {
+private fun PlaybackSection(
+    speechRate: Float,
+    markAsRead: Boolean,
+    showMarkAsReadSwitch: Boolean,
+    actions: VoiceSettingsActions
+) {
     SettingsSection(R.string.settings_section_playback) {
         val rateLabel = stringResource(R.string.settings_rate)
         val rateValue = stringResource(R.string.settings_rate_value, TtsVoiceLogic.clampRate(speechRate))
@@ -534,7 +544,9 @@ private fun PlaybackSection(speechRate: Float, markAsRead: Boolean, actions: Voi
                 stateDescription = rateValue
             }
         )
-        Row(
+        // Debug builds only: release builds always mark played messages as read (Telegram API ToS 1.4, no
+        // "ghost mode"), so the switch is not offered there.
+        if (showMarkAsReadSwitch) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = MIN_TOUCH)

@@ -174,7 +174,7 @@
     <string name="settings_section_about">About</string>
     <string name="settings_about_unofficial">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram.</string>
     <string name="settings_about_version">Version %1$s</string>
-    <string name="settings_mark_read_desc">Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
+    <string name="settings_mark_read_desc">Debug builds only: release builds always mark messages as read. Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
 
     <!-- Network TTS fallback toasts (playback) -->
     <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>

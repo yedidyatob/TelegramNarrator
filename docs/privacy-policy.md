@@ -36,7 +36,9 @@ database in the app's private storage on your device. That database is **encrypt
 itself protected by the Android Keystore of your device.
 
 When a message has been read aloud (or skipped), the app tells Telegram to **mark it as read**, like opening the
-chat in any Telegram app would. You can turn this off in the voice settings.
+chat in any Telegram app would. Only messages that were actually read aloud (or skipped) are marked; messages you
+haven't reached yet stay unread. This cannot be turned off, because Telegram's API terms do not allow apps to hide
+that messages were read.
 
 Your use of Telegram is also subject to [Telegram's Privacy Policy](https://telegram.org/privacy).
 
