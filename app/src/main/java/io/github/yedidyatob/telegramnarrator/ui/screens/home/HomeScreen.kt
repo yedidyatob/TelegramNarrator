@@ -157,57 +157,57 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-          Column {
-            // Sponsored message of the chat that was just played: from when it is spoken until the next chat
-            playingAd?.let { ad ->
-                SponsoredCard(
-                    ad = ad,
-                    onFullyVisible = sponsoredViewModel::onFullyVisible,
-                    onLinkClicked = sponsoredViewModel::onLinkClicked,
-                    onReport = sponsoredViewModel::startReport,
-                    loadFile = sponsoredViewModel::localFile,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+            Column {
+                // Sponsored message of the chat that was just played: from when it is spoken until the next chat
+                playingAd?.let { ad ->
+                    SponsoredCard(
+                        ad = ad,
+                        onFullyVisible = sponsoredViewModel::onFullyVisible,
+                        onLinkClicked = sponsoredViewModel::onLinkClicked,
+                        onReport = sponsoredViewModel::startReport,
+                        loadFile = sponsoredViewModel::localFile,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isPlaying,
+                    enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
+                    exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
+                ) {
+                    NowPlayingBar(
+                        status = playStatus ?: stringResource(R.string.home_player_starting),
+                        isPaused = isPaused,
+                        preparingAudio = preparingAudio && !isPaused,
+                        onTogglePause = {
+                            val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply { this.action = action }
+                            )
+                        },
+                        onSkipMessage = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_SKIP_MSG
+                                }
+                            )
+                        },
+                        onSkipChat = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_SKIP_CHAT
+                                }
+                            )
+                        },
+                        onStop = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_STOP
+                                }
+                            )
+                        }
+                    )
+                }
             }
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isPlaying,
-                enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
-                exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
-            ) {
-                NowPlayingBar(
-                    status = playStatus ?: stringResource(R.string.home_player_starting),
-                    isPaused = isPaused,
-                    preparingAudio = preparingAudio && !isPaused,
-                    onTogglePause = {
-                        val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply { this.action = action }
-                        )
-                    },
-                    onSkipMessage = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_SKIP_MSG
-                            }
-                        )
-                    },
-                    onSkipChat = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_SKIP_CHAT
-                            }
-                        )
-                    },
-                    onStop = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_STOP
-                            }
-                        )
-                    }
-                )
-            }
-          }
         }
     ) { innerPadding ->
         Box(
