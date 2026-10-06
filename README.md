@@ -47,6 +47,10 @@ Requirements: JDK 17 or 21, Android SDK (platform 34). Android Studio will set b
    ./gradlew assembleRelease        # minified, unsigned (needs a signing config to install)
    ```
 
+   Unit tests are pure JVM tests (no device or emulator needed). The live Edge TTS network test is skipped
+   unless you opt in with `EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest`. CI (`.github/workflows/ci.yml`) runs
+   `testDebugUnitTest assembleDebug` on every push to `main` and every pull request.
+
 ### Optional: OpenAI TTS (Bring-Your-Own-Key)
 
 System TTS is the default. No OpenAI key is required or shipped in the repo.
@@ -114,9 +118,19 @@ docs/                                     feature documentation
 Stack: Kotlin, Jetpack Compose (Material 3), Hilt, Navigation Compose, Coroutines/Flow, TDLib 1.8.x,
 Android `TextToSpeech`, `MediaSessionCompat`.
 
-`TelegramReader_TDLib_Architecture.md` is the original design spec; the code has diverged from it (no encrypted
-database, no use-case layer yet, no dedicated Player screen). The open polish work is tracked in the
-"Polish roadmap" issue.
+See [docs/architecture.md](docs/architecture.md) for the layers, the main flows (login, unread list, playback,
+mark-as-read), how the code differs from the original design spec, and the target architecture. The open polish
+work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNarrator/issues/40) issue.
+
+## Documentation
+
+| Doc | Topic |
+|-----|-------|
+| [docs/architecture.md](docs/architecture.md) | Current structure, data flow, known gaps, target architecture |
+| [docs/channel-rules.md](docs/channel-rules.md) | Per-channel cleaning rules (`assets/channel_rules.json`) |
+| [docs/tts-voice-settings.md](docs/tts-voice-settings.md) | Engines, voice per language, speech rate, OpenAI / Edge TTS |
+| [docs/spoken-phrases.md](docs/spoken-phrases.md) | Playback cues (dings, silent skips) and per-message language detection |
+| [docs/mark-as-read.md](docs/mark-as-read.md) | Mark-as-read behaviour and the TDLib call sequence |
 
 ## Privacy & security
 
@@ -138,8 +152,6 @@ database, no use-case layer yet, no dedicated Player screen). The open polish wo
 
 Not published. Before a Play release see the publishing checklist in the roadmap (applicationId is still
 `com.example.telegramnarrator`, no signing config, no privacy policy, Telegram API terms).
-
-
 
 ## TDLib / 16 KB page size
 
@@ -163,4 +175,4 @@ if Play or a device still rejects the package. Tracking: https://github.com/yedi
 
 ## License
 
-No license has been chosen yet, so all rights are reserved by the author until one is added.
+[MIT](LICENSE) © Yedidya Toberman.
