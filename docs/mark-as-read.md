@@ -51,3 +51,12 @@ unchanged, and "Play from start" reloaded the same unread history.
   re-queue a finished message.
 - Replay-from-start skips already-heard messages because TDLib's unread window starts after
   `lastReadInboxMessageId` once mark-as-read succeeded — there is no separate local "heard ids" store.
+
+## Sponsored messages are never marked as read
+
+Telegram's official sponsored messages (see [architecture.md](architecture.md#sponsored-messages)) are not chat
+history and never go through `ReadCheckpointer` / `markChatAsRead`. The only call made for them is the **view
+report**: `TdLibSponsoredMessagesSource.view` sends `ViewMessages(chatId, [sponsoredMessageId], source = null,
+forceRead = false)` (TDLib 1.8.56 has no `viewSponsoredMessage`), at most once per ad per fetch, when the ad was
+read aloud in full or its card's full text was on screen. `forceRead = false` so this never marks an ordinary
+message as read. Skipping the ad (skip message / skip chat) sends nothing.

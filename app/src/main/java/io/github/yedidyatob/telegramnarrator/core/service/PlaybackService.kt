@@ -18,6 +18,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.text.BidiFormatter
 import io.github.yedidyatob.telegramnarrator.core.audio.AudioFocusController
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy
 import io.github.yedidyatob.telegramnarrator.MainActivity
@@ -43,7 +44,12 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackManager
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackReadProgress
 import io.github.yedidyatob.telegramnarrator.domain.audio.VoiceNotePlayback
 import io.github.yedidyatob.telegramnarrator.domain.audio.ReadCheckpointer
+import io.github.yedidyatob.telegramnarrator.domain.audio.SponsoredSlotPlacement
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMessagesRepository
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredSpeech
+import kotlinx.coroutines.withTimeoutOrNull
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -69,6 +75,7 @@ class PlaybackService : Service() {
     @Inject lateinit var openAiSpeech: OpenAiSpeechSynthesizer
     @Inject lateinit var edgeSpeech: EdgeSpeechSynthesizer
     @Inject lateinit var ttsPreferences: TtsPreferences
+    @Inject lateinit var sponsoredMessages: SponsoredMessagesRepository
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val job = SupervisorJob()
@@ -126,6 +133,8 @@ class PlaybackService : Service() {
         private const val TOAST_THROTTLE_MS = 30_000L
         /** Upcoming speakable messages to synthesize into the disk cache while the current cloud TTS item plays. */
         const val CLOUD_TTS_PREFETCH_COUNT = CloudTtsPrefetch.COUNT
+        /** How long a sponsored-message slot waits for getChatSponsoredMessages before it is passed. */
+        private const val SPONSORED_FETCH_TIMEOUT_MS = 5_000L
     }
 
     override fun onCreate() {
@@ -209,6 +218,8 @@ class PlaybackService : Service() {
 
     private suspend fun startPlayback(chatIds: LongArray) {
         audioQueue.clear()
+        // A new run starts without the previous run's sponsored card
+        playbackManager.clearSponsoredAd()
         
         // Wait for TTS engine to initialize before grabbing the mic/audio focus
         ttsManager.isInitialized.first { it }
@@ -225,24 +236,23 @@ class PlaybackService : Service() {
             val decisions = channelRules.engine.evaluate(chatId, chat?.title, messages, moreUnreadFollows)
                 .filter { !it.deferred }
             if (decisions.isNotEmpty()) {
+                val silent = decisions.all { it.dropped }
                 // Boundary ding, then the chat title spoken on its own (no "New chat" words)
-                audioQueue.addAll(
-                    ChatTitleSpeech.chatOpening(
-                        chatId,
-                        rawTitle = chat?.title,
-                        displayTitle = title,
-                        silent = decisions.all { it.dropped }
-                    )
-                )
-                decisions.forEach { decision ->
+                val chatItems = ChatTitleSpeech.chatOpening(
+                    chatId,
+                    rawTitle = chat?.title,
+                    displayTitle = title,
+                    silent = silent
+                ) + decisions.map { decision ->
                     val msg = decision.message
-                    audioQueue.add(
-                        PlaybackItem.MessageItem(
-                            msg.senderName, decision.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType,
-                            dropped = decision.dropped
-                        )
+                    PlaybackItem.MessageItem(
+                        msg.senderName, decision.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType,
+                        dropped = decision.dropped
                     )
                 }
+                // Official sponsored message (channels / bot chats) after the last unread message, before the
+                // next chat's ding. Channel cleaning rules never see it.
+                audioQueue.addAll(SponsoredSlotPlacement.withSlot(chatItems, chatId, title, silent))
                 audioQueue.add(PlaybackItem.Silence(1000))
             }
         }
@@ -294,6 +304,13 @@ class PlaybackService : Service() {
         when (item) {
             is PlaybackItem.Intro -> {
                 playbackManager.setPlayingChatId(item.chatId)
+                // The previous chat's sponsored card is shown until the next chat starts
+                playbackManager.clearSponsoredAd()
+                // "Opening" the chat: fetch its sponsored messages now (5-minute cache) so the slot after its
+                // messages does not wait on the network
+                if (audioQueue.snapshot().any { it is PlaybackItem.SponsoredSlot && it.chatId == item.chatId }) {
+                    scope.launch { sponsoredMessages.adsFor(item.chatId) }
+                }
                 if (item.silent) {
                     processQueue()
                 } else {
@@ -353,6 +370,7 @@ class PlaybackService : Service() {
                 // No "Message from X:" — speak the body only (notification still shows the sender).
                 speakText(text) { onMessageFullyPlayed(item) }
             }
+            is PlaybackItem.SponsoredSlot -> playSponsoredSlot(item, generation)
             is PlaybackItem.Silence -> {
                 processQueue()
             }
@@ -362,6 +380,58 @@ class PlaybackService : Service() {
             }
         }
     }
+
+    /**
+     * The chat's official sponsored message (Telegram API ToS 3.3): show the card, speak the localized cue and
+     * the cleaned title / text, and report the view once it was read aloud in full. No ad (or a chat without
+     * ads) passes silently. Never marked as read.
+     */
+    private fun playSponsoredSlot(item: PlaybackItem.SponsoredSlot, generation: Int) {
+        val loading = playbackManager.beginAudioLoading()
+        scope.launch {
+            val ad = try {
+                withTimeoutOrNull(SPONSORED_FETCH_TIMEOUT_MS) { sponsoredMessages.adFor(item.chatId) }
+            } finally {
+                playbackManager.endAudioLoading(loading)
+            }
+            // Paused / skipped / stopped while fetching (pause re-queues the slot)
+            if (generation != itemGeneration.get() || !isPlaying || isPaused) return@launch
+            if (ad == null) {
+                if (currentItem === item) currentItem = null
+                processQueue()
+                return@launch
+            }
+            playbackManager.showSponsoredAd(ad)
+            setStatusText(
+                getString(
+                    if (ad.isRecommended) R.string.notification_recommended else R.string.notification_sponsored,
+                    bidiIsolate(ad.title.ifBlank { item.chatName })
+                )
+            )
+            val speech = SponsoredSpeech.speechText(ad, sponsoredCue(ad))
+            if (speech == null) {
+                // Nothing speakable (e.g. emoji-only): the card still shows the ad
+                if (currentItem === item) currentItem = null
+                processQueue()
+                return@launch
+            }
+            speakText(speech) {
+                if (currentItem === item) currentItem = null
+                // Read aloud in full: counts as a view even with the screen off (once per ad per fetch)
+                scope.launch { sponsoredMessages.reportViewed(ad) }
+            }
+        }
+    }
+
+    /** "Sponsored" / "Recommended" in the ad's own language (Hebrew or English), like chat titles. */
+    private fun sponsoredCue(ad: SponsoredAd): String = getString(
+        when (SponsoredSpeech.cue(ad)) {
+            SponsoredSpeech.Cue.SPONSORED_EN -> R.string.sponsored_cue_en
+            SponsoredSpeech.Cue.SPONSORED_HE -> R.string.sponsored_cue_he
+            SponsoredSpeech.Cue.RECOMMENDED_EN -> R.string.sponsored_cue_recommended_en
+            SponsoredSpeech.Cue.RECOMMENDED_HE -> R.string.sponsored_cue_recommended_he
+        }
+    )
 
     // Speaks a message body or a chat title with the selected engine, then moves on. [onSpoken] runs only if the
     // speech finished (for messages: counts as played and gets marked as read). Every engine picks the
@@ -877,11 +947,23 @@ class PlaybackService : Service() {
     
     private fun updateNotification(item: PlaybackItem) {
         val text = when(item) {
-             is PlaybackItem.Intro -> getString(R.string.notification_chat, item.chatName)
-             is PlaybackItem.ChatTitle -> getString(R.string.notification_chat, item.chatName)
-             is PlaybackItem.MessageItem -> getString(R.string.notification_from, item.sender ?: getString(R.string.playback_unknown_sender))
+             is PlaybackItem.Intro -> getString(R.string.notification_chat, bidiIsolate(item.chatName))
+             is PlaybackItem.ChatTitle -> getString(R.string.notification_chat, bidiIsolate(item.chatName))
+             is PlaybackItem.MessageItem -> getString(R.string.notification_from, bidiIsolate(item.sender ?: getString(R.string.playback_unknown_sender)))
+             // Set once the ad is known ("Sponsored · {title}"); a chat without an ad keeps the current text
+             is PlaybackItem.SponsoredSlot -> return
              else -> getString(R.string.notification_playing)
         }
+        setStatusText(text)
+    }
+
+    /**
+     * Wraps a chat title / sender / ad title in bidi isolation marks, so a Hebrew name inside an English
+     * template ("Chat: חדשות") or the other way round keeps the template's order and punctuation.
+     */
+    private fun bidiIsolate(name: String): String = BidiFormatter.getInstance().unicodeWrap(name)
+
+    private fun setStatusText(text: String) {
         playbackManager.setStatus(text)
         statusText = text
         refreshNotification()

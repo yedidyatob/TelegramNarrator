@@ -72,13 +72,19 @@ import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.labelRes
 import io.github.yedidyatob.telegramnarrator.core.service.PlaybackService
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
+import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
+import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
+import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
+import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.HomeViewModel
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onPlayAll: (List<Chat>) -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    sponsoredViewModel: SponsoredViewModel = hiltViewModel()
 ) {
     val chats by viewModel.unreadChats.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -91,8 +97,17 @@ fun HomeScreen(
     val selectedIds by viewModel.selectedChatIds.collectAsStateWithLifecycle()
     val playingChatId by viewModel.currentPlayingChatId.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
+    // Official Telegram sponsored messages (Telegram API ToS 3.3)
+    val playingAd by sponsoredViewModel.playingAd.collectAsStateWithLifecycle()
+    val previewAd by sponsoredViewModel.previewAd.collectAsStateWithLifecycle()
+    val reportDialog by sponsoredViewModel.reportDialog.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        sponsoredViewModel.toasts.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+    }
+    // Opening a chat's preview sheet "opens" the chat: fetch its sponsored message (channels / bots only)
+    LaunchedEffect(selectedChat?.id) { sponsoredViewModel.loadPreviewAd(selectedChat?.id) }
     val pullToRefreshState = rememberPullToRefreshState()
     if (pullToRefreshState.isRefreshing) {
         LaunchedEffect(Unit) { viewModel.refresh() }
@@ -144,43 +159,58 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isPlaying,
-                enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
-                exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
-            ) {
-                NowPlayingBar(
-                    status = playStatus ?: stringResource(R.string.home_player_starting),
-                    isPaused = isPaused,
-                    preparingAudio = preparingAudio && !isPaused,
-                    onTogglePause = {
-                        val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply { this.action = action }
-                        )
-                    },
-                    onSkipMessage = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_SKIP_MSG
-                            }
-                        )
-                    },
-                    onSkipChat = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_SKIP_CHAT
-                            }
-                        )
-                    },
-                    onStop = {
-                        context.startService(
-                            android.content.Intent(context, PlaybackService::class.java).apply {
-                                action = PlaybackService.ACTION_STOP
-                            }
-                        )
-                    }
-                )
+            Column {
+                // Sponsored message of the chat that was just played: from when it is spoken until the next chat
+                playingAd?.let { ad ->
+                    SponsoredCard(
+                        ad = ad,
+                        onFullyVisible = sponsoredViewModel::onFullyVisible,
+                        onLinkClicked = sponsoredViewModel::onLinkClicked,
+                        onReport = sponsoredViewModel::startReport,
+                        loadFile = sponsoredViewModel::localFile,
+                        modifier = Modifier
+                            .then(if (isPlaying) Modifier else Modifier.navigationBarsPadding())
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isPlaying,
+                    enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
+                    exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
+                ) {
+                    NowPlayingBar(
+                        status = playStatus ?: stringResource(R.string.home_player_starting),
+                        isPaused = isPaused,
+                        preparingAudio = preparingAudio && !isPaused,
+                        onTogglePause = {
+                            val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply { this.action = action }
+                            )
+                        },
+                        onSkipMessage = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_SKIP_MSG
+                                }
+                            )
+                        },
+                        onSkipChat = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_SKIP_CHAT
+                                }
+                            )
+                        },
+                        onStop = {
+                            context.startService(
+                                android.content.Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_STOP
+                                }
+                            )
+                        }
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -321,45 +351,45 @@ fun HomeScreen(
                 } else {
                     LazyColumn(contentPadding = PaddingValues(16.dp)) {
                         items(sheetMsgs, key = { it.id }) { msg ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (msg.isOutgoing) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    }
+                            SheetMessageCard(
+                                senderName = msg.senderName ?: stringResource(R.string.playback_unknown_sender),
+                                text = msg.text.ifBlank {
+                                    stringResource(msg.contentType.labelRes() ?: R.string.message_unsupported_content)
+                                },
+                                isOutgoing = msg.isOutgoing
+                            )
+                        }
+                        // The channel's / bot's sponsored message, at the bottom of the sheet
+                        previewAd?.takeIf { it.chatId == currentChat.id }?.let { ad ->
+                            item(key = "sponsored") {
+                                SponsoredCard(
+                                    ad = ad,
+                                    onFullyVisible = sponsoredViewModel::onFullyVisible,
+                                    onLinkClicked = sponsoredViewModel::onLinkClicked,
+                                    onReport = sponsoredViewModel::startReport,
+                                    loadFile = sponsoredViewModel::localFile,
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = msg.senderName
-                                            ?: stringResource(R.string.playback_unknown_sender),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    val displayText = msg.text.ifBlank {
-                                        stringResource(
-                                            msg.contentType.labelRes()
-                                                ?: R.string.message_unsupported_content
-                                        )
-                                    }
-                                    Text(text = displayText, style = MaterialTheme.typography.bodyMedium)
-                                }
                             }
                         }
                     }
                 }
             }
         }
+
+        reportDialog?.let { dialog ->
+            SponsoredReportDialog(
+                title = dialog.title,
+                options = dialog.options,
+                onChoose = sponsoredViewModel::chooseReportOption,
+                onDismiss = sponsoredViewModel::dismissReport
+            )
+        }
     }
 }
 
 @Composable
-private fun NowPlayingBar(
+internal fun NowPlayingBar(
     status: String,
     isPaused: Boolean,
     preparingAudio: Boolean,
@@ -406,6 +436,9 @@ private fun NowPlayingBar(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+                // Always a UI template ("Chat: {title}", "From {sender}", "Sponsored · {title}"), so it aligns with the
+                // UI like the label above. The service bidi-isolates the name inside it, so a Hebrew chat title in an
+                // English template (or the other way round) keeps its own order and punctuation.
                 Text(
                     text = status,
                     style = MaterialTheme.typography.bodyMedium,
@@ -445,6 +478,42 @@ private fun NowPlayingBar(
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * One unread message in the chat's preview sheet. The card follows the message's direction (a Hebrew message
+ * is right-aligned, sender name included, even on an English device); each paragraph aligns by its own text.
+ */
+@Composable
+internal fun SheetMessageCard(senderName: String, text: String, isOutgoing: Boolean) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOutgoing) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        ProvideContentDirection(text) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = senderName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

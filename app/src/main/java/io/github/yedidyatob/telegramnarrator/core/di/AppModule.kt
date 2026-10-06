@@ -5,11 +5,13 @@ import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibAuthRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibChatRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibUserCache
+import io.github.yedidyatob.telegramnarrator.data.sponsored.TdLibSponsoredMessagesSource
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMessagesSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,6 +61,10 @@ object AppModule {
     ): ChatRepository {
         return TdLibChatRepository(client, userCache, ttsPreferences)
     }
+
+    @Provides
+    @Singleton
+    fun provideSponsoredMessagesSource(source: TdLibSponsoredMessagesSource): SponsoredMessagesSource = source
 
     @Provides
     @Singleton
