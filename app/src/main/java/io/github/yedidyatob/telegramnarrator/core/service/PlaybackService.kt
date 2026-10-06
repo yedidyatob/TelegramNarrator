@@ -43,16 +43,12 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackManager
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackReadProgress
 import io.github.yedidyatob.telegramnarrator.domain.audio.VoiceNotePlayback
 import io.github.yedidyatob.telegramnarrator.domain.audio.ReadCheckpointer
-import io.github.yedidyatob.telegramnarrator.domain.audio.LanguageDetector
 import io.github.yedidyatob.telegramnarrator.domain.audio.SponsoredSlotPlacement
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMessagesRepository
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredSpeech
-import android.content.res.Configuration
-import android.content.res.Resources
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.Locale
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -427,17 +423,14 @@ class PlaybackService : Service() {
     }
 
     /** "Sponsored" / "Recommended" in the ad's own language (Hebrew or English), like chat titles. */
-    private fun sponsoredCue(ad: SponsoredAd): String {
-        val locale = SponsoredSpeech.cueLocale(ad)
-        val res = localizedResources(if (locale == LanguageDetector.HEBREW) LanguageDetector.HEBREW else Locale.ENGLISH)
-        return res.getString(if (ad.isRecommended) R.string.sponsored_label_recommended else R.string.sponsored_label)
-    }
-
-    private fun localizedResources(locale: Locale): Resources {
-        val config = Configuration(resources.configuration)
-        config.setLocale(locale)
-        return createConfigurationContext(config).resources
-    }
+    private fun sponsoredCue(ad: SponsoredAd): String = getString(
+        when (SponsoredSpeech.cue(ad)) {
+            SponsoredSpeech.Cue.SPONSORED_EN -> R.string.sponsored_cue_en
+            SponsoredSpeech.Cue.SPONSORED_HE -> R.string.sponsored_cue_he
+            SponsoredSpeech.Cue.RECOMMENDED_EN -> R.string.sponsored_cue_recommended_en
+            SponsoredSpeech.Cue.RECOMMENDED_HE -> R.string.sponsored_cue_recommended_he
+        }
+    )
 
     // Speaks a message body or a chat title with the selected engine, then moves on. [onSpoken] runs only if the
     // speech finished (for messages: counts as played and gets marked as read). Every engine picks the

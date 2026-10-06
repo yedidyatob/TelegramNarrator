@@ -5,7 +5,7 @@
     <string name="login_privacy_policy">מדיניות פרטיות</string>
     <string name="settings_about_unofficial">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram.</string>
 
-    <!-- Sponsored messages: label and spoken cue (spoken in Hebrew for a Hebrew ad) -->
+    <!-- Sponsored messages: card label (the spoken cue is picked by the ad's language, see values/strings.xml) -->
     <string name="sponsored_label">ממומן</string>
     <string name="sponsored_label_recommended">מומלץ</string>
     <string name="sponsored_label_ad">מודעה</string>

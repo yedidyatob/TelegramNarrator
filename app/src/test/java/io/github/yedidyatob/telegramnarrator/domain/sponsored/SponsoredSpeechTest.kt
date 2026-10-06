@@ -61,6 +61,16 @@ class SponsoredSpeechTest {
     }
 
     @Test
+    fun `cue is Sponsored or Recommended in the ad's language`() {
+        val hebrew = ad(title = "ערוץ החדשות", text = "הצטרפו עכשיו")
+        val english = ad(title = "News", text = "Join now")
+        assertEquals(SponsoredSpeech.Cue.SPONSORED_HE, SponsoredSpeech.cue(hebrew))
+        assertEquals(SponsoredSpeech.Cue.SPONSORED_EN, SponsoredSpeech.cue(english))
+        assertEquals(SponsoredSpeech.Cue.RECOMMENDED_HE, SponsoredSpeech.cue(hebrew.copy(isRecommended = true)))
+        assertEquals(SponsoredSpeech.Cue.RECOMMENDED_EN, SponsoredSpeech.cue(english.copy(isRecommended = true)))
+    }
+
+    @Test
     fun `sponsor info joins both fields`() {
         val ad = ad().copy(sponsorInfo = "Sponsor Ltd", additionalInfo = "Ad by X")
         assertEquals("Sponsor Ltd\n\nAd by X", ad.sponsorInfoText)

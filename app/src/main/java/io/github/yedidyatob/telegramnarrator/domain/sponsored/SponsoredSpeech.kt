@@ -18,6 +18,19 @@ object SponsoredSpeech {
         return if (detected == LanguageDetector.HEBREW) LanguageDetector.HEBREW else LanguageDetector.ENGLISH
     }
 
+    /** Which spoken cue precedes the ad: "Sponsored" / "Recommended", in Hebrew or English. */
+    enum class Cue { SPONSORED_EN, SPONSORED_HE, RECOMMENDED_EN, RECOMMENDED_HE }
+
+    fun cue(ad: SponsoredAd): Cue {
+        val hebrew = cueLocale(ad) == LanguageDetector.HEBREW
+        return when {
+            ad.isRecommended && hebrew -> Cue.RECOMMENDED_HE
+            ad.isRecommended -> Cue.RECOMMENDED_EN
+            hebrew -> Cue.SPONSORED_HE
+            else -> Cue.SPONSORED_EN
+        }
+    }
+
     /** Cleaned [raw] for TTS, or null when nothing speakable is left (blank, emoji / symbols only). */
     fun speakable(raw: String): String? {
         val cleaned = MessageCleaner.clean(raw)

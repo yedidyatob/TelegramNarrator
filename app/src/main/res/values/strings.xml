@@ -199,8 +199,14 @@
     <string name="test_sentence_es" translatable="false">Hola, esta es una prueba de voz. Así sonarán tus mensajes.</string>
     <string name="test_sentence_fr" translatable="false">Bonjour, ceci est un test de voix. Voici comment vos messages vont sonner.</string>
 
-    <!-- Official Telegram sponsored messages (Telegram API ToS 3.3). sponsored_label and
-         sponsored_label_recommended are also the spoken cues (Hebrew in values-he, picked by the ad's language). -->
+    <!-- Official Telegram sponsored messages (Telegram API ToS 3.3). -->
+    <!-- Spoken cue before the ad, in the ad's own language (not the device language). Kept here, not in values-he,
+         because App Bundle language splits would leave out the Hebrew strings on non-Hebrew devices. -->
+    <string name="sponsored_cue_en" translatable="false">Sponsored</string>
+    <string name="sponsored_cue_he" translatable="false">ממומן</string>
+    <string name="sponsored_cue_recommended_en" translatable="false">Recommended</string>
+    <string name="sponsored_cue_recommended_he" translatable="false">מומלץ</string>
+    <!-- Card label (device language) -->
     <string name="sponsored_label">Sponsored</string>
     <string name="sponsored_label_recommended">Recommended</string>
     <string name="sponsored_label_ad">Ad</string>
