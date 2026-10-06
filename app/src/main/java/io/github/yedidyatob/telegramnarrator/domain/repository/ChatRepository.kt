@@ -23,11 +23,12 @@ interface ChatRepository {
 
     /**
      * Marks the given (played) messages of the chat as read; messages newer than the newest of
-     * [messageIds] stay unread. No-op if [markAsReadEnabled] is false.
+     * [messageIds] stay unread. No-op if [markAsReadEnabled] is false (possible in debug builds only).
      */
     suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>)
     suspend fun getVoiceFilePath(fileId: Int): String?
     suspend fun loadChats()
     
-    var markAsReadEnabled: Boolean
+    /** Always true in release builds; debug builds can turn it off in Voice settings. */
+    val markAsReadEnabled: Boolean
 }

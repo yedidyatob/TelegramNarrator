@@ -110,7 +110,7 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Marks the unread messages currently shown in the preview sheet as read in Telegram.
-     * Respects [ChatRepository.markAsReadEnabled] (the Voice-settings switch / debug default).
+     * Respects [ChatRepository.markAsReadEnabled] (always on in release; debug builds have a switch).
      */
     fun markSelectedChatAsRead() {
         val chat = _selectedChat.value ?: return

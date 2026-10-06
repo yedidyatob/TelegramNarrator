@@ -33,10 +33,9 @@ class TdLibChatRepository @Inject constructor(
     // Public state for UI
     private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
     
-    // User setting (Voice settings sheet); default ON for debug and release (override via the switch)
-    override var markAsReadEnabled: Boolean
+    // Always on in release builds; debug builds can turn it off in Voice settings (Telegram API ToS 1.4)
+    override val markAsReadEnabled: Boolean
         get() = ttsPreferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
-        set(value) = ttsPreferences.update { it.copy(markAsReadOverride = value) }
 
     private val repositoryScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
 
@@ -205,7 +204,7 @@ class TdLibChatRepository @Inject constructor(
 
     override suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>) {
         if (!markAsReadEnabled) {
-            Log.d("ChatRepository", "Mark as read skipped (disabled in settings): $chatId")
+            Log.d("ChatRepository", "Mark as read skipped (turned off in debug settings): $chatId")
             return
         }
         if (messageIds.isEmpty()) {

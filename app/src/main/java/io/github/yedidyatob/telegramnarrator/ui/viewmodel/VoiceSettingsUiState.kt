@@ -82,8 +82,10 @@ data class TtsSettingsUiState(
     val edge: EdgeVoiceUiState = EdgeVoiceUiState(),
     val openAi: OpenAiVoiceUiState = OpenAiVoiceUiState(),
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
-    /** Mark played messages as read in Telegram. */
+    /** Mark played messages as read in Telegram (always true in release builds). */
     val markAsRead: Boolean = true,
+    /** The "Mark messages as read" switch is shown in debug builds only (Telegram API ToS 1.4). */
+    val markAsReadSwitchVisible: Boolean = false,
     /** Language of the Test voice sample (shared by all engines); defaults to the device UI language. */
     val testLanguage: TestLanguage = TestLanguage.FALLBACK
 ) {

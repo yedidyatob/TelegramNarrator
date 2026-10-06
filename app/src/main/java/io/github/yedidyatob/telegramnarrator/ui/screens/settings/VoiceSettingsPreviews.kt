@@ -52,6 +52,19 @@ private fun VoiceSettingsSystemPreview() {
     PreviewSheet(TtsSettingsUiState(provider = SpeechProvider.SYSTEM, system = previewSystem))
 }
 
+@Preview(name = "System (debug build: mark-as-read switch)", showBackground = true, heightDp = 900)
+@Composable
+private fun VoiceSettingsDebugMarkAsReadPreview() {
+    PreviewSheet(
+        TtsSettingsUiState(
+            provider = SpeechProvider.SYSTEM,
+            system = previewSystem,
+            markAsRead = false,
+            markAsReadSwitchVisible = true
+        )
+    )
+}
+
 @Preview(name = "System (engine starting)", showBackground = true, heightDp = 700)
 @Composable
 private fun VoiceSettingsSystemLoadingPreview() {

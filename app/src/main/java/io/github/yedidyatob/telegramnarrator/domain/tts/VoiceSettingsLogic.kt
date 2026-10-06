@@ -14,7 +14,7 @@ enum class VoiceSettingsSection {
     /** OpenAI: key, quality, voice (only for [SpeechProvider.OPENAI]). */
     OPENAI_VOICE,
 
-    /** Speech rate + mark-as-read (always shown). */
+    /** Speech rate (always shown) + the mark-as-read switch (debug builds only). */
     PLAYBACK
 }
 
