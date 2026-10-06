@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nothing of this app may leave the device through Android backup or device-to-device transfer:
+    the TDLib database (Telegram session, chats, message cache) in files/tdlib, its Keystore-wrapped key
+    in no_backup, the OpenAI API key (EncryptedSharedPreferences, whose master key cannot be restored on
+    another device anyway), TTS settings and the cloud-TTS audio cache.
+
+    android:allowBackup="false" already disables cloud backup, but on Android 12+ it does NOT stop
+    device-to-device transfers; these rules (read on Android 12+) exclude every domain from both.
+    After moving to a new phone the user simply logs in again.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

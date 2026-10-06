@@ -2,15 +2,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Every permission is listed with its reason in docs/play-data-safety.md -->
+    <!-- TDLib (Telegram), and the optional Edge / OpenAI speech engines -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- PlaybackService keeps reading aloud with the screen off (foreground service type mediaPlayback) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Playback controls in the notification / lock screen (Android 13+ runtime permission, optional) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- The TDLib AAR (tdlibx, old targetSdk) declares WRITE_EXTERNAL_STORAGE, and the manifest merger then
+         adds an implied READ_EXTERNAL_STORAGE. TDLib only uses the app's private filesDir here, so neither is
+         needed: keep both out of the APK. (The merger warns that nothing declares READ: it is implied, and
+         this removal is still what keeps it out.) -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage"
+        tools:node="remove" />
 
     <application
         android:name=".TelegramNarratorApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         tools:replace="android:allowBackup"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"

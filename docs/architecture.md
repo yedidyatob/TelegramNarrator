@@ -9,7 +9,7 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 
 | | |
 |---|---|
-| Platform | Android, `minSdk` 26, `targetSdk`/`compileSdk` 34 |
+| Platform | Android, `minSdk` 26, `targetSdk`/`compileSdk` 36; `applicationId` `io.github.yedidyatob.telegramnarrator` |
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
@@ -21,7 +21,7 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 ## Layers and packages
 
 ```
-com.example.telegramnarrator
+io.github.yedidyatob.telegramnarrator
 ├── MainActivity, TelegramNarratorApp      Single activity + @HiltAndroidApp
 ├── ui/        Presentation (Compose)
 │   ├── screens/auth/LoginScreen           phone (country picker, PhoneNumberField) → code → 2FA password
@@ -125,8 +125,11 @@ The direction (details and plans live in the linked issues, tracked by the "Poli
 - **TdLibClient robustness** (#13): no lost updates, cancellable sends, thread safety.
 - **Keep less data on disk**: consider `useMessageDatabase = false` (follow-up from #15).
 - **UI**: a dedicated Player screen, onboarding and Home empty/error states (#20).
-- **Tooling currency** (#21): AGP/Kotlin/Compose BOM upgrades, Hilt via KSP, SDK 35.
-- **Publishing readiness** (#24): real `applicationId`, signing config, privacy policy, Data safety form.
+- **Tooling currency** (#21): AGP/Kotlin/Compose BOM upgrades, Hilt via KSP (SDK 36 is already in, on AGP 8.2.1 with
+  `android.suppressUnsupportedCompileSdk`).
+- **Publishing readiness** (#24): done in code and docs (`applicationId`, release signing, versioning, privacy
+  policy, Data safety answers, see [publishing.md](publishing.md)). Still open: Telegram sponsored messages in
+  channels (API terms 3.3) and the tag-triggered release workflow.
 
 Until those land, keep new logic in `domain/` as pure Kotlin with JVM unit tests, and keep Android/TDLib/network
 code in `data/` or `core/` behind interfaces, so the eventual split is mechanical.

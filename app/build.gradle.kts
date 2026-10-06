@@ -8,37 +8,98 @@ plugins {
     kotlin("kapt")
 }
 
+// local.properties is git-ignored: Telegram API credentials and (optionally) the release keystore live there.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) FileInputStream(file).use { load(it) }
+}
+
+/** A setting from (in order) a Gradle property (-P / gradle.properties), an environment variable, or local.properties. */
+fun setting(name: String): String? =
+    (findProperty(name) as String?)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(name)?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+
+// ---- Versioning ---------------------------------------------------------------------------------
+// versionName is MAJOR.MINOR.PATCH from gradle.properties (TN_VERSION_NAME); a release tag can override it
+// on the command line with -PTN_VERSION_NAME=1.2.3. versionCode is derived from it as
+// MAJOR * 10000 + MINOR * 100 + PATCH (1.0.0 -> 10000, 1.2.3 -> 10203), so it always increases with the
+// version. TN_VERSION_CODE overrides the derived value if you ever need to. See docs/publishing.md.
+val tnVersionName: String = setting("TN_VERSION_NAME") ?: "1.0.0"
+val tnVersionCode: Int = setting("TN_VERSION_CODE")?.toInt() ?: run {
+    val match = Regex("""(\d+)\.(\d+)\.(\d+)""").matchEntire(tnVersionName)
+        ?: throw GradleException("TN_VERSION_NAME must be MAJOR.MINOR.PATCH (e.g. 1.2.3), was '$tnVersionName'")
+    val (major, minor, patch) = match.destructured.toList().map { it.toInt() }
+    if (minor > 99 || patch > 99) {
+        throw GradleException("TN_VERSION_NAME minor and patch must be 0..99 to derive versionCode, was '$tnVersionName'")
+    }
+    major * 10_000 + minor * 100 + patch
+}
+
+// ---- Release signing ------------------------------------------------------------------------------
+// The upload keystore is NEVER committed. Point the build at it with these four settings, either in
+// local.properties or as environment variables (CI): TN_KEYSTORE_PATH, TN_KEYSTORE_PASSWORD, TN_KEY_ALIAS,
+// TN_KEY_PASSWORD. Without them release builds are produced unsigned (fine for CI and for checking that
+// R8 works); set TN_RELEASE_DEBUG_SIGNING=true to sign a local release build with the debug key instead,
+// so it can be installed on a device. See docs/publishing.md.
+val keystorePath = setting("TN_KEYSTORE_PATH")
+val keystoreFile = keystorePath?.let { rootProject.file(it) }
+val releaseSigningValues = listOf("TN_KEYSTORE_PATH", "TN_KEYSTORE_PASSWORD", "TN_KEY_ALIAS", "TN_KEY_PASSWORD")
+    .associateWith { setting(it) }
+val hasReleaseKeystore = releaseSigningValues.values.all { it != null } && keystoreFile?.isFile == true
+if (!hasReleaseKeystore && releaseSigningValues.values.any { it != null }) {
+    val missing = releaseSigningValues.filterValues { it == null }.keys
+    val reason = if (missing.isNotEmpty()) "missing $missing" else "keystore file not found: $keystoreFile"
+    logger.warn("w: Release signing is only partly configured ($reason); release builds will be unsigned.")
+}
+val useDebugSigningForRelease = !hasReleaseKeystore && setting("TN_RELEASE_DEBUG_SIGNING") == "true"
+
 android {
-    namespace = "com.example.telegramnarrator"
-    compileSdk = 34
+    namespace = "io.github.yedidyatob.telegramnarrator"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.telegramnarrator"
+        // Permanent: Google Play never allows the applicationId to change after the first upload.
+        applicationId = "io.github.yedidyatob.telegramnarrator"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // Google Play requires targetSdk 36 (Android 16) for new apps and updates since Aug 31, 2026.
+        targetSdk = 36
+        versionCode = tnVersionCode
+        versionName = tnVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
-        
-        // Inject API keys from local.properties
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(FileInputStream(localPropertiesFile))
-        }
-        
+
+
+        // Telegram API credentials come only from local.properties (CI writes them there from repo secrets)
         buildConfigField("String", "TELEGRAM_API_ID", "\"${localProperties.getProperty("TELEGRAM_API_ID") ?: ""}\"")
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${localProperties.getProperty("TELEGRAM_API_HASH") ?: ""}\"")
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = keystoreFile
+                storePassword = releaseSigningValues.getValue("TN_KEYSTORE_PASSWORD")
+                keyAlias = releaseSigningValues.getValue("TN_KEY_ALIAS")
+                keyPassword = releaseSigningValues.getValue("TN_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            isDebuggable = false
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = when {
+                hasReleaseKeystore -> signingConfigs.getByName("release")
+                useDebugSigningForRelease -> signingConfigs.getByName("debug")
+                else -> null // unsigned: app-release-unsigned.apk / an unsigned AAB
+            }
         }
     }
     lint {
