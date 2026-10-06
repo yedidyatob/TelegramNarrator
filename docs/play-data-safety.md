@@ -10,7 +10,7 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 | Data | Sent to | When | Code |
 |---|---|---|---|
 | Phone number, login code, 2FA password | Telegram (TDLib, MTProto) | Login | `TdLibAuthRepository` |
-| Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (setting, on by default) | `TdLibChatRepository` |
+| Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (always on in release builds) | `TdLibChatRepository` |
 | Cleaned message text and chat titles (spoken before each chat), voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
 | Cleaned message text and chat titles (spoken before each chat), voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
 
@@ -134,7 +134,7 @@ FEATURES
 • Voice messages are played in the queue
 • Detects the language of every message (great for mixed Hebrew / English channels)
 • Cleans up channel posts: skips links, ads, signatures and symbol-only lines
-• Marks messages as read in Telegram only after they were actually read aloud (can be turned off)
+• Marks messages as read in Telegram only after they were actually read aloud
 • Adjustable speech rate
 
 VOICES
@@ -214,14 +214,14 @@ Source: <https://core.telegram.org/api/terms>. Status of this commit:
 |---|---|---|
 | 1.1 Guard users' privacy (Security Guidelines) | OK | TDLib handles MTProto; the database is encrypted with a Keystore-wrapped key; secret chats disabled; backup and device transfer disabled; message text and keys are never logged; debug logs stripped from release |
 | 1.2 / 1.3 Extensions must not break basic Telegram features | OK | Read-only narrator; nothing it does affects other users |
-| 1.4 No interfering with basic functionality (e.g. "ghost mode", tampering with read statuses, acting without consent) | **Check** | Messages are marked as read only after they were really spoken, which is honest. The *Mark messages as read* switch lets users listen without marking as read ("Turn off to leave chats unread while testing"), which Telegram could see as ghost mode. Consider limiting that switch to debug builds before publishing |
+| 1.4 No interfering with basic functionality (e.g. "ghost mode", tampering with read statuses, acting without consent) | OK (fixed) | Messages are marked as read only after they were really spoken (or deliberately skipped). Release builds always mark them as read: the *Mark messages as read* switch exists only in debug builds (`BuildConfig.DEBUG`) and a stored "off" value is ignored in release, so the published app has no "ghost mode". See [mark-as-read.md](mark-as-read.md) |
 | 1.5 No use of Telegram data for AI training | OK | Nothing is used for training. Optional OpenAI / Edge engines only synthesize speech (inference) at the user's request; the OpenAI API does not train on API data by default |
 | 2.1 Own `api_id` | **Action** | Use an `api_id` registered at my.telegram.org for this app (title/description there should describe this app), only in `local.properties` / CI secrets |
 | 2.2 Say prominently that the app uses the Telegram API (store description + in-app intro) | OK | Second paragraph of the store descriptions above; notice on the login screen and in *Voice settings → About* |
 | 2.3 Title must not contain "Telegram" unless preceded by "Unofficial" | OK (fixed) | Display name changed from "Telegram Narrator" (non-compliant) to "Unofficial Telegram Narrator". Alternatives without the word: "Chat Narrator", "Unread Aloud", "Narrator for chats" |
 | 2.4 No official Telegram logo | OK | Own icon (white ring on purple). Do not use the paper plane in store graphics or screenshots' frames |
 | 3.1 / 3.2 Monetization disclosed in store descriptions | OK | No monetization. If you ever add any, list every method in the store descriptions |
-| 3.3 Apps that show channel content must support official sponsored messages | **Open** | The app reads channel posts but does not fetch, read or report sponsored messages (`getChatSponsoredMessages` / `viewSponsoredMessage`). Needs a follow-up feature (e.g. read the channel's sponsored message, labeled "Sponsored", after its unread posts and report the view) |
+| 3.3 Apps that show channel content must support official sponsored messages | **Open** | The app reads channel posts but does not fetch, read or report sponsored messages (TDLib 1.8.56: `getChatSponsoredMessages`, views through `viewMessages`, `clickChatSponsoredMessage`, `reportChatSponsoredMessage`). Needs a follow-up feature (e.g. read the channel's sponsored message, labeled "Sponsored", after its unread posts and report the view) |
 | 4 Breach handling | Note | Telegram contacts the account that owns the `api_id`, with 10 days to fix. Keep that account active and read its service notifications |
 
 Google Play side: Play's impersonation / metadata policies can also object to third-party brand names in a title,

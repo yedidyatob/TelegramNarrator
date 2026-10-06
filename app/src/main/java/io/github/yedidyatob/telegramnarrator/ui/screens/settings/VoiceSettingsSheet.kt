@@ -102,7 +102,7 @@ import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Edge | OpenAI), then only the selected engine's own section,
- * then **Playback** (speech rate, mark as read). See docs/tts-voice-settings.md.
+ * then **Playback** (speech rate; mark as read in debug builds only). See docs/tts-voice-settings.md.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

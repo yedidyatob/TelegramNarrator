@@ -15,7 +15,7 @@ Engine                                (heading)
 Playback                              (heading)
  Speech rate                           1.0×
  ───────────●──────────
- Mark messages as read in Telegram     [on]
+ Mark messages as read in Telegram     [on]   (debug builds only)
 ```
 
 | Selected engine | Section shown | Contents |
@@ -162,9 +162,10 @@ Pricing: [OpenAI API pricing](https://openai.com/api/pricing/) (tts-1 ≈ $15 / 
 
 - **Speech rate**: 0.5× - 2.0× in 0.1 steps, value shown next to the label; applied to all languages (system
   TTS rate, OpenAI `speed`, Edge MediaPlayer speed).
-- **Mark messages as read in Telegram**: on by default. When enabled, messages are marked read in
-  Telegram only after they were fully spoken (or skipped). Turn off to leave chats unread while testing.
-  Details: [mark-as-read.md](mark-as-read.md).
+- **Mark messages as read in Telegram** (debug builds only): on by default. When enabled, messages are
+  marked read in Telegram only after they were fully spoken (or skipped). Turn off to leave chats unread
+  while testing. Release builds do not show the switch and always mark played messages as read, ignoring a
+  stored `mark_as_read = false` (Telegram API ToS 1.4, no "ghost mode"). Details: [mark-as-read.md](mark-as-read.md).
 
 ## How it is applied
 

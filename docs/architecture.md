@@ -96,8 +96,8 @@ read without playing them.
    (`SYSTEM` → `TtsManager`; `OPENAI` / `EDGE` → synthesize to an MP3 in the disk cache, prefetching the next
    messages while the current one plays, falling back to system TTS on failure),
 4. records progress in `ReadCheckpointer` and marks messages read in batches via
-   `ChatRepository.markChatAsRead` (only messages that were actually played or deliberately skipped; can be
-   turned off in settings — see [mark-as-read.md](mark-as-read.md)).
+   `ChatRepository.markChatAsRead` (only messages that were actually played or deliberately skipped; always on in
+   release builds, a debug-only switch can turn it off — see [mark-as-read.md](mark-as-read.md)).
 
 Pause/resume/skip come from the Home UI, the notification, the lock screen and headset buttons
 (`MediaSessionCompat` callbacks), and audio focus changes (`AudioFocusPolicy`).

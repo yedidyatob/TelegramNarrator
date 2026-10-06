@@ -104,9 +104,11 @@ For a working login, set repository Actions secrets `TELEGRAM_API_ID` and `TELEG
 
 ### Mark as read
 
-Played (or deliberately skipped) messages are marked as read in Telegram by default in **both** debug and
-release builds, so the unread badge drops and "Play from start" does not re-narrate already-heard messages.
-Use the **"Mark messages as read in Telegram"** switch in *Voice settings* to turn this off while testing.
+Played (or deliberately skipped) messages are marked as read in Telegram, so the unread badge drops and
+"Play from start" does not re-narrate already-heard messages. Messages not reached yet stay unread.
+In **release** builds this is always on and there is no switch (Telegram API Terms of Service 1.4 forbid a
+"ghost mode"); any "off" value stored by an older build is ignored. **Debug** builds keep the
+**"Mark messages as read in Telegram"** switch in *Voice settings* so you can leave chats unread while testing.
 See [docs/mark-as-read.md](docs/mark-as-read.md) for the TDLib call sequence and quirks.
 
 ## Project layout
