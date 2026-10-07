@@ -1,5 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
+import io.github.yedidyatob.telegramnarrator.domain.auth.LoginError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.yedidyatob.telegramnarrator.data.auth.DeviceCountrySignals
@@ -37,11 +39,18 @@ class AuthViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    /** Failure of the last login step (shown under the field as a localized message), null when none. */
+    private val _error = MutableStateFlow<LoginError?>(null)
+    val error: StateFlow<LoginError?> = _error.asStateFlow()
 
     val authState: StateFlow<AuthState> = authRepository.authState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Initializing)
+
+    private fun loginErrorOf(e: Exception): LoginError = when (e) {
+        is TdLibException -> LoginError.classify(e.code, e.tdMessage)
+        is java.io.IOException -> LoginError.NETWORK
+        else -> LoginError.UNKNOWN
+    }
 
     fun onRetry() {
         viewModelScope.launch { authRepository.retryInitialization() }
@@ -56,7 +65,7 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.setPhoneNumber(phoneNumber)
             } catch (e: Exception) {
-                _error.value = e.message ?: "Unknown error"
+                _error.value = loginErrorOf(e)
             } finally {
                 _isLoading.value = false
             }
@@ -71,7 +80,7 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.checkAuthenticationCode(code)
             } catch (e: Exception) {
-                _error.value = e.message ?: "Unknown error"
+                _error.value = loginErrorOf(e)
             } finally {
                 _isLoading.value = false
             }
@@ -86,7 +95,7 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.checkAuthenticationPassword(password)
             } catch (e: Exception) {
-                _error.value = e.message ?: "Unknown error"
+                _error.value = loginErrorOf(e)
             } finally {
                 _isLoading.value = false
             }

@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window background/status bar follow the system light/dark mode (see values-night) so there is no
-         light flash before Compose draws; bars are transparent via enableEdgeToEdge(). -->
-    <style name="Theme.TelegramNarrator" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- DayNight: the window background follows the system light/dark mode (values-night) and matches the Compose
+         background, so there is no light flash before Compose draws; bars are transparent via enableEdgeToEdge(). -->
+    <style name="Theme.TelegramNarrator" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Launch theme (AndroidX SplashScreen, #17): app icon on the window background, then Theme.TelegramNarrator -->
+    <style name="Theme.TelegramNarrator.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.TelegramNarrator</item>
+    </style>
 </resources>

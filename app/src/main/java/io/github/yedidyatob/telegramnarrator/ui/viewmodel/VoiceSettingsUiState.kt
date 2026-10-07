@@ -76,7 +76,7 @@ data class OpenAiVoiceUiState(
 }
 
 data class TtsSettingsUiState(
-    /** Engine that speaks messages (system TTS is the default). */
+    /** Engine that speaks messages (Edge is the default for new installs). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     val system: SystemVoiceUiState = SystemVoiceUiState(),
     val edge: EdgeVoiceUiState = EdgeVoiceUiState(),

@@ -32,26 +32,55 @@
     <string name="login_btn_login">Login</string>
     <string name="login_btn_unlock">Unlock</string>
     <!-- Telegram API Terms of Service 2.2 / 2.3: say that the app is unofficial and built on the Telegram API -->
-    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages stay on this device unless you pick an online voice.</string>
+    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with an online voice (Edge, the default, or OpenAI) their text is sent to that service to be read aloud.</string>
     <string name="login_privacy_policy">Privacy policy</string>
     <string name="link_open_failed">No app found to open the link</string>
     <string name="login_status_initializing">Initializing Telegram...</string>
     <string name="login_status_redirecting">Redirecting...</string>
-    <string name="error_unknown">Unknown error</string>
+    <string name="error_unknown">Something went wrong. Try again.</string>
+    <!-- Login step failures (mapped from TDLib errors; never TDLib's raw text) -->
+    <string name="login_error_phone_invalid">Telegram doesn\'t recognize this phone number. Check it and try again.</string>
+    <string name="login_error_phone_banned">This phone number is banned from Telegram.</string>
+    <string name="login_error_code_invalid">Wrong code. Check the code Telegram sent and try again.</string>
+    <string name="login_error_code_expired">This code has expired. Go back and request a new one.</string>
+    <string name="login_error_password_invalid">Wrong password. Try again.</string>
+    <string name="login_error_too_many_attempts">Too many attempts. Wait a while and try again.</string>
+    <string name="login_error_network">No connection to Telegram. Check your internet connection and try again.</string>
+    <!-- "Could not start Telegram" screen -->
+    <string name="login_startup_missing_credentials">This build has no Telegram API credentials. Add TELEGRAM_API_ID and TELEGRAM_API_HASH to local.properties and rebuild.</string>
+    <string name="login_startup_secure_storage">Secure storage isn\'t available right now, so your Telegram data can\'t be opened. Try again.</string>
+    <string name="login_startup_failed">Telegram couldn\'t start. Try again.</string>
 
     <!-- Home Screen -->
     <string name="home_title">Unread Chats</string>
     <string name="home_btn_play_all">Play All</string>
     <string name="home_btn_stop">Stop</string>
-    <string name="home_btn_logout">Logout</string>
-    <string name="home_no_chats">No unread chats</string>
-    <string name="home_empty_title">You\'re all caught up!</string>
-    <string name="home_empty_subtitle">No unread chats to narrate.</string>
+    <string name="home_btn_logout">Log out</string>
+    <string name="home_empty_title">You\'re all caught up</string>
+    <string name="home_empty_subtitle">No unread chats right now. New messages show up here (muted chats are left out).</string>
+    <string name="home_refresh">Refresh</string>
+    <string name="home_retry">Try again</string>
+    <string name="home_loading_chats">Loading your chats</string>
+    <string name="home_error_title">Couldn\'t load your chats</string>
+    <string name="home_error_body">Telegram didn\'t answer. Check your connection and try again.</string>
+    <string name="home_error_detail">Details: %1$s</string>
+    <string name="home_offline_title">You\'re offline</string>
+    <string name="home_offline_body">Your chats load by themselves as soon as you\'re back online.</string>
+    <string name="home_banner_offline">Waiting for network…</string>
+    <string name="home_banner_connecting">Connecting to Telegram…</string>
+    <string name="home_refresh_failed">Couldn\'t refresh your chats</string>
+    <string name="home_more_options">More options</string>
+    <string name="home_logout_title">Log out?</string>
+    <string name="home_logout_body">You\'ll be signed out of Telegram on this device. Your voice settings stay.</string>
+    <string name="home_selected_count">%1$d of %2$d selected</string>
+    <string name="home_chat_playing">Reading now</string>
+    <string name="home_sheet_loading">Loading messages…</string>
+    <string name="home_sheet_empty">No unread messages to show</string>
+    <string name="home_sheet_play">Play</string>
     <string name="home_unread_suffix">messages</string>
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
     <string name="home_preparing_audio">Preparing audio…</string>
-    <string name="home_loading">Loading</string>
     <string name="home_play_chat">Play unread messages of %1$s</string>
     <string name="home_select_all">Select all</string>
     <string name="home_deselect_all">Deselect all</string>
@@ -67,6 +96,55 @@
     </plurals>
     <string name="message_unsupported_content">Unsupported content</string>
 
+    <!-- Player screen and mini player -->
+    <string name="player_title">Now playing</string>
+    <string name="player_open">Open player</string>
+    <string name="player_close">Close player</string>
+    <string name="player_previous">Previous message</string>
+    <string name="player_next">Next message</string>
+    <string name="player_next_chat">Next chat</string>
+    <string name="player_message_position">Message %1$d of %2$d</string>
+    <string name="player_chat_position">Chat %1$d of %2$d</string>
+    <string name="player_chat_opening">Starting this chat</string>
+    <string name="mini_player_message">%1$s · %2$d of %3$d</string>
+    <string name="player_engine_system">System voice</string>
+    <string name="player_engine_edge">Edge voice</string>
+    <string name="player_engine_openai">OpenAI voice</string>
+    <string name="player_engine_original">Original audio</string>
+    <string name="player_engine_fallback">%1$s (fallback)</string>
+    <string name="player_engine_a11y">Voice: %1$s. Opens voice settings</string>
+
+    <!-- First-run onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_step">Step %1$d of %2$d</string>
+    <string name="onboarding_welcome_title">Your unread chats, read aloud</string>
+    <string name="onboarding_welcome_body">Catch up on Telegram while you drive, walk or cook. The app reads your unread messages chat by chat, even with the screen off.</string>
+    <string name="onboarding_welcome_point_listen">Pick the chats, press Play, and listen</string>
+    <string name="onboarding_welcome_point_control">Pause, replay or skip a message or a whole chat</string>
+    <string name="onboarding_welcome_point_languages">Hebrew and English messages each get the right voice</string>
+    <string name="onboarding_privacy_title">Unofficial app and your privacy</string>
+    <string name="onboarding_privacy_point_device">Your login, messages and settings are stored only on this device</string>
+    <string name="onboarding_privacy_point_voice">By default the Edge voice reads your messages: their text and chat names are sent to Microsoft. You can pick the offline system voice in the next step.</string>
+    <string name="onboarding_privacy_point_read">A message is marked as read in Telegram only after it was read aloud or skipped</string>
+    <string name="onboarding_privacy_point_ads">Channels can include Telegram\'s official sponsored messages</string>
+    <string name="onboarding_voice_title">Choose a voice</string>
+    <string name="onboarding_voice_body">You can change it any time in Voice settings.</string>
+    <string name="onboarding_voice_system_title">System voice</string>
+    <string name="onboarding_voice_system_desc">The text-to-speech engine of your phone. Free and offline: nothing leaves the device.</string>
+    <string name="onboarding_voice_edge_title">Edge voice</string>
+    <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet: the text of your messages and the chat names are sent to Microsoft. If it\'s unavailable, the system voice reads.</string>
+    <string name="onboarding_voice_openai_title">OpenAI voice</string>
+    <string name="onboarding_voice_openai_desc">Premium voices with your own OpenAI API key, billed to you. Message text is sent to OpenAI.</string>
+    <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
+    <string name="onboarding_voice_hebrew_missing">No Hebrew voice found. Install one to hear Hebrew messages.</string>
+    <string name="onboarding_voice_openai_later">You can also add the key later in Voice settings. Until then the system voice reads.</string>
+    <string name="onboarding_voice_openai_saved">Key saved</string>
+    <string name="onboarding_notifications_title">Controls on your lock screen</string>
+    <string name="onboarding_notifications_body">Allow notifications to pause, skip and stop from the notification and the lock screen. Reading works without it, but you won\'t see the controls.</string>
+
     <!-- Playback Service -->
     <string name="playback_skip_msg">Skip Message</string>
     <string name="playback_skip_chat">Skip Chat</string>
@@ -80,6 +158,8 @@
     <string name="playback_content_audio">Audio</string>
     <string name="playback_content_document">Document</string>
     <string name="playback_unknown_sender">Unknown</string>
+    <!-- Spoken / shown when a chat's title could not be loaded -->
+    <string name="playback_unknown_chat">Telegram chat</string>
     <string name="notification_channel_playback">Playback</string>
     <string name="notification_chat">Chat: %1$s</string>
     <string name="notification_from">From %1$s</string>
@@ -109,9 +189,9 @@
     <!-- 1. Engine -->
     <string name="settings_section_engine">Engine</string>
     <string name="settings_engine_system">System</string>
-    <string name="settings_engine_system_desc">Default, works offline</string>
+    <string name="settings_engine_system_desc">On your phone, works offline</string>
     <string name="settings_engine_edge">Edge</string>
-    <string name="settings_engine_edge_desc">Free, needs internet</string>
+    <string name="settings_engine_edge_desc">Free natural voices, needs internet</string>
     <string name="settings_engine_openai">OpenAI</string>
     <string name="settings_engine_openai_desc">Your own key, paid</string>
 
@@ -179,11 +259,27 @@
     <string name="settings_mark_read_desc">Debug builds only: release builds always mark messages as read. Only after a message was fully read aloud (or skipped). Turn off to leave chats unread while testing.</string>
 
     <!-- Network TTS fallback toasts (playback) -->
-    <string name="tts_fallback_unplayable">Could not play the synthesized audio. Using system voice.</string>
-    <string name="tts_fallback_openai_no_key">OpenAI TTS needs an API key. Using system voice.</string>
-    <string name="tts_fallback_openai_too_long">Message too long for OpenAI TTS. Using system voice.</string>
-    <string name="tts_fallback_openai_failed">OpenAI TTS failed. Using system voice.</string>
-    <string name="tts_fallback_edge_failed">Edge TTS failed. Using system voice.</string>
+    <!-- Network voice failures (#63): one message per failure episode, then the system voice reads -->
+    <string name="tts_fallback_unplayable">Couldn\'t play the downloaded audio. Using the system voice.</string>
+    <string name="tts_fallback_openai_no_key">OpenAI needs an API key. Add it in Voice settings. Using the system voice.</string>
+    <string name="tts_fallback_openai_invalid_key">Your OpenAI key is invalid or was revoked. Update it in Voice settings. Using the system voice.</string>
+    <string name="tts_fallback_openai_no_credit">Your OpenAI account is out of credit. Add credit in OpenAI billing. Using the system voice.</string>
+    <string name="tts_fallback_openai_rate_limited">OpenAI is limiting requests right now. Using the system voice.</string>
+    <string name="tts_fallback_openai_too_long">This message is too long for OpenAI. Using the system voice.</string>
+    <string name="tts_fallback_openai_bad_request">OpenAI couldn\'t read this message. Using the system voice.</string>
+    <string name="tts_fallback_openai_server">OpenAI is having problems right now. Using the system voice.</string>
+    <string name="tts_fallback_openai_timeout">OpenAI didn\'t answer in time. Using the system voice.</string>
+    <string name="tts_fallback_openai_failed">OpenAI voice failed. Using the system voice.</string>
+    <string name="tts_fallback_edge_throttled">Edge voices are busy (too many requests). Using the system voice for a minute.</string>
+    <string name="tts_fallback_edge_unavailable">Edge voices are unavailable right now. Using the system voice for a minute.</string>
+    <string name="tts_fallback_edge_timeout">Edge voices didn\'t answer in time. Using the system voice for a minute.</string>
+    <string name="tts_fallback_edge_failed">Edge voice failed. Using the system voice for a minute.</string>
+    <string name="tts_fallback_no_network">No internet connection. Using the system voice until it\'s back.</string>
+    <!-- Notification for failures the user can fix on the OpenAI website (tap opens the page) -->
+    <string name="notification_channel_tts_alerts">Voice problems</string>
+    <string name="tts_alert_title">Voice problem</string>
+    <string name="tts_alert_open_keys">Tap to open your OpenAI API keys.</string>
+    <string name="tts_alert_open_billing">Tap to open OpenAI billing.</string>
 
     <!-- Test voice samples: each language's own name and sentence (spoken content, never translated) -->
     <string name="test_language_en" translatable="false">English</string>
@@ -228,4 +324,8 @@
     <string name="sponsored_report_premium">Hiding ads requires Telegram Premium</string>
     <string name="sponsored_report_expired">This ad is no longer available</string>
     <string name="sponsored_report_error">Could not report the ad. Try again later.</string>
+    <!-- Home ⋮ menu: Material You dynamic color (Android 12+) -->
+    <string name="home_menu_system_colors">Use system colors</string>
+    <!-- TalkBack click label of a chat row (opens the preview sheet) -->
+    <string name="home_open_chat_preview">show messages</string>
 </resources>

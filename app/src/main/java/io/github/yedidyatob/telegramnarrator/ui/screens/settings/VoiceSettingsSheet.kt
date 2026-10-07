@@ -764,8 +764,9 @@ private fun qualityText(voice: VoiceOption): String = when (TtsVoiceLogic.qualit
 private val MIN_TOUCH = 48.dp
 
 private val ENGINE_ROWS = listOf(
-    Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
+    // Edge first: the default engine of new installs
     Triple(SpeechProvider.EDGE, R.string.settings_engine_edge, R.string.settings_engine_edge_desc),
+    Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
     Triple(SpeechProvider.OPENAI, R.string.settings_engine_openai, R.string.settings_engine_openai_desc)
 )
 

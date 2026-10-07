@@ -112,6 +112,11 @@ class TtsManager @Inject constructor(
         emptyList()
     }
 
+    /** Lists the engine's voices again (e.g. after the user installed one in the system settings). */
+    fun reloadVoices() {
+        if (_isInitialized.value) voices = loadVoices()
+    }
+
     /** Engines installed on the device (empty until the first engine is ready). */
     fun availableEngines(): List<EngineOption> = try {
         tts?.engines?.map { EngineOption(it.name, it.label ?: it.name) }.orEmpty()

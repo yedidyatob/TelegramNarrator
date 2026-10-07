@@ -36,7 +36,7 @@ data class TtsSettings(
      * builds, see [markAsReadEnabled].
      */
     val markAsReadOverride: Boolean? = null,
-    /** Engine that speaks messages: system TTS (default), OpenAI (BYOK) or Edge (experimental). */
+    /** Engine that speaks messages: Edge (default for new installs), system TTS or OpenAI (BYOK). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** Optional Bring-Your-Own-Key OpenAI TTS choices (used when [provider] is OPENAI). */
     val openAi: OpenAiTtsOptions = OpenAiTtsOptions(),
@@ -71,7 +71,7 @@ object TtsVoiceLogic {
     const val DEFAULT_RATE = 1.0f
     const val RATE_STEP = 0.1f
 
-    private const val HEBREW = "he"
+    const val HEBREW = "he"
     private const val ENGLISH = "en"
 
     /** Lower-case language code with the legacy Java codes mapped to the modern ones ("iw" -> "he"). */

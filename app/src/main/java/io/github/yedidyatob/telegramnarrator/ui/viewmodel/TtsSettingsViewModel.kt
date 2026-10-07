@@ -1,5 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
+import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
+import io.github.yedidyatob.telegramnarrator.core.tts.TtsFailureMessages
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -265,7 +267,11 @@ class TtsSettingsViewModel @Inject constructor(
     private fun handleTestOutcome(outcome: SpeechSynthesisOutcome, @StringRes failedMessage: Int, discard: (File) -> Unit) {
         when (outcome) {
             is SpeechSynthesisOutcome.Ready -> playTestFile(outcome, failedMessage, discard)
-            is SpeechSynthesisOutcome.Fallback -> toast(failedMessage)
+            // The specific reason (invalid key, no credit, offline…) when there is one
+            is SpeechSynthesisOutcome.Fallback -> toast(
+                if (outcome.reason == FallbackReason.OPENAI_FAILED || outcome.reason == FallbackReason.EDGE_FAILED) failedMessage
+                else TtsFailureMessages.messageRes(outcome.reason)
+            )
             SpeechSynthesisOutcome.UseSystem -> Unit
         }
     }

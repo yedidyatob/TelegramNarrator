@@ -11,7 +11,9 @@ another; messages are marked as read in Telegram only after they were actually s
 ## Features
 
 - Telegram login (phone number with country picker, code, optional 2FA password) via TDLib; local formats like `052-123-4567` are accepted
-- Unread chat list, "Play all" or play a single chat, pause/resume, skip message, skip chat
+- Short first-run introduction (what the app does, privacy, voice engine choice, notification permission), skippable and shown once
+- Unread chat list with chat avatars and clear loading / empty / error / offline states (reloads by itself when the connection is back)
+- "Play all" or play a single chat; a mini player opens the full **Player** screen: the message being read (in its own direction), message and chat position, previous / next message, next chat, pause/resume, the voice engine in use
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
 - Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
 - Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
@@ -20,8 +22,8 @@ another; messages are marked as read in Telegram only after they were actually s
 - Channels and bot chats include Telegram's official sponsored messages (Telegram API ToS 3.3): read aloud after the chat's messages with a "Sponsored" / "ממומן" cue and shown as a card with Sponsor info, About these ads and Report (see [docs/architecture.md](docs/architecture.md#sponsored-messages))
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
-- Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device; system TTS remains default) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
-- **Experimental** Microsoft Edge neural voices (just pick Male or Female; Hebrew and other languages switch automatically): free, no key, unofficial - see [below](#experimental-microsoft-edge-neural-tts)
+- Microsoft Edge neural voices, the **default engine on new installs** (just pick Male or Female; Hebrew and other languages switch automatically): free, no key, unofficial, and message text and chat names are sent to Microsoft - see [below](#microsoft-edge-neural-tts-default-unofficial). The offline system voice is one tap away (onboarding or Voice settings) and is the fallback when Edge fails; installs updated from a version that used the system voice keep it
+- Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
 The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
@@ -59,7 +61,7 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
 
 ### Optional: OpenAI TTS (Bring-Your-Own-Key)
 
-System TTS is the default. No OpenAI key is required or shipped in the repo.
+OpenAI is optional (new installs default to Edge, see below). No OpenAI key is required or shipped in the repo.
 
 1. Create an API key at <https://platform.openai.com/api-keys> (you pay OpenAI directly).
 2. In the app: **Voice settings** → **Engine** → **OpenAI**. Paste the key (tap the eye icon to check it) → **Save key**
@@ -68,14 +70,18 @@ System TTS is the default. No OpenAI key is required or shipped in the repo.
 3. Pricing: <https://openai.com/api/pricing/> (tts-1 ≈ $15 per 1M characters, tts-1-hd ≈ $30 per 1M).
 4. **Warning:** when synthesizing, the key and cleaned message text leave the device to `api.openai.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache so they are not billed again.
 
-### Experimental: Microsoft Edge neural TTS
+### Microsoft Edge neural TTS (default, unofficial)
 
-> ⚠️ **Experimental and unofficial.** This uses the endpoint behind Microsoft Edge's "Read aloud" feature,
+**Edge is the default engine on new installs** (preselected in the first-run voice step; an install updated from a
+version that defaulted to the system voice keeps the system voice). Pick **System** in the onboarding or in Voice
+settings to keep everything on the phone.
+
+> ⚠️ **Unofficial.** This uses the endpoint behind Microsoft Edge's "Read aloud" feature,
 > the same approach as the open-source [`edge-tts`](https://github.com/rany2/edge-tts) Python library. It is
 > **not a supported Microsoft API**: it can break or be blocked at any time without notice.
 
 - **Cost: $0.** No account, no API key (the only token involved is the public constant built into Edge).
-- **Needs a network connection.** Cleaned message text is sent to Microsoft (`speech.platform.bing.com`).
+- **Needs a network connection.** Cleaned message text and chat names are sent to Microsoft (`speech.platform.bing.com`).
 - In the app: **Voice settings** → **Engine** → **Edge**, then choose **Male** or **Female** and tap **Test voice**
   (pick the sample language next to it; it defaults to your phone's language).
   Hebrew messages use Avri (Hila for female); messages in other languages switch automatically to the Andrew
@@ -86,7 +92,7 @@ System TTS is the default. No OpenAI key is required or shipped in the repo.
 - **Fallback:** on any failure (offline, timeout, service change) the app shows a short toast and reads the
   message with system TTS; Edge is then skipped for a minute so an offline phone does not wait for a timeout
   before every message.
-- System TTS remains the default.
+- Choosing **System** in Voice settings switches back to the offline engine at any time.
 
 ## Install on phone without USB
 
@@ -121,7 +127,7 @@ app/src/main/java/io/github/yedidyatob/telegramnarrator
   data/       TDLib client + repositories (auth, chats), channel rules loader, TTS preferences
   domain/     Pure Kotlin: models, repository interfaces, audio queue, message cleaning, language detection,
               channel-rules engine (unit tested on the JVM)
-  ui/         Jetpack Compose screens (auth, home, settings), ViewModels, theme
+  ui/         Jetpack Compose screens (onboarding, auth, home, player, settings), ViewModels, theme
 app/src/main/assets/channel_rules.json   per-channel cleaning rules
 docs/                                     feature documentation
 ```
@@ -148,14 +154,15 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 
 ## Privacy & security
 
-- By default everything runs on the device: messages are read through TDLib and spoken by the local TTS engine; the app has
-  no server and sends no analytics. Only Telegram itself is contacted.
+- The app has no server and sends no analytics. Messages are read through TDLib (only Telegram is contacted for
+  them). **On a new install the default voice is Microsoft Edge**, so the text being read and the chat names go to
+  Microsoft; with the **System** voice everything is spoken on the device.
 - **Optional OpenAI TTS**: if you enable it and paste your own API key, cleaned message text is sent to
   `api.openai.com` to synthesize speech. The key is stored in EncryptedSharedPreferences on device and is never
   logged or shipped in the repo. Get a key at <https://platform.openai.com/api-keys>. Pricing:
   <https://openai.com/api/pricing/> (tts-1 ≈ $15/1M characters, tts-1-hd ≈ $30/1M). Synthesized audio is cached
   on disk by hash of text+voice+model so the same message is not billed twice.
-- **Experimental Edge TTS**: if you select it, cleaned message text is sent to Microsoft's unofficial Edge
+- **Edge TTS** (default on new installs): cleaned message text and chat names are sent to Microsoft's unofficial Edge
   "Read aloud" endpoint (`speech.platform.bing.com`); no key or account is involved. Audio is cached on device.
 - The Telegram session and message cache live in the app's private storage (`filesDir/tdlib`). Android backup is
   disabled, so the session is never uploaded or transferred; after a reinstall you log in again.

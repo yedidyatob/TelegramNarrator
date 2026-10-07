@@ -1,13 +1,13 @@
 # Voice settings
 
-Home screen -> gear icon opens the voice settings sheet (Material 3 bottom sheet). Layout, top to bottom:
+Home screen -> tune icon (and the Player's engine chip) opens the voice settings sheet (Material 3 bottom sheet). Layout, top to bottom:
 
 ```
 Voice settings
 ──────────────────────────────────────────────
 Engine                                (heading)
- (•) System   Default, works offline
- ( ) Edge     Free, needs internet
+ (•) Edge     Free natural voices, needs internet
+ ( ) System   On your phone, works offline
  ( ) OpenAI   Your own key, paid
 ──────────────────────────────────────────────
 <only the selected engine's section>
@@ -61,16 +61,24 @@ Section visibility and Test-voice enablement are pure functions in `domain/tts/V
 
 | Engine | Default | Network | Cost | Notes |
 |--------|---------|---------|------|-------|
-| **System** | ✅ | no | free | On-device Android TTS (also the fallback for the others) |
-| **Edge** (Microsoft neural voices) | | yes | $0 | **Unofficial**, see below |
+| **Edge** (Microsoft neural voices) | ✅ new installs | yes | $0 | **Unofficial**, sends text and chat names to Microsoft, see below |
+| **System** | updated installs | no | free | On-device Android TTS (also the fallback for the others) |
 | **OpenAI** | | yes | paid (your key) | Bring-Your-Own-Key, see below |
 
 The choice is stored as `provider` (`system` / `openai` / `edge`) in `tts_settings`. Builds from the OpenAI PR
 stored an `openai_enabled` flag; it is migrated to `provider = openai` on first read.
 
-## System TTS (default)
+**No stored choice** (`TtsPreferences`, `SpeechProvider.fromStored`): a fresh install (the package manager's
+`firstInstallTime == lastUpdateTime`) starts on **Edge** (`SpeechProvider.DEFAULT`); an install updated from an
+earlier version, where "nothing stored" meant the system voice, keeps **System** (`UPGRADE_DEFAULT`), so updating
+never starts sending someone's messages to Microsoft. The resolved engine is saved immediately, so later updates
+don't change it. Unknown stored ids fall back to System. The onboarding's voice step lists Edge first and
+preselects the resolved engine.
 
-Everything uses the **system text-to-speech** engines installed on the device by default.
+## System TTS
+
+The **system text-to-speech** engines installed on the device: offline, nothing is sent. Also the fallback
+whenever Edge or OpenAI fails.
 
 - **Speech engine**: dropdown of the installed TTS engines (system default or a specific one). Switching restarts
   TextToSpeech (the section shows its loading row meanwhile). Voice choices are dropped when the engine changes

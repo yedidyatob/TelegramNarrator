@@ -3,7 +3,6 @@ package io.github.yedidyatob.telegramnarrator.ui.components
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -41,7 +40,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -49,8 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
@@ -76,8 +72,6 @@ import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredReportOpt
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredTextSpan
 import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
 import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Card of an official Telegram sponsored message (Telegram API ToS 3.3, https://core.telegram.org/api/sponsored-messages):
@@ -363,23 +357,6 @@ private fun Color.compositeOverSurface(): Color {
         blue = blue * a + surface.blue * (1 - a),
         alpha = 1f
     )
-}
-
-/** Decodes a TDLib file once it is downloaded; null until then (media is only shown once downloaded). */
-@Composable
-private fun rememberTdImage(fileId: Int?, loadFile: suspend (Int) -> String?): ImageBitmap? {
-    val image by produceState<ImageBitmap?>(initialValue = null, fileId) {
-        value = fileId?.let { id ->
-            withContext(Dispatchers.IO) {
-                try {
-                    loadFile(id)?.let { BitmapFactory.decodeFile(it)?.asImageBitmap() }
-                } catch (e: Exception) {
-                    null
-                }
-            }
-        }
-    }
-    return image
 }
 
 /** Telegram packages tried, in order, for t.me / tg: links (this app is not a full Telegram client). */

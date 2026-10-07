@@ -44,13 +44,14 @@ class TdLibUserCache @Inject constructor(
         }
     }
 
-    suspend fun getUserName(userId: Long): String {
-        if (userId == 0L) return "System"
-        val user = getUser(userId) ?: return "Unknown User"
+    /** Display name of [userId]; null when unknown (the UI shows its localized "Unknown"). */
+    suspend fun getUserName(userId: Long): String? {
+        if (userId == 0L) return null
+        val user = getUser(userId) ?: return null
         val firstName = user.firstName ?: ""
         val lastName = user.lastName ?: ""
         return if (lastName.isBlank()) {
-            firstName.ifBlank { "User $userId" }
+            firstName.ifBlank { null }
         } else {
             "$firstName $lastName".trim()
         }

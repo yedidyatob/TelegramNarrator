@@ -3,6 +3,7 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
 import io.github.yedidyatob.telegramnarrator.domain.home.ChatSelectionLogic
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAdCache
+import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -117,9 +118,28 @@ class PlaybackManager @Inject constructor() {
         sponsoredExpiry = null
     }
 
+    // ---- What is being read (Player screen) ---------------------------------------------------------
+
+    private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
+
+    /** The chat / message being read, with its position in the run; null when nothing plays. */
+    val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
+
+    fun setNowPlaying(nowPlaying: NowPlaying?) {
+        _nowPlaying.value = nowPlaying
+    }
+
+    /** The engine that actually speaks the current item (the chosen one, or the system voice after a fallback). */
+    @Synchronized
+    fun setNowPlayingEngine(engine: SpeechProvider?) {
+        val current = _nowPlaying.value ?: return
+        if (current.engine != engine) _nowPlaying.value = current.copy(engine = engine)
+    }
+
     fun setPlaying(playing: Boolean) {
         _isPlaying.value = playing
         if (!playing) {
+            _nowPlaying.value = null
             _currentStatus.value = null
             _isPaused.value = false
             _currentPlayingChatId.value = null

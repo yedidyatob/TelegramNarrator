@@ -12,7 +12,7 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 | Phone number, login code, 2FA password | Telegram (TDLib, MTProto) | Login | `TdLibAuthRepository` |
 | Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (always on in release builds) | `TdLibChatRepository` |
 | Sponsored-message requests, views, clicks and reports (chat ID + sponsored message ID) | Telegram | Telegram's official sponsored messages in channels and bot chats (Telegram API ToS 3.3): fetched when a channel / bot chat is played or its preview opened; a view when the ad was read aloud in full or its text was fully on screen; a click when its link is opened; a report when the user reports it | `TdLibSponsoredMessagesSource` |
-| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS) | Only if the user selects the **Edge** engine | `EdgeTtsClient` |
+| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS; a third-party service, not an official API) | Whenever **Edge** is the engine: it is the **default on new installs** (preselected in the onboarding's voice step), unless the user picks System or OpenAI there or in Voice settings. Installs updated from a version that defaulted to System keep System (`SpeechProvider.UPGRADE_DEFAULT`) | `EdgeTtsClient` |
 | Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
 
 Nothing is sent to the developer: there is no backend, no analytics, no ad SDK, no crash reporting or other SDK that
@@ -42,7 +42,7 @@ rather than to the developer.
 |---|---|---|---|---|---|
 | Personal info → **Phone number** | Yes | No | No | Required | App functionality, Account management |
 | Personal info → **User IDs** (Telegram user / chat IDs in API requests) | Yes | No | No | Required | App functionality |
-| Messages → **Other in-app messages** (message text and chat titles for online speech) | Yes | **Yes** (Microsoft or OpenAI, chosen by the user) | No | **Optional** (only with the Edge or OpenAI engine) | App functionality |
+| Messages → **Other in-app messages** (message text and chat titles for online speech) | Yes | **Yes** (Microsoft with the default Edge engine, or OpenAI if chosen) | No | **Optional** (on by default with Edge; the user can switch to the offline System voice in the onboarding or Voice settings, and nothing is sent then) | App functionality |
 
 Everything else: **not collected** (location, contacts, photos/videos, audio, files, calendar, health, financial
 info, web browsing, app activity, app info and performance / crash logs, device or other IDs).
@@ -51,10 +51,14 @@ Notes on the choices:
 
 - Sending the login data to Telegram is the core, user-initiated function of a Telegram client, so it is not
   declared as *sharing*; it is declared as *collection* because the app transmits it.
-- Message text and chat titles (for one-on-one chats the title is the other person's name) going to Microsoft /
-  OpenAI happens only after the user picks that engine, and the voice settings
-  say so, which could qualify for Play's "user-initiated action" exemption from *sharing*. Declaring it as shared
-  is the conservative, clearly accurate choice; keep it unless you have a reason to change it.
+- **The default engine (Edge) shares message text with Microsoft, a third-party service.** On a new install the
+  text of the messages being read and the chat titles (for one-on-one chats the title is the other person's name)
+  go to Microsoft unless the user switches to the System voice. Because this happens by default rather than after
+  a deliberate user choice, Play's "user-initiated action" exemption does not apply: it **must** be declared as
+  *shared* (and collected). The onboarding's privacy step and the Edge card in the voice step say so, as do the
+  login notice and the privacy policy. OpenAI is shared only after the user picks it and saves a key.
+- It stays **Optional** in the form because users can choose not to send it: the System voice is offered in the
+  onboarding and in Voice settings, and with it nothing leaves the device.
 - A one-on-one chat's title is a contact's name. It is declared under *Messages* (it is spoken as part of the
   conversation) rather than *Personal info → Name*, which describes the user's own name.
 - The login code, the Telegram password and the OpenAI API key are authentication secrets passed to the
@@ -69,9 +73,9 @@ Notes on the choices:
 
 | Permission | Why it is needed |
 |---|---|
-| `INTERNET` | TDLib (Telegram) and the optional Edge / OpenAI speech engines |
+| `INTERNET` | TDLib (Telegram) and the online speech engines (Edge, the default, and the optional OpenAI) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | `PlaybackService` keeps reading aloud with the screen off |
-| `POST_NOTIFICATIONS` | Optional media controls in the notification / lock screen; asked before the first playback, reading works without it |
+| `POST_NOTIFICATIONS` | Optional media controls in the notification / lock screen; asked in the first-run introduction (Android 13+) or before the first playback, reading works without it |
 
 `WRITE_EXTERNAL_STORAGE` (declared by the TDLib AAR) and the `READ_EXTERNAL_STORAGE` it implies are removed from the
 merged manifest; `WAKE_LOCK` was unused
@@ -107,8 +111,9 @@ Suggested text (option 2):
 
 > The app reads unread Telegram messages aloud and requires logging in with an existing Telegram account (free,
 > created in the official Telegram app). Enter the phone number of that account; Telegram sends the login code to
-> the Telegram app on the same phone. Make sure some chats have unread messages, then tap "Play all". Optional
-> online voices: Voice settings → Engine → Edge (no account needed). Demo video: [VIDEO LINK]
+> the Telegram app on the same phone. Make sure some chats have unread messages, then tap "Play all". The default
+> voice is Edge (online, no account needed); the offline System voice can be chosen in the first-run introduction or
+> in Voice settings → Engine. Demo video: [VIDEO LINK]
 
 ## Store listing draft
 
@@ -146,15 +151,15 @@ FEATURES
 • Adjustable speech rate
 
 VOICES
-• System: the text-to-speech engine on your phone, works offline (default)
-• Edge (optional, experimental): free natural voices from Microsoft's online "Read aloud" service; message text and chat names are sent to Microsoft
+• Edge (default): free natural voices from Microsoft's online "Read aloud" service (unofficial); message text and chat names are sent to Microsoft
+• System: the text-to-speech engine on your phone, works offline; nothing is sent
 • OpenAI (optional): high-quality voices with your own OpenAI API key, billed by OpenAI; message text and chat names are sent to OpenAI
 
 PRIVACY
 • No analytics, no tracking, and no developer servers
 • Channels and bot chats include Telegram's official sponsored messages, as Telegram requires; the app has no ads of its own and earns nothing from them
 • Your messages are stored only on your device, in an encrypted database, and are exchanged only with Telegram
-• Message text leaves your device only if you choose an online voice (Edge or OpenAI)
+• With the default Edge voice, message text and chat names are sent to Microsoft to be read aloud; choose the System voice to keep everything on your phone
 • Log out at any time to remove your Telegram data from the device
 
 Privacy policy: [PRIVACY POLICY URL]
@@ -185,15 +190,15 @@ Unofficial Telegram Narrator מקריאה בקול את הצ'אטים שלא ק�
 • מהירות דיבור מתכווננת
 
 קולות
-• מערכת: מנוע ההקראה של הטלפון, עובד בלי אינטרנט (ברירת מחדל)
-• Edge (אופציונלי, ניסיוני): קולות טבעיים בחינם משירות ההקראה המקוון של Microsoft; טקסט ההודעות ושמות הצ'אטים נשלחים ל־Microsoft
+• Edge (ברירת מחדל): קולות טבעיים בחינם משירות ההקראה המקוון של Microsoft (לא רשמי); טקסט ההודעות ושמות הצ'אטים נשלחים ל־Microsoft
+• מערכת: מנוע ההקראה של הטלפון, עובד בלי אינטרנט; שום דבר לא נשלח
 • OpenAI (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של OpenAI; טקסט ההודעות ושמות הצ'אטים נשלחים ל־OpenAI
 
 פרטיות
 • בלי אנליטיקה, בלי מעקב ובלי שרתים של המפתח
 • בערוצים ובצ'אטים עם בוטים מוצגות ההודעות הממומנות הרשמיות של Telegram, כפי ש־Telegram דורשת; לאפליקציה אין פרסומות משלה והיא לא מרוויחה מהן
 • ההודעות נשמרות רק במכשיר, במסד נתונים מוצפן, ומוחלפות רק עם Telegram
-• טקסט ההודעות יוצא מהמכשיר רק אם בחרתם קול מקוון (Edge או OpenAI)
+• עם קול Edge (ברירת המחדל) טקסט ההודעות ושמות הצ'אטים נשלחים ל־Microsoft להקראה; בחרו בקול המערכת כדי שהכול יישאר בטלפון
 • אפשר להתנתק בכל רגע כדי למחוק את נתוני הטלגרם מהמכשיר
 
 מדיניות פרטיות: [PRIVACY POLICY URL]
@@ -225,9 +230,9 @@ Source: <https://core.telegram.org/api/terms>. Status of this commit:
 | 1.1 Guard users' privacy (Security Guidelines) | OK | TDLib handles MTProto; the database is encrypted with a Keystore-wrapped key; secret chats disabled; backup and device transfer disabled; message text and keys are never logged; debug logs stripped from release |
 | 1.2 / 1.3 Extensions must not break basic Telegram features | OK | Read-only narrator; nothing it does affects other users |
 | 1.4 No interfering with basic functionality (e.g. "ghost mode", tampering with read statuses, acting without consent) | OK (fixed) | Messages are marked as read only after they were really spoken (or deliberately skipped). Release builds always mark them as read: the *Mark messages as read* switch exists only in debug builds (`BuildConfig.DEBUG`) and a stored "off" value is ignored in release, so the published app has no "ghost mode". See [mark-as-read.md](mark-as-read.md) |
-| 1.5 No use of Telegram data for AI training | OK | Nothing is used for training. Optional OpenAI / Edge engines only synthesize speech (inference) at the user's request; the OpenAI API does not train on API data by default |
+| 1.5 No use of Telegram data for AI training | OK | Nothing is used for training. The Edge (default) and OpenAI engines only synthesize speech (inference) for the messages being read; the OpenAI API does not train on API data by default |
 | 2.1 Own `api_id` | **Action** | Use an `api_id` registered at my.telegram.org for this app (title/description there should describe this app), only in `local.properties` / CI secrets |
-| 2.2 Say prominently that the app uses the Telegram API (store description + in-app intro) | OK | Second paragraph of the store descriptions above; notice on the login screen and in *Voice settings → About* |
+| 2.2 Say prominently that the app uses the Telegram API (store description + in-app intro) | OK | Second paragraph of the store descriptions above; notice in the first-run introduction, on the login screen and in *Voice settings → About* |
 | 2.3 Title must not contain "Telegram" unless preceded by "Unofficial" | OK (fixed) | Display name changed from "Telegram Narrator" (non-compliant) to "Unofficial Telegram Narrator". Alternatives without the word: "Chat Narrator", "Unread Aloud", "Narrator for chats" |
 | 2.4 No official Telegram logo | OK | Own icon (white ring on purple). Do not use the paper plane in store graphics or screenshots' frames |
 | 3.1 / 3.2 Monetization disclosed in store descriptions | OK | No monetization by the developer. Telegram's sponsored messages (3.3) are Telegram's, not the app's; the store descriptions still mention them. If you ever add your own monetization, list every method in the store descriptions |

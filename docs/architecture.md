@@ -3,7 +3,7 @@
 This document describes how Telegram Narrator is **actually built today** and the **target architecture** it
 is moving towards. It replaces the original design spec (`TelegramReader_TDLib_Architecture.md`), which
 described components that were never built (`TtsRepository`, DataStore-backed preferences, "Encrypted File
-Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted TDLib database long before #15 added one.
+Storage", a use-case layer; the Onboarding and Player screens came later with #20) and claimed an encrypted TDLib database long before #15 added one.
 
 ## At a glance
 
@@ -13,7 +13,7 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
-| Speech | Android `TextToSpeech` (default); optional OpenAI TTS (BYOK) and experimental Microsoft Edge neural TTS |
+| Speech | Microsoft Edge neural TTS (unofficial; default on new installs), Android `TextToSpeech` (offline; fallback, and the engine of updated installs that never chose one), optional OpenAI TTS (BYOK) |
 | Playback | Foreground `PlaybackService` + `MediaSessionCompat`, `MediaPlayer` for voice notes, dings and cloud TTS audio |
 | Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; OpenAI key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
 | Backend | None. The app talks only to Telegram, plus OpenAI / Microsoft if the user opts into those engines |
@@ -24,29 +24,40 @@ Storage", Onboarding/Player screens, a use-case layer) and claimed an encrypted 
 io.github.yedidyatob.telegramnarrator
 ├── MainActivity, TelegramNarratorApp      Single activity + @HiltAndroidApp
 ├── ui/        Presentation (Compose)
+│   ├── navigation/AppRoute                routes + where the auth state redirects (onboarding once, login, home)
+│   ├── screens/onboarding/OnboardingScreen first run: what the app does, privacy, voice engine, notifications
 │   ├── screens/auth/LoginScreen           phone (country picker, PhoneNumberField) → code → 2FA password
-│   ├── screens/home/HomeScreen            unread chat list, multi-select, Play all / per chat, controls
+│   ├── screens/home/HomeScreen            unread chat list (avatars), multi-select, Play all / per chat,
+│   │                                      loading / empty / error / offline states, connection banner, preview sheet
+│   ├── screens/player/PlayerScreen        full now-playing screen; MiniPlayer (bottom of Home)
 │   ├── screens/settings/VoiceSettingsSheet engine / voice per language / rate / mark-as-read
-│   ├── components/NotificationPermissionGate, SponsoredCard (+ report option dialog)
-│   ├── viewmodel/  AuthViewModel, HomeViewModel, TtsSettingsViewModel, SponsoredViewModel
+│   ├── components/NotificationPermissionGate, SponsoredCard (+ report option dialog), ChatAvatar
+│   ├── text/       ContentDirection (direction of user content), bidiSafe
+│   ├── viewmodel/  AuthViewModel, AppNavigationViewModel, OnboardingViewModel, HomeViewModel,
+│   │               PlayerViewModel (+ PlayerUiState), TtsSettingsViewModel, SponsoredViewModel
 │   └── theme/
 ├── domain/    Pure Kotlin (no Android types), unit-tested on the JVM
 │   ├── model/        Chat, Message, AuthState, AudioState, MessageContentType, ApiCredentials
 │   ├── repository/   AuthRepository, ChatRepository (interfaces)
 │   ├── audio/        AudioQueue + PlaybackItem, MessageCleaner, MessageSpeechBody, LanguageDetector,
 │   │                 ReadCheckpointer, PlaybackReadProgress, AudioFocusPolicy, VoiceNotePlayback,
-│   │                 CloudTtsPrefetch, PlaybackSpeedCycle, PlaybackManager (shared playback UI state)
+│   │                 CloudTtsPrefetch, PlaybackSpeedCycle, PlaybackManager (shared playback UI state),
+│   │                 NowPlaying, PlaybackPlan (message / chat positions), ChatPlaybackHistory (previous)
 │   ├── sponsored/    SponsoredMessagesRepository (cache, view-once, click / report), SponsoredAd, SponsoredSpeech,
 │   │                 SponsoredLinkPolicy, SponsoredReportFlow, SponsoredAdCache, SponsoredViewTracker
 │   ├── cleaning/     ChannelRules model + ChannelRulesEngine
-│   ├── home/         UnreadChatFilter, ChatSelectionLogic
+│   ├── home/         UnreadChatFilter, ChatSelectionLogic, HomeStateMapper (loading / empty / error / offline)
+│   ├── connection/   ConnectionStatus + ConnectionMonitor (TDLib connection state)
+│   ├── onboarding/   OnboardingFlow (steps, shown once, Hebrew voice check)
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── openai/       OpenAiTts (models, voices, cost estimate)
 │   ├── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
 │   └── edge/         EdgeTts (SSML/protocol helpers, voice mapping)
 ├── data/      Implementations that touch TDLib, Android or the network
-│   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send()
+│   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send(), latest connection state
+│   ├── connection/TdLibConnectionMonitor  UpdateConnectionState → ConnectionStatus
+│   ├── onboarding/OnboardingPreferences   "onboarding done" flag (SharedPreferences)
 │   ├── tdlib/TdLibDatabaseKeyStore  database key wrapped by an Android Keystore AES-GCM key
 │   ├── repository/                  TdLibAuthRepository, TdLibChatRepository, TdLibUserCache, UnreadHistoryPager
 │   ├── sponsored/                   TdLibSponsoredMessagesSource (getChatSponsoredMessages, viewMessages, click, report)
@@ -58,6 +69,7 @@ io.github.yedidyatob.telegramnarrator
 │   └── speech/DiskAudioCache        shared LRU file cache for synthesized audio
 └── core/      Android infrastructure
     ├── service/PlaybackService      foreground service: queue processing, notification, media session
+    ├── playback/PlaybackController  UI → service commands (play, pause, previous / next message, next chat, stop)
     ├── audio/TtsManager             wraps TextToSpeech: engine, per-language voice, rate, utterance callbacks
     ├── audio/AudioFocusController   audio focus + becoming-noisy handling
     ├── di/AppModule
@@ -80,13 +92,36 @@ locales (dial code + digits read as one phone number).
 `filesDir/tdlib`, and the database encryption key from `TdLibDatabaseKeyStore`. `DatabaseEncryptionPolicy`
 decides the order of keys to try: a database from before encryption is opened with the empty key once and
 re-keyed with `setDatabaseEncryptionKey`. If no key opens it, the database is reset and the user logs in again;
-it is never reset while the Keystore is unavailable. `AppNavigation` in `MainActivity` switches between the `login` and
-`home` routes based on the auth state.
+it is never reset while the Keystore is unavailable. `AppNavigation` in `MainActivity` switches between the
+`onboarding`, `login`, `home` and `player` routes based on the auth state (`AppRoute.redirect`).
+
+**Onboarding (#20).** Shown once, before the login, to users who are not signed in (someone already signed in, e.g.
+after an update, never sees it): what the app does; the unofficial-app notice and what stays on the device, with the
+privacy policy link (and, when Edge is selected, that its text and chat names go to Microsoft); the voice engine
+(Edge first and preselected on a new install; System, with a check for an offline Hebrew voice and a shortcut to the
+system TTS settings; OpenAI with an inline API-key field), written to `TtsPreferences`; and on Android 13+
+the notification permission (the step is left out when it is already granted). Skip, or finishing, sets the
+`OnboardingPreferences` flag and the login follows.
 
 **Unread list.** `TdLibChatRepository.getUnreadChats()` turns TDLib chat updates into a `Flow<List<Chat>>`;
 `UnreadChatFilter` and `ChatSelectionLogic` (via `PlaybackManager`) decide what is shown and selected.
-Tapping a chat opens a preview sheet (`HomeViewModel.selectChat`) from which its messages can also be marked
-read without playing them.
+Tapping a chat opens a preview sheet (`HomeViewModel.selectChat`) from which it can be played, or its messages
+marked read without playing them. `HomeStateMapper` turns the list, the `LoadChats` result (a 20 s timeout counts as
+a failure; TDLib's 404 "everything loaded" does not) and the `ConnectionMonitor` status into one body state:
+chats whenever there are any, otherwise offline (waiting for network), loading (also while connecting, so "no
+unread chats" is never claimed too early), error (with Telegram's message and Try again) or empty. Connection
+problems that last more than 1.5 s show a banner above the list; when the connection is back the list reloads by
+itself. A failed refresh with chats on screen only shows a snackbar.
+
+**Player (#20).** `PlaybackService` publishes a `NowPlaying` (chat, avatar, the message being read, its position from
+`PlaybackPlan` — only chats and messages that are actually heard count —, the engine speaking) through
+`PlaybackManager`; `PlayerUiState` adds pause / preparing / the sponsored ad / the engine indicator (a system voice
+standing in for Edge or OpenAI is shown as a fallback). The mini player at the bottom of Home opens the Player
+screen (slide up; closes with ⌄, the predictive back gesture or when playback ends): avatar, chat position, the
+message in its own direction, message position, previous / play-pause / next message (laid out left-to-right in RTL
+too, like media controls), next chat and stop. Previous (`ACTION_PREVIOUS_MSG`, `ChatPlaybackHistory`) stays within
+the chat: it replays the message before the current one, or restarts the chat's first message. Speed stays in Voice
+settings only.
 
 **Playback.** Home starts `PlaybackService` with `ACTION_PLAY_ALL` and the selected chat ids. The service:
 
@@ -103,7 +138,7 @@ read without playing them.
    `ChatRepository.markChatAsRead` (only messages that were actually played or deliberately skipped; always on in
    release builds, a debug-only switch can turn it off — see [mark-as-read.md](mark-as-read.md)).
 
-Pause/resume/skip come from the Home UI, the notification, the lock screen and headset buttons
+Pause/resume/skip come from the mini player and Player screen, the notification, the lock screen and headset buttons
 (`MediaSessionCompat` callbacks), and audio focus changes (`AudioFocusPolicy`).
 
 ## Sponsored messages
@@ -130,7 +165,7 @@ Test with <https://t.me/SecretAdTestChannel> (join it in Telegram first): Telegr
 | `Security: Encrypted File Storage` | TDLib database encrypted (above); the optional OpenAI key uses `EncryptedSharedPreferences`. |
 | `TtsRepository` | `TtsManager` (core) + `SpeechProvider` synthesizers (data). |
 | Use cases (`GetUnreadChats`, `PlayChatMessages`, `LoginUser`) | None; logic lives in `PlaybackService`, ViewModels and domain helpers. |
-| Screens: Onboarding, Login, ChatList, Player | Login, Home (chat list + controls), Voice settings sheet. No onboarding or Player screen (#20). |
+| Screens: Onboarding, Login, ChatList, Player | Onboarding, Login, Home (chat list + mini player), Player, Voice settings sheet (#20). |
 | Spoken intros/outros | Dings; after the chat-boundary ding only the chat title is spoken; sender labels are not spoken ([spoken-phrases.md](spoken-phrases.md)). |
 
 ## Target architecture
@@ -143,7 +178,8 @@ The direction (details and plans live in the linked issues, tracked by the "Poli
   the service as thin Android glue; then migrate to **Media3** (`MediaSessionService`).
 - **TdLibClient robustness** (#13): no lost updates, cancellable sends, thread safety.
 - **Keep less data on disk**: consider `useMessageDatabase = false` (follow-up from #15).
-- **UI**: a dedicated Player screen, onboarding and Home empty/error states (#20).
+- **UI** (#20): the Player screen, onboarding and Home states are in. Still open there: sleep timer, an up-next queue
+  list, chat filters (muted / archived) and opening the Player from the notification.
 - **Tooling currency** (#21): AGP/Kotlin/Compose BOM upgrades, Hilt via KSP (SDK 36 is already in, on AGP 8.2.1 with
   `android.suppressUnsupportedCompileSdk`).
 - **Publishing readiness** (#24): done in code and docs (`applicationId`, release signing, versioning, privacy

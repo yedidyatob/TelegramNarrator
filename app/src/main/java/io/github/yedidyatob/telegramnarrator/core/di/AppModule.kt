@@ -2,6 +2,8 @@ package io.github.yedidyatob.telegramnarrator.core.di
 
 import android.content.Context
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
+import io.github.yedidyatob.telegramnarrator.data.connection.TdLibConnectionMonitor
+import io.github.yedidyatob.telegramnarrator.domain.connection.ConnectionMonitor
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibAuthRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibChatRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibUserCache
@@ -61,6 +63,10 @@ object AppModule {
     ): ChatRepository {
         return TdLibChatRepository(client, userCache, ttsPreferences)
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectionMonitor(monitor: TdLibConnectionMonitor): ConnectionMonitor = monitor
 
     @Provides
     @Singleton

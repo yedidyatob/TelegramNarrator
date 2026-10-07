@@ -1,110 +1,119 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Checkbox
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppearanceViewModel
+import android.content.ActivityNotFoundException
+import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AllInbox
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.core.labelRes
-import io.github.yedidyatob.telegramnarrator.core.service.PlaybackService
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
+import io.github.yedidyatob.telegramnarrator.domain.home.ConnectionBanner
+import io.github.yedidyatob.telegramnarrator.domain.home.HomeContent
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
-import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
-import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
+import io.github.yedidyatob.telegramnarrator.ui.screens.player.MiniPlayer
+import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsSheet
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.HomeViewModel
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onPlayAll: (List<Chat>) -> Unit,
+    onOpenPlayer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    sponsoredViewModel: SponsoredViewModel = hiltViewModel()
+    sponsoredViewModel: SponsoredViewModel = hiltViewModel(),
+    playerViewModel: PlayerViewModel = hiltViewModel(),
+    appearanceViewModel: AppearanceViewModel = hiltViewModel()
 ) {
+    val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val chats by viewModel.unreadChats.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
-    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
-    val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
-    val playStatus by viewModel.playStatus.collectAsStateWithLifecycle()
-    val preparingAudio by viewModel.isPreparingAudio.collectAsStateWithLifecycle()
+    val player by playerViewModel.state.collectAsStateWithLifecycle()
     val selectedMsgs by viewModel.selectedChatMessages.collectAsStateWithLifecycle()
     val selectedChat by viewModel.selectedChat.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedChatIds.collectAsStateWithLifecycle()
     val playingChatId by viewModel.currentPlayingChatId.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
+    var showLogoutConfirm by rememberSaveable { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     // Official Telegram sponsored messages (Telegram API ToS 3.3)
     val playingAd by sponsoredViewModel.playingAd.collectAsStateWithLifecycle()
     val previewAd by sponsoredViewModel.previewAd.collectAsStateWithLifecycle()
     val reportDialog by sponsoredViewModel.reportDialog.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val refreshFailed = stringResource(R.string.home_refresh_failed)
+    val retryLabel = stringResource(R.string.home_retry)
     LaunchedEffect(Unit) {
-        sponsoredViewModel.toasts.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+        sponsoredViewModel.toasts.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
+    LaunchedEffect(Unit) {
+        viewModel.refreshErrors.collect {
+            val result = snackbarHostState.showSnackbar(refreshFailed, actionLabel = retryLabel)
+            if (result == SnackbarResult.ActionPerformed) viewModel.refresh()
+        }
     }
     // Opening a chat's preview sheet "opens" the chat: fetch its sponsored message (channels / bots only)
     LaunchedEffect(selectedChat?.id) { sponsoredViewModel.loadPreviewAd(selectedChat?.id) }
@@ -112,48 +121,86 @@ fun HomeScreen(
     if (pullToRefreshState.isRefreshing) {
         LaunchedEffect(Unit) { viewModel.refresh() }
     }
-    LaunchedEffect(isLoading) {
-        if (!isLoading) pullToRefreshState.endRefresh()
+    LaunchedEffect(uiState.isRefreshing) {
+        if (!uiState.isRefreshing) pullToRefreshState.endRefresh()
     }
 
     val selectedForPlayback = chats.filter { it.id in selectedIds }
     val fabLabel = when {
-        selectedForPlayback.isEmpty() -> stringResource(R.string.home_btn_play_all)
         selectedForPlayback.size == chats.size -> stringResource(R.string.home_btn_play_all)
         else -> stringResource(R.string.home_btn_play_selected, selectedForPlayback.size)
     }
+    val content = uiState.content
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.home_title)) },
-                actions = {
-                    IconButton(onClick = { showVoiceSettings = true }) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.settings_voice_open)
-                        )
-                    }
-                    if (isLoading && !pullToRefreshState.isRefreshing) {
-                        val loadingDescription = stringResource(R.string.home_loading)
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .semantics { contentDescription = loadingDescription }
-                        )
-                    } else {
-                        TextButton(onClick = { viewModel.logout() }) {
-                            Text(stringResource(R.string.home_btn_logout))
+            Column {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.home_title)) },
+                    actions = {
+                        IconButton(onClick = { showVoiceSettings = true }) {
+                            Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.settings_voice_open))
+                        }
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.home_more_options))
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                val privacyUrl = stringResource(R.string.privacy_policy_url)
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.login_privacy_policy)) },
+                                    onClick = {
+                                        menuOpen = false
+                                        try {
+                                            uriHandler.openUri(privacyUrl)
+                                        } catch (e: ActivityNotFoundException) {
+                                            Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
+                                        } catch (e: IllegalArgumentException) {
+                                            Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                )
+                                if (appearanceViewModel.dynamicColorAvailable) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.home_menu_system_colors)) },
+                                        trailingIcon = { Checkbox(checked = dynamicColor, onCheckedChange = null) },
+                                        onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_btn_logout)) },
+                                    onClick = {
+                                        menuOpen = false
+                                        showLogoutConfirm = true
+                                    }
+                                )
+                            }
                         }
                     }
+                )
+                // A background refresh with chats on screen: a thin bar rather than replacing the list
+                val backgroundRefresh = uiState.isRefreshing && content is HomeContent.Chats && !pullToRefreshState.isRefreshing
+                Box(Modifier.fillMaxWidth().height(2.dp)) {
+                    if (backgroundRefresh) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
                 }
-            )
+                AnimatedVisibility(
+                    visible = uiState.banner != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    // Keep showing the last banner while it animates out
+                    var lastBanner by remember { mutableStateOf(ConnectionBanner.CONNECTING) }
+                    uiState.banner?.let { lastBanner = it }
+                    ConnectionBannerBar(lastBanner)
+                }
+            }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (chats.isNotEmpty() && !isPlaying && selectedForPlayback.isNotEmpty()) {
+            if (content is HomeContent.Chats && !player.isActive && selectedForPlayback.isNotEmpty()) {
                 ExtendedFloatingActionButton(
                     text = { Text(fabLabel) },
-                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                    icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = null) },
                     onClick = { onPlayAll(selectedForPlayback) }
                 )
             }
@@ -169,46 +216,22 @@ fun HomeScreen(
                         onReport = sponsoredViewModel::startReport,
                         loadFile = sponsoredViewModel::localFile,
                         modifier = Modifier
-                            .then(if (isPlaying) Modifier else Modifier.navigationBarsPadding())
+                            .then(if (player.isActive) Modifier else Modifier.navigationBarsPadding())
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isPlaying,
-                    enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
-                    exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
+                AnimatedVisibility(
+                    visible = player.isActive,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it })
                 ) {
-                    NowPlayingBar(
-                        status = playStatus ?: stringResource(R.string.home_player_starting),
-                        isPaused = isPaused,
-                        preparingAudio = preparingAudio && !isPaused,
-                        onTogglePause = {
-                            val action = if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE
-                            context.startService(
-                                android.content.Intent(context, PlaybackService::class.java).apply { this.action = action }
-                            )
-                        },
-                        onSkipMessage = {
-                            context.startService(
-                                android.content.Intent(context, PlaybackService::class.java).apply {
-                                    action = PlaybackService.ACTION_SKIP_MSG
-                                }
-                            )
-                        },
-                        onSkipChat = {
-                            context.startService(
-                                android.content.Intent(context, PlaybackService::class.java).apply {
-                                    action = PlaybackService.ACTION_SKIP_CHAT
-                                }
-                            )
-                        },
-                        onStop = {
-                            context.startService(
-                                android.content.Intent(context, PlaybackService::class.java).apply {
-                                    action = PlaybackService.ACTION_STOP
-                                }
-                            )
-                        }
+                    MiniPlayer(
+                        state = player,
+                        onOpen = onOpenPlayer,
+                        onTogglePause = playerViewModel::togglePause,
+                        onNextMessage = playerViewModel::nextMessage,
+                        onStop = playerViewModel::stop,
+                        loadPhoto = playerViewModel::chatPhotoPath
                     )
                 }
             }
@@ -220,70 +243,28 @@ fun HomeScreen(
                 .fillMaxSize()
                 .nestedScroll(pullToRefreshState.nestedScrollConnection)
         ) {
-            if (chats.isEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    item {
-                        Icon(
-                            imageVector = Icons.Default.AllInbox,
-                            contentDescription = null,
-                            modifier = Modifier.size(72.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.home_empty_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.home_empty_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 88.dp)
-                ) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(onClick = { viewModel.selectAll() }) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.home_select_all))
-                            }
-                            TextButton(onClick = { viewModel.deselectAll() }) {
-                                Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.home_deselect_all))
-                            }
-                        }
-                    }
-                    items(chats, key = { it.id }) { chat ->
-                        ChatListItem(
-                            chat = chat,
-                            isSelected = chat.id in selectedIds,
-                            isPlaying = playingChatId == chat.id,
-                            onToggleSelection = { viewModel.toggleChatSelection(chat.id) },
-                            onClick = { viewModel.selectChat(chat) },
-                            onPlayClick = { onPlayAll(listOf(chat)) }
-                        )
-                    }
+            AnimatedContent(
+                targetState = content,
+                contentKey = { it::class },
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "home-content"
+            ) { state ->
+                when (state) {
+                    HomeContent.Loading -> HomeLoadingSkeleton()
+                    HomeContent.Empty -> HomeEmptyState(onRefresh = viewModel::refresh)
+                    HomeContent.Offline -> HomeOfflineState()
+                    is HomeContent.Error -> HomeErrorState(detail = state.detail, onRetry = viewModel::refresh)
+                    is HomeContent.Chats -> ChatList(
+                        chats = state.chats,
+                        selectedIds = selectedIds,
+                        playingChatId = playingChatId,
+                        onToggle = viewModel::toggleChatSelection,
+                        onSelectAll = viewModel::selectAll,
+                        onDeselectAll = viewModel::deselectAll,
+                        onOpen = viewModel::selectChat,
+                        onPlay = { onPlayAll(listOf(it)) },
+                        loadPhoto = viewModel::chatPhotoPath
+                    )
                 }
             }
 
@@ -294,87 +275,43 @@ fun HomeScreen(
         }
 
         if (showVoiceSettings) {
-            io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsSheet(
-                onDismiss = { showVoiceSettings = false }
+            VoiceSettingsSheet(onDismiss = { showVoiceSettings = false })
+        }
+
+        if (showLogoutConfirm) {
+            AlertDialog(
+                onDismissRequest = { showLogoutConfirm = false },
+                title = { Text(stringResource(R.string.home_logout_title)) },
+                text = { Text(stringResource(R.string.home_logout_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutConfirm = false
+                        viewModel.logout()
+                    }) { Text(stringResource(R.string.home_btn_logout)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.sponsored_cancel)) }
+                }
             )
         }
 
-        val sheetMsgs = selectedMsgs
-        val currentChat = selectedChat
-        if (sheetMsgs != null && currentChat != null) {
-            ModalBottomSheet(onDismissRequest = { viewModel.selectChat(null) }) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    Text(
-                        currentChat.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = if (currentChat.unreadCount > sheetMsgs.size) {
-                            stringResource(
-                                R.string.home_sheet_showing_partial,
-                                sheetMsgs.size,
-                                currentChat.unreadCount
-                            )
-                        } else {
-                            stringResource(R.string.home_sheet_showing_all, sheetMsgs.size)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (sheetMsgs.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.markSelectedChatAsRead() },
-                            modifier = Modifier.semantics {
-                                contentDescription = context.getString(R.string.home_mark_chat_read_cd)
-                            }
-                        ) {
-                            Icon(Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.home_mark_chat_read))
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-
-                if (sheetMsgs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    LazyColumn(contentPadding = PaddingValues(16.dp)) {
-                        items(sheetMsgs, key = { it.id }) { msg ->
-                            SheetMessageCard(
-                                senderName = msg.senderName ?: stringResource(R.string.playback_unknown_sender),
-                                text = msg.text.ifBlank {
-                                    stringResource(msg.contentType.labelRes() ?: R.string.message_unsupported_content)
-                                },
-                                isOutgoing = msg.isOutgoing
-                            )
-                        }
-                        // The channel's / bot's sponsored message, at the bottom of the sheet
-                        previewAd?.takeIf { it.chatId == currentChat.id }?.let { ad ->
-                            item(key = "sponsored") {
-                                SponsoredCard(
-                                    ad = ad,
-                                    onFullyVisible = sponsoredViewModel::onFullyVisible,
-                                    onLinkClicked = sponsoredViewModel::onLinkClicked,
-                                    onReport = sponsoredViewModel::startReport,
-                                    loadFile = sponsoredViewModel::localFile,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+        selectedChat?.let { chat ->
+            ChatPreviewSheet(
+                chat = chat,
+                messages = selectedMsgs,
+                ad = previewAd?.takeIf { it.chatId == chat.id },
+                onDismiss = { viewModel.selectChat(null) },
+                onPlay = {
+                    viewModel.selectChat(null)
+                    onPlayAll(listOf(chat))
+                },
+                onMarkAsRead = viewModel::markSelectedChatAsRead,
+                loadPhoto = viewModel::chatPhotoPath,
+                onAdFullyVisible = sponsoredViewModel::onFullyVisible,
+                onAdLinkClicked = sponsoredViewModel::onLinkClicked,
+                onAdReport = sponsoredViewModel::startReport,
+                loadAdFile = sponsoredViewModel::localFile
+            )
         }
 
         reportDialog?.let { dialog ->
@@ -388,205 +325,54 @@ fun HomeScreen(
     }
 }
 
+/** The unread chats with the selection header. */
 @Composable
-internal fun NowPlayingBar(
-    status: String,
-    isPaused: Boolean,
-    preparingAudio: Boolean,
-    onTogglePause: () -> Unit,
-    onSkipMessage: () -> Unit,
-    onSkipChat: () -> Unit,
-    onStop: () -> Unit
+internal fun ChatList(
+    chats: List<Chat>,
+    selectedIds: Set<Long>,
+    playingChatId: Long?,
+    onToggle: (Long) -> Unit,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit,
+    onOpen: (Chat) -> Unit,
+    onPlay: (Chat) -> Unit,
+    loadPhoto: suspend (Int) -> String?
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        tonalElevation = 8.dp
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 96.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                if (preparingAudio) {
-                    // The current message's audio is still being fetched / synthesized
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(12.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = stringResource(R.string.home_preparing_audio),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                } else {
-                    Text(
-                        text = stringResource(R.string.home_now_playing),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                // Always a UI template ("Chat: {title}", "From {sender}", "Sponsored · {title}"), so it aligns with the
-                // UI like the label above. The service bidi-isolates the name inside it, so a Hebrew chat title in an
-                // English template (or the other way round) keeps its own order and punctuation.
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(onClick = onTogglePause) {
-                    Icon(
-                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = stringResource(
-                            if (isPaused) R.string.playback_resume else R.string.playback_pause
-                        ),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                IconButton(onClick = onSkipMessage) {
-                    Icon(
-                        imageVector = Icons.Default.FastForward,
-                        contentDescription = stringResource(R.string.playback_skip_msg),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                IconButton(onClick = onSkipChat) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = stringResource(R.string.playback_skip_chat),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                IconButton(onClick = onStop) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.home_btn_stop),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * One unread message in the chat's preview sheet. The card follows the message's direction (a Hebrew message
- * is right-aligned, sender name included, even on an English device); each paragraph aligns by its own text.
- */
-@Composable
-internal fun SheetMessageCard(senderName: String, text: String, isOutgoing: Boolean) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOutgoing) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
-    ) {
-        ProvideContentDirection(text) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = senderName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ChatListItem(
-    chat: Chat,
-    isSelected: Boolean,
-    isPlaying: Boolean,
-    onToggleSelection: () -> Unit,
-    onClick: () -> Unit,
-    onPlayClick: () -> Unit
-) {
-    val selectDescription = stringResource(R.string.home_select_chat, chat.title)
-    val unreadDescription = LocalContext.current.resources
-        .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        border = if (isPlaying) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isPlaying) 8.dp else 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-            } else {
-                MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = if (isPlaying) 0.08f else 0f)
-                )
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onToggleSelection() },
-                modifier = Modifier.semantics { contentDescription = selectDescription }
-            )
-            Column(
+        item(key = "header") {
+            val selectedCount = chats.count { it.id in selectedIds }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp)
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 8.dp, top = 4.dp)
             ) {
                 Text(
-                    text = chat.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = bidiSafe(stringResource(R.string.home_selected_count, selectedCount, chats.size)),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = unreadDescription,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (selectedCount < chats.size) {
+                    TextButton(onClick = onSelectAll) { Text(stringResource(R.string.home_select_all)) }
+                } else {
+                    TextButton(onClick = onDeselectAll) { Text(stringResource(R.string.home_deselect_all)) }
+                }
             }
-            Badge(modifier = Modifier.semantics { contentDescription = unreadDescription }) {
-                Text(text = chat.unreadCount.toString())
-            }
-            IconButton(onClick = onPlayClick) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = stringResource(R.string.home_play_chat, chat.title),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+        }
+        items(chats, key = { it.id }) { chat ->
+            ChatListItem(
+                chat = chat,
+                isSelected = chat.id in selectedIds,
+                isPlaying = playingChatId == chat.id,
+                onToggleSelection = { onToggle(chat.id) },
+                onClick = { onOpen(chat) },
+                onPlayClick = { onPlay(chat) },
+                loadPhoto = loadPhoto
+            )
         }
     }
 }

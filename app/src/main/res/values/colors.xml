@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher icon background -->
+    <!-- Launcher icon background (brand color of the icon) -->
     <color name="purple_500">#FF6200EE</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Same as the Compose background (Color.kt TelegramSurfaceDay / TelegramBackgroundNight) -->
+    <color name="window_background">#FFFFFFFF</color>
 </resources>
