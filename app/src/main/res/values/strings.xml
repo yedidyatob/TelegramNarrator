@@ -82,8 +82,6 @@
     <string name="home_player_starting">Starting…</string>
     <string name="home_preparing_audio">Preparing audio…</string>
     <string name="home_play_chat">Play unread messages of %1$s</string>
-    <string name="home_select_all">Select all</string>
-    <string name="home_deselect_all">Deselect all</string>
     <string name="home_select_chat">Select %1$s</string>
     <string name="home_btn_play_selected">Play selected (%1$d)</string>
     <string name="home_sheet_showing_partial">Showing %1$d of %2$d unread</string>
@@ -215,7 +213,6 @@
     <string name="settings_edge_gender">Voice</string>
     <string name="settings_edge_gender_male">Male</string>
     <string name="settings_edge_gender_female">Female</string>
-    <string name="settings_edge_voices_desc">Hebrew messages use Avri (Hila for female); other languages switch automatically to Andrew (Ava for female) multilingual voices.</string>
     <string name="settings_edge_custom_active">Custom voice %1$s reads every message. Clear it under Advanced to use Male / Female.</string>
     <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet: the text of each message and the chat name are sent to Microsoft to be spoken. Falls back to the system voice if unavailable.</string>
     <string name="settings_edge_advanced">Advanced</string>
@@ -233,6 +230,7 @@
     <string name="settings_openai_api_key_hint">sk-…</string>
     <string name="settings_openai_show_key">Show key</string>
     <string name="settings_openai_hide_key">Hide key</string>
+    <string name="settings_openai_paste_key">Paste key</string>
     <string name="settings_openai_get_key">Get an API key</string>
     <string name="settings_openai_get_key_a11y">Get an API key, opens platform.openai.com in the browser</string>
     <string name="settings_openai_get_key_no_browser">No browser found to open platform.openai.com/api-keys</string>

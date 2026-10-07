@@ -46,6 +46,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Lock
@@ -77,6 +78,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -87,9 +89,11 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -473,6 +477,15 @@ private fun HebrewVoiceStatus(hebrewVoice: Boolean?, onOpenTtsSettings: () -> Un
     }
 }
 
+private class ApiKeyVisualTransformation(private val mask: Char = '•') : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        return TransformedText(
+            AnnotatedString(mask.toString().repeat(text.text.length)),
+            OffsetMapping.Identity
+        )
+    }
+}
+
 @Composable
 private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
     if (hasKey) {
@@ -488,21 +501,36 @@ private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
     var visible by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     OutlinedTextField(
         value = key,
         onValueChange = { key = it },
         label = { Text(stringResource(R.string.settings_openai_api_key)) },
         placeholder = { Text(stringResource(R.string.settings_openai_api_key_hint)) },
         singleLine = true,
-        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        visualTransformation = if (visible) VisualTransformation.None else ApiKeyVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onSave(key) }),
         trailingIcon = {
-            IconButton(onClick = { visible = !visible }) {
-                Icon(
-                    if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                    contentDescription = stringResource(if (visible) R.string.settings_openai_hide_key else R.string.settings_openai_show_key)
-                )
+            Row {
+                if (key.isBlank()) {
+                    IconButton(onClick = {
+                        clipboardManager.getText()?.text?.let { pastedText ->
+                            key = pastedText
+                        }
+                    }) {
+                        Icon(
+                            Icons.Rounded.ContentPaste,
+                            contentDescription = stringResource(R.string.settings_openai_paste_key)
+                        )
+                    }
+                }
+                IconButton(onClick = { visible = !visible }) {
+                    Icon(
+                        if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                        contentDescription = stringResource(if (visible) R.string.settings_openai_hide_key else R.string.settings_openai_show_key)
+                    )
+                }
             }
         },
         modifier = Modifier.fillMaxWidth()

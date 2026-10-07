@@ -204,6 +204,20 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * Tri-state master checkbox: selects all when none are selected; deselects all otherwise
+     * (covers both the indeterminate/partial and fully-checked states).
+     */
+    fun toggleAllChatSelection() {
+        val allIds = unreadChats.value.map { it.id }
+        val selected = selectedChatIds.value
+        if (selected.isEmpty()) {
+            playbackManager.selectAll(allIds)
+        } else {
+            playbackManager.deselectAll()
+        }
+    }
+
+    /**
      * Marks the unread messages currently shown in the preview sheet as read in Telegram.
      * Respects [ChatRepository.markAsReadEnabled] (always on in release; debug builds have a switch).
      */
