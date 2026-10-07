@@ -322,10 +322,11 @@ private fun EdgeSection(edge: EdgeVoiceUiState, testLanguage: TestLanguage, isPl
                 ) { Text(stringResource(label)) }
             }
         }
-        HelperText(
-            if (edge.customVoice != null) stringResource(R.string.settings_edge_custom_active, edge.customVoice)
-            else stringResource(R.string.settings_edge_voices_desc)
-        )
+        if (edge.customVoice != null) {
+            HelperText(
+                stringResource(R.string.settings_edge_custom_active, edge.customVoice!!)
+            )
+        }
         TestVoiceRow(
             language = testLanguage,
             onSelectLanguage = actions.onSelectTestLanguage,

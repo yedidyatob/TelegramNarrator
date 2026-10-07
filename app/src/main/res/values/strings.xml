@@ -215,7 +215,6 @@
     <string name="settings_edge_gender">Voice</string>
     <string name="settings_edge_gender_male">Male</string>
     <string name="settings_edge_gender_female">Female</string>
-    <string name="settings_edge_voices_desc">Hebrew messages use Avri (Hila for female); other languages switch automatically to Andrew (Ava for female) multilingual voices.</string>
     <string name="settings_edge_custom_active">Custom voice %1$s reads every message. Clear it under Advanced to use Male / Female.</string>
     <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet: the text of each message and the chat name are sent to Microsoft to be spoken. Falls back to the system voice if unavailable.</string>
     <string name="settings_edge_advanced">Advanced</string>
