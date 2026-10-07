@@ -61,14 +61,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Prepare debug APK artifact
+      - name: Prepare and encrypt debug APK artifact
+        env:
+          ARTIFACT_PASSPHRASE: ${{ secrets.ARTIFACT_PASSPHRASE }}
         run: |
           mkdir -p artifact
-          cp app/build/outputs/apk/debug/*.apk artifact/TelegramNarrator-debug.apk
+          zip -j -P "$ARTIFACT_PASSPHRASE" artifact/TelegramNarrator-debug.zip app/build/outputs/apk/debug/*.apk
 
-      - name: Upload debug APK
+      - name: Upload encrypted debug APK
         uses: actions/upload-artifact@v4
         with:
           name: TelegramNarrator-debug
-          path: artifact/TelegramNarrator-debug.apk
+          path: artifact/TelegramNarrator-debug.zip
           retention-days: 14
