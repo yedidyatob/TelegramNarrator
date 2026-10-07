@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Visibility
@@ -66,6 +67,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -75,8 +77,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -429,6 +433,15 @@ private fun GetOpenAiKeyLink() {
     }
 }
 
+private class ApiKeyVisualTransformation(private val mask: Char = '•') : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        return TransformedText(
+            AnnotatedString(mask.toString().repeat(text.text.length)),
+            OffsetMapping.Identity
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OpenAiSection(
@@ -442,22 +455,37 @@ private fun OpenAiSection(
         // The typed key lives only here (not in the ViewModel / UI state) and is not saved in instance state
         var keyDraft by remember { mutableStateOf("") }
         var showKey by remember { mutableStateOf(false) }
+        val clipboardManager = LocalClipboardManager.current
         OutlinedTextField(
             value = keyDraft,
             onValueChange = { keyDraft = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_openai_api_key)) },
             placeholder = { Text(stringResource(R.string.settings_openai_api_key_hint)) },
-            visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrect = false),
+            visualTransformation = if (showKey) VisualTransformation.None else ApiKeyVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false),
             trailingIcon = {
-                IconButton(onClick = { showKey = !showKey }) {
-                    Icon(
-                        if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = stringResource(
-                            if (showKey) R.string.settings_openai_hide_key else R.string.settings_openai_show_key
+                Row {
+                    if (keyDraft.isBlank() && enabled) {
+                        IconButton(onClick = {
+                            clipboardManager.getText()?.text?.let { pastedText ->
+                                keyDraft = pastedText
+                            }
+                        }) {
+                            Icon(
+                                Icons.Filled.ContentPaste,
+                                contentDescription = stringResource(R.string.settings_openai_paste_key)
+                            )
+                        }
+                    }
+                    IconButton(onClick = { showKey = !showKey }) {
+                        Icon(
+                            if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(
+                                if (showKey) R.string.settings_openai_hide_key else R.string.settings_openai_show_key
+                            )
                         )
-                    )
+                    }
                 }
             },
             singleLine = true,

@@ -232,6 +232,7 @@
     <string name="settings_openai_api_key_hint">sk-…</string>
     <string name="settings_openai_show_key">Show key</string>
     <string name="settings_openai_hide_key">Hide key</string>
+    <string name="settings_openai_paste_key">Paste key</string>
     <string name="settings_openai_get_key">Get an API key</string>
     <string name="settings_openai_get_key_a11y">Get an API key, opens platform.openai.com in the browser</string>
     <string name="settings_openai_get_key_no_browser">No browser found to open platform.openai.com/api-keys</string>
