@@ -443,6 +443,8 @@ class PlaybackService : Service() {
             }
             speakText(speech) {
                 if (currentItem === item) currentItem = null
+                // Dismiss the ad card the moment it has been read aloud in full
+                playbackManager.clearSponsoredAd(ad)
                 // Read aloud in full: counts as a view even with the screen off (once per ad per fetch)
                 scope.launch { sponsoredMessages.reportViewed(ad) }
             }

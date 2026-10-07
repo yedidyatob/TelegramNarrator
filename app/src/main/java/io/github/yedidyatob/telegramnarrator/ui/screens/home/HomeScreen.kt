@@ -1,6 +1,8 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.ui.state.ToggleableState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppearanceViewModel
 import android.content.ActivityNotFoundException
 import android.widget.Toast
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -67,6 +70,9 @@ import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.domain.home.ConnectionBanner
 import io.github.yedidyatob.telegramnarrator.domain.home.HomeContent
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
 import io.github.yedidyatob.telegramnarrator.ui.screens.player.MiniPlayer
@@ -119,10 +125,20 @@ fun HomeScreen(
     LaunchedEffect(selectedChat?.id) { sponsoredViewModel.loadPreviewAd(selectedChat?.id) }
     val pullToRefreshState = rememberPullToRefreshState()
     if (pullToRefreshState.isRefreshing) {
-        LaunchedEffect(Unit) { viewModel.refresh() }
-    }
-    LaunchedEffect(uiState.isRefreshing) {
-        if (!uiState.isRefreshing) pullToRefreshState.endRefresh()
+        LaunchedEffect(Unit) {
+            // Run the refresh and a minimum display time in parallel; whichever takes longer wins.
+            // This prevents the spinner from vanishing before the user even sees it.
+            val started = viewModel.uiState.value.isRefreshing  // already loading?
+            viewModel.refresh()
+            val waitForLoad = async {
+                if (!started) viewModel.uiState.first { it.isRefreshing }  // wait for it to start
+                viewModel.uiState.first { !it.isRefreshing }               // wait for it to finish
+            }
+            val waitForMinDuration = async { delay(300) }
+            waitForLoad.await()
+            waitForMinDuration.await()
+            pullToRefreshState.endRefresh()
+        }
     }
 
     val selectedForPlayback = chats.filter { it.id in selectedIds }
@@ -206,7 +222,10 @@ fun HomeScreen(
             }
         },
         bottomBar = {
-            Column {
+            // navigationBarsPadding lives here so the Scaffold always measures a non-zero bottom bar
+            // height even when neither the ad card nor the MiniPlayer is visible. This keeps the
+            // FAB above the system navigation bar in all three states (empty / ad only / player).
+            Column(Modifier.navigationBarsPadding()) {
                 // Sponsored message of the chat that was just played: from when it is spoken until the next chat
                 playingAd?.let { ad ->
                     SponsoredCard(
@@ -215,9 +234,7 @@ fun HomeScreen(
                         onLinkClicked = sponsoredViewModel::onLinkClicked,
                         onReport = sponsoredViewModel::startReport,
                         loadFile = sponsoredViewModel::localFile,
-                        modifier = Modifier
-                            .then(if (player.isActive) Modifier else Modifier.navigationBarsPadding())
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
                 AnimatedVisibility(
@@ -242,6 +259,7 @@ fun HomeScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
                 .nestedScroll(pullToRefreshState.nestedScrollConnection)
+                .clipToBounds()
         ) {
             AnimatedContent(
                 targetState = content,
@@ -259,8 +277,7 @@ fun HomeScreen(
                         selectedIds = selectedIds,
                         playingChatId = playingChatId,
                         onToggle = viewModel::toggleChatSelection,
-                        onSelectAll = viewModel::selectAll,
-                        onDeselectAll = viewModel::deselectAll,
+                        onToggleAll = viewModel::toggleAllChatSelection,
                         onOpen = viewModel::selectChat,
                         onPlay = { onPlayAll(listOf(it)) },
                         loadPhoto = viewModel::chatPhotoPath
@@ -268,6 +285,8 @@ fun HomeScreen(
                 }
             }
 
+            // The indicator animates in from above the box's top edge; clipToBounds() on the
+            // parent ensures it never bleeds into the TopAppBar above.
             PullToRefreshContainer(
                 state = pullToRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
@@ -332,8 +351,7 @@ internal fun ChatList(
     selectedIds: Set<Long>,
     playingChatId: Long?,
     onToggle: (Long) -> Unit,
-    onSelectAll: () -> Unit,
-    onDeselectAll: () -> Unit,
+    onToggleAll: () -> Unit,
     onOpen: (Chat) -> Unit,
     onPlay: (Chat) -> Unit,
     loadPhoto: suspend (Int) -> String?
@@ -344,23 +362,27 @@ internal fun ChatList(
     ) {
         item(key = "header") {
             val selectedCount = chats.count { it.id in selectedIds }
+            val toggleState = when {
+                selectedCount == 0 -> ToggleableState.Off
+                selectedCount == chats.size -> ToggleableState.On
+                else -> ToggleableState.Indeterminate
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 8.dp, top = 4.dp)
+                    .padding(start = 4.dp, end = 8.dp, top = 4.dp)
             ) {
+                TriStateCheckbox(
+                    state = toggleState,
+                    onClick = onToggleAll
+                )
                 Text(
                     text = bidiSafe(stringResource(R.string.home_selected_count, selectedCount, chats.size)),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
-                if (selectedCount < chats.size) {
-                    TextButton(onClick = onSelectAll) { Text(stringResource(R.string.home_select_all)) }
-                } else {
-                    TextButton(onClick = onDeselectAll) { Text(stringResource(R.string.home_deselect_all)) }
-                }
             }
         }
         items(chats, key = { it.id }) { chat ->
