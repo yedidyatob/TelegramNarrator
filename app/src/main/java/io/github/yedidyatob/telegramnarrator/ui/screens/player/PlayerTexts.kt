@@ -50,7 +50,7 @@ internal fun engineText(engine: EngineIndicator): String {
         when (engine.label) {
             EngineLabel.SYSTEM -> R.string.player_engine_system
             EngineLabel.EDGE -> R.string.player_engine_edge
-            EngineLabel.OPENAI -> R.string.player_engine_openai
+            EngineLabel.GEMINI -> R.string.player_engine_gemini
             EngineLabel.ORIGINAL_AUDIO -> R.string.player_engine_original
         }
     )

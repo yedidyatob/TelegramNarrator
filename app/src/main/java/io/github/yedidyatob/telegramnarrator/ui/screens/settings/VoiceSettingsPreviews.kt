@@ -5,14 +5,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.EngineOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.ui.theme.TelegramNarratorTheme
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OpenAiVoiceUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
@@ -106,27 +106,27 @@ private fun VoiceSettingsEdgeCustomPreview() {
     )
 }
 
-@Preview(name = "OpenAI", showBackground = true, heightDp = 1000)
+@Preview(name = "Gemini", showBackground = true, heightDp = 1000)
 @Composable
-private fun VoiceSettingsOpenAiPreview() {
+private fun VoiceSettingsGeminiPreview() {
     PreviewSheet(
         TtsSettingsUiState(
-            provider = SpeechProvider.OPENAI,
-            openAi = OpenAiVoiceUiState(model = OpenAiTts.MODEL_TTS_1, voice = "nova", hasKey = true, keyHint = "sk-…abcd")
+            provider = SpeechProvider.GEMINI,
+            gemini = GeminiVoiceUiState(voice = GeminiTts.DEFAULT_VOICE, hasKey = true, keyHint = "AIza…abcd")
         )
     )
 }
 
 @Preview(
-    name = "OpenAI dark (no key)",
+    name = "Gemini dark (no key)",
     showBackground = true,
     heightDp = 1000,
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
 )
 @Composable
-private fun VoiceSettingsOpenAiDarkPreview() {
+private fun VoiceSettingsGeminiDarkPreview() {
     PreviewSheet(
-        TtsSettingsUiState(provider = SpeechProvider.OPENAI, openAi = OpenAiVoiceUiState(model = OpenAiTts.MODEL_TTS_1_HD)),
+        TtsSettingsUiState(provider = SpeechProvider.GEMINI, gemini = GeminiVoiceUiState(voice = GeminiTts.DEFAULT_VOICE)),
         darkTheme = true
     )
 }

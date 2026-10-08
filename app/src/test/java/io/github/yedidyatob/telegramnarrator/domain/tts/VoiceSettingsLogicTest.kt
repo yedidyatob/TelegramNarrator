@@ -2,7 +2,7 @@ package io.github.yedidyatob.telegramnarrator.domain.tts
 
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.EDGE_VOICE
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.ENGINE
-import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.OPENAI_VOICE
+import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.GEMINI_VOICE
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.PLAYBACK
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.SYSTEM_VOICES
 import org.junit.Assert.assertEquals
@@ -16,19 +16,19 @@ class VoiceSettingsLogicTest {
     fun `each engine shows engine picker, only its own section, then playback`() {
         assertEquals(listOf(ENGINE, SYSTEM_VOICES, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.SYSTEM))
         assertEquals(listOf(ENGINE, EDGE_VOICE, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.EDGE))
-        assertEquals(listOf(ENGINE, OPENAI_VOICE, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.OPENAI))
+        assertEquals(listOf(ENGINE, GEMINI_VOICE, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.GEMINI))
     }
 
     @Test
-    fun `edge and openai never show the system engine and voice pickers`() {
-        for (provider in listOf(SpeechProvider.EDGE, SpeechProvider.OPENAI)) {
+    fun `edge and gemini never show the system engine and voice pickers`() {
+        for (provider in listOf(SpeechProvider.EDGE, SpeechProvider.GEMINI)) {
             assertFalse(SYSTEM_VOICES in VoiceSettingsLogic.visibleSections(provider))
         }
     }
 
     @Test
     fun `exactly one engine section is visible and engine plus playback are always visible`() {
-        val engineSections = setOf(SYSTEM_VOICES, EDGE_VOICE, OPENAI_VOICE)
+        val engineSections = setOf(SYSTEM_VOICES, EDGE_VOICE, GEMINI_VOICE)
         for (provider in SpeechProvider.values()) {
             val sections = VoiceSettingsLogic.visibleSections(provider)
             assertEquals(1, sections.count { it in engineSections })
@@ -42,7 +42,7 @@ class VoiceSettingsLogicTest {
         assertTrue(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = false))
         assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = true))
         assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.EDGE, systemTtsReady = false))
-        assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.OPENAI, systemTtsReady = false))
+        assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.GEMINI, systemTtsReady = false))
     }
 
     @Test
@@ -62,11 +62,11 @@ class VoiceSettingsLogicTest {
     }
 
     @Test
-    fun `openai test voice requires a saved key`() {
-        assertTrue(VoiceSettingsLogic.canTestOpenAi(isPlaying = false, testing = false, hasKey = true))
-        assertFalse(VoiceSettingsLogic.canTestOpenAi(isPlaying = false, testing = false, hasKey = false))
-        assertFalse(VoiceSettingsLogic.canTestOpenAi(isPlaying = true, testing = false, hasKey = true))
-        assertFalse(VoiceSettingsLogic.canTestOpenAi(isPlaying = false, testing = true, hasKey = true))
+    fun `gemini test voice requires a saved key`() {
+        assertTrue(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = false, hasKey = true))
+        assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = false, hasKey = false))
+        assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = true, testing = false, hasKey = true))
+        assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = true, hasKey = true))
     }
 
     @Test

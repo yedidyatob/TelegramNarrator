@@ -66,7 +66,7 @@ class PlayerUiStateTest {
     @Test
     fun `engine indicator follows the engine that speaks`() {
         assertEquals(EngineIndicator(EngineLabel.EDGE), state(selected = SpeechProvider.EDGE).engine)
-        assertEquals(EngineIndicator(EngineLabel.OPENAI), state(nowPlaying = message(engine = SpeechProvider.OPENAI), selected = SpeechProvider.OPENAI).engine)
+        assertEquals(EngineIndicator(EngineLabel.GEMINI), state(nowPlaying = message(engine = SpeechProvider.GEMINI), selected = SpeechProvider.GEMINI).engine)
         assertEquals(EngineIndicator(EngineLabel.SYSTEM), state().engine)
     }
 
@@ -80,6 +80,6 @@ class PlayerUiStateTest {
 
     @Test
     fun `voice notes play the original audio`() {
-        assertEquals(EngineIndicator(EngineLabel.ORIGINAL_AUDIO), state(nowPlaying = message(voice = true), selected = SpeechProvider.OPENAI).engine)
+        assertEquals(EngineIndicator(EngineLabel.ORIGINAL_AUDIO), state(nowPlaying = message(voice = true), selected = SpeechProvider.GEMINI).engine)
     }
 }

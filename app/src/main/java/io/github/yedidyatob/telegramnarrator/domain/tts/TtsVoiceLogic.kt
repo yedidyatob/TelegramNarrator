@@ -1,7 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.domain.tts
 
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTtsOptions
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 
 /** An installed offline voice of the system TTS engine (a platform-independent copy of android.speech.tts.Voice). */
 data class VoiceOption(
@@ -36,10 +36,10 @@ data class TtsSettings(
      * builds, see [markAsReadEnabled].
      */
     val markAsReadOverride: Boolean? = null,
-    /** Engine that speaks messages: Edge (default for new installs), system TTS or OpenAI (BYOK). */
+    /** Engine that speaks messages: Edge (default for new installs), system TTS or Gemini (BYOK). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
-    /** Optional Bring-Your-Own-Key OpenAI TTS choices (used when [provider] is OPENAI). */
-    val openAi: OpenAiTtsOptions = OpenAiTtsOptions(),
+    /** Optional Bring-Your-Own-Key Gemini TTS choices (used when [provider] is GEMINI). */
+    val gemini: GeminiTtsOptions = GeminiTtsOptions(),
     /** Experimental Edge TTS choices (used when [provider] is EDGE). */
     val edge: EdgeTtsOptions = EdgeTtsOptions()
 ) {

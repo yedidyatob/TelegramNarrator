@@ -1,6 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.domain.tts
 
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import java.io.InterruptedIOException
 import java.net.ConnectException
 import java.net.NoRouteToHostException
@@ -10,17 +10,25 @@ import java.net.UnknownHostException
 /** Maps engine errors to a [FallbackReason] (#63). Pure; only status codes and machine-readable error codes. */
 object TtsFailures {
 
-    /** OpenAI HTTP error: [code] and the body's `code`/`type` values ([OpenAiTts.safeErrorSummary]). */
-    fun openAiHttp(code: Int, errorSummary: String?): FallbackReason {
+    /**
+     * Gemini HTTP error: [code] and the body's machine-readable summary ([GeminiTts.safeErrorSummary]).
+     *
+     * Gemini error shapes:
+     *  401 / 403  → invalid or missing key / permission denied
+     *  429 with "quota" in summary → out of credit (RESOURCE_EXHAUSTED + quota hint)
+     *  429 (else) → rate limited
+     *  400        → bad request (input too long, invalid voice, etc.)
+     *  5xx        → server error
+     */
+    fun geminiHttp(code: Int, errorSummary: String?): FallbackReason {
         val summary = errorSummary.orEmpty().lowercase()
         return when {
-            code == 401 -> FallbackReason.OPENAI_INVALID_KEY
-            code == 429 && "insufficient_quota" in summary -> FallbackReason.OPENAI_NO_CREDIT
-            code == 429 -> FallbackReason.OPENAI_RATE_LIMITED
-            code == 400 && LENGTH_HINTS.any { it in summary } -> FallbackReason.OPENAI_TOO_LONG
-            code == 400 -> FallbackReason.OPENAI_BAD_REQUEST
-            code in 500..599 -> FallbackReason.OPENAI_SERVER_ERROR
-            else -> FallbackReason.OPENAI_FAILED
+            code == 401 || code == 403 -> FallbackReason.GEMINI_INVALID_KEY
+            code == 429 && ("quota" in summary || "resource_exhausted" in summary) -> FallbackReason.GEMINI_NO_CREDIT
+            code == 429 -> FallbackReason.GEMINI_RATE_LIMITED
+            code == 400 -> FallbackReason.GEMINI_BAD_REQUEST
+            code in 500..599 -> FallbackReason.GEMINI_SERVER_ERROR
+            else -> FallbackReason.GEMINI_FAILED
         }
     }
 
@@ -48,17 +56,13 @@ object TtsFailures {
 
     /** Where the user can fix [reason] (opened from the notification), or null. */
     fun helpUrl(reason: FallbackReason): String? = when (reason) {
-        FallbackReason.OPENAI_INVALID_KEY -> OpenAiTts.API_KEYS_URL
-        FallbackReason.OPENAI_NO_CREDIT -> OpenAiTts.BILLING_URL
+        FallbackReason.GEMINI_INVALID_KEY, FallbackReason.GEMINI_NO_CREDIT -> GeminiTts.API_KEYS_URL
         else -> null
     }
-
-    // OpenAI's codes for an input over the limit ("string_above_max_length", "..._too_long")
-    private val LENGTH_HINTS = listOf("max_length", "too_long", "string_above")
 }
 
 /**
- * Backoff for OpenAI HTTP 429 rate limits: retry [MAX_RETRIES] times before falling back. Honours the
+ * Backoff for HTTP 429 rate limits: retry [MAX_RETRIES] times before falling back. Honours the
  * `Retry-After` header (capped at [MAX_DELAY_MS]), otherwise 1 s, 2 s.
  */
 object RateLimitRetry {
@@ -98,9 +102,9 @@ class TtsFailureEpisodes {
 }
 
 /**
- * Splits text for OpenAI's [OpenAiTts.MAX_INPUT_CHARS] input limit (#63 "split gracefully"): at paragraph or
- * sentence ends when possible, then at spaces, and only as a last resort mid-word. The MP3s of the chunks are
- * concatenated into one file.
+ * Splits text for the [io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts.MAX_INPUT_CHARS] input
+ * limit: at paragraph or sentence ends when possible, then at spaces, and only as a last resort mid-word.
+ * Also used for Edge TTS chunking. The audio of the chunks is concatenated into one file.
  */
 object SpeechTextSplitter {
     fun split(text: String, maxChars: Int): List<String> {
@@ -122,6 +126,6 @@ object SpeechTextSplitter {
         breaks.findAll(window).map { it.range.last + 1 }.filter { it >= window.length / 2 }.lastOrNull()
 
     private val PARAGRAPH = Regex("\n\\s*")
-    private val SENTENCE = Regex("[.!?…。؟]+[\"'”’)]*\\s+")
+    private val SENTENCE = Regex("""[.!?…。؟]+["'”’)]*\s+""")
     private val SPACE = Regex("\\s+")
 }

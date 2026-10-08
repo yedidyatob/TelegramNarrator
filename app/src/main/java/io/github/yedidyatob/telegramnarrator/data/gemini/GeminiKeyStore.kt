@@ -1,4 +1,4 @@
-package io.github.yedidyatob.telegramnarrator.data.openai
+package io.github.yedidyatob.telegramnarrator.data.gemini
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -9,15 +9,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Stores the user's OpenAI API key in EncryptedSharedPreferences.
+ * Stores the user's Gemini API key in EncryptedSharedPreferences (separate file from the former
+ * OpenAI key store so no old OpenAI key is ever sent to Google).
  * The key is never written to logs; callers must not log [getApiKey] results.
  */
 @Singleton
-class OpenAiKeyStore @Inject constructor(
+class GeminiKeyStore @Inject constructor(
     @ApplicationContext context: Context
 ) {
     private companion object {
-        const val FILE = "openai_tts_secure"
+        const val FILE = "gemini_tts_secure"
         const val KEY_API = "api_key"
     }
 
@@ -34,11 +35,11 @@ class OpenAiKeyStore @Inject constructor(
         )
     } catch (e: Exception) {
         // Encrypted prefs can fail on broken keystore; fall back to private prefs (still not logged).
-        android.util.Log.w("OpenAiKeyStore", "Encrypted prefs unavailable, using private SharedPreferences")
+        android.util.Log.w("GeminiKeyStore", "Encrypted prefs unavailable, using private SharedPreferences")
         context.getSharedPreferences(FILE + "_fallback", Context.MODE_PRIVATE)
     }
 
-    /** Returns the trimmed key, or null / blank if none is saved. Never log the return value. */
+    /** Returns the trimmed key, or null when none is saved. Never log the return value. */
     fun getApiKey(): String? {
         val key = prefs.getString(KEY_API, null)?.trim().orEmpty()
         return key.ifBlank { null }

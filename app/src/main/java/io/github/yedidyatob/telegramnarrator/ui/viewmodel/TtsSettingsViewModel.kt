@@ -14,13 +14,13 @@ import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer
-import io.github.yedidyatob.telegramnarrator.data.openai.OpenAiKeyStore
-import io.github.yedidyatob.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
+import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiKeyStore
+import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackManager
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
@@ -44,9 +44,9 @@ import javax.inject.Inject
 class TtsSettingsViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val preferences: TtsPreferences,
-    private val openAiKeyStore: OpenAiKeyStore,
+    private val geminiKeyStore: GeminiKeyStore,
     private val edgeSpeech: EdgeSpeechSynthesizer,
-    private val openAiSpeech: OpenAiSpeechSynthesizer,
+    private val geminiSpeech: GeminiSpeechSynthesizer,
     playbackManager: PlaybackManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -69,7 +69,7 @@ class TtsSettingsViewModel @Inject constructor(
         val current = _state.value
         _state.value = stateFrom(preferences.settings.value).copy(
             edge = EdgeVoiceUiState.from(preferences.settings.value.edge, testing = current.edge.testing),
-            openAi = openAiState(testing = current.openAi.testing),
+            gemini = geminiState(testing = current.gemini.testing),
             testLanguage = current.testLanguage
         )
     }
@@ -88,7 +88,7 @@ class TtsSettingsViewModel @Inject constructor(
         provider = settings.provider,
         system = systemState(settings),
         edge = EdgeVoiceUiState.from(settings.edge),
-        openAi = openAiState(testing = false),
+        gemini = geminiState(testing = false),
         speechRate = settings.speechRate,
         markAsRead = settings.markAsReadEnabled(BuildConfig.DEBUG),
         markAsReadSwitchVisible = TtsSettings.markAsReadSwitchVisible(BuildConfig.DEBUG)
@@ -112,7 +112,6 @@ class TtsSettingsViewModel @Inject constructor(
                     language = language,
                     displayName = Locale.forLanguageTag(language).displayLanguage,
                     voices = voices,
-                    // Only show a selection that is actually usable
                     selectedVoice = TtsVoiceLogic.chosenVoiceFor(settings, language, voices)?.name
                 )
             }
@@ -120,12 +119,11 @@ class TtsSettingsViewModel @Inject constructor(
     }
 
     /** The key is read only to derive "saved" + the masked hint; it is never put into UI state. */
-    private fun openAiState(testing: Boolean) =
-        OpenAiVoiceUiState.from(preferences.settings.value.openAi, openAiKeyStore.getApiKey(), testing)
+    private fun geminiState(testing: Boolean) =
+        GeminiVoiceUiState.from(preferences.settings.value.gemini, geminiKeyStore.getApiKey(), testing)
 
     // ---- Engine ---------------------------------------------------------------------------------
 
-    /** System (default) / Edge / OpenAI. */
     fun setProvider(provider: SpeechProvider) {
         if (provider == _state.value.provider) return
         stopTest()
@@ -203,47 +201,41 @@ class TtsSettingsViewModel @Inject constructor(
         }
     }
 
-    // ---- OpenAI ---------------------------------------------------------------------------------
+    // ---- Gemini ---------------------------------------------------------------------------------
 
-    fun setOpenAiModel(model: String) {
-        val normalized = OpenAiTts.normalizeModel(model)
-        preferences.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
-        _state.update { it.copy(openAi = it.openAi.copy(model = normalized)) }
-    }
-
-    fun setOpenAiVoice(voice: String) {
-        val normalized = OpenAiTts.normalizeVoice(voice)
-        preferences.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
-        _state.update { it.copy(openAi = it.openAi.copy(voice = normalized)) }
+    fun setGeminiVoice(voice: String) {
+        val normalized = GeminiTts.normalizeVoice(voice)
+        preferences.update { it.copy(gemini = it.gemini.copy(voice = normalized)) }
+        _state.update { it.copy(gemini = it.gemini.copy(voice = normalized)) }
     }
 
     /** Saves the typed API key (encrypted). Never log [key]; it is not kept in the ViewModel. */
-    fun saveOpenAiApiKey(key: String) {
+    fun saveGeminiApiKey(key: String) {
         if (key.isBlank()) return
-        openAiKeyStore.setApiKey(key)
-        _state.update { it.copy(openAi = openAiState(testing = it.openAi.testing)) }
+        geminiKeyStore.setApiKey(key)
+        _state.update { it.copy(gemini = geminiState(testing = it.gemini.testing)) }
     }
 
-    fun removeOpenAiApiKey() {
-        openAiKeyStore.clear()
-        _state.update { it.copy(openAi = openAiState(testing = it.openAi.testing)) }
+    fun removeGeminiApiKey() {
+        geminiKeyStore.clear()
+        _state.update { it.copy(gemini = geminiState(testing = it.gemini.testing)) }
     }
 
     /**
-     * Plays the sample in the selected test language with the selected OpenAI model and voice (OpenAI voices
-     * are multilingual). Needs a saved key; billed to it.
+     * Plays the sample in the selected test language with the selected Gemini voice (Gemini voices are
+     * multilingual). Needs a saved key; billed to it.
      */
-    fun testOpenAiVoice() {
-        val openAi = _state.value.openAi
-        if (!VoiceSettingsLogic.canTestOpenAi(isPlaying.value, openAi.testing, openAi.hasKey)) return
+    fun testGeminiVoice() {
+        val gemini = _state.value.gemini
+        if (!VoiceSettingsLogic.canTestGemini(isPlaying.value, gemini.testing, gemini.hasKey)) return
         val sentence = testSentence(_state.value.testLanguage)
-        _state.update { it.copy(openAi = it.openAi.copy(testing = true)) }
+        _state.update { it.copy(gemini = it.gemini.copy(testing = true)) }
         viewModelScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                openAiSpeech.synthesizeForTest(sentence)
+                geminiSpeech.synthesizeForTest(sentence)
             }
-            _state.update { it.copy(openAi = it.openAi.copy(testing = false)) }
-            handleTestOutcome(outcome, R.string.settings_openai_test_failed, openAiSpeech::discard)
+            _state.update { it.copy(gemini = it.gemini.copy(testing = false)) }
+            handleTestOutcome(outcome, R.string.settings_gemini_test_failed, geminiSpeech::discard)
         }
     }
 
@@ -269,7 +261,7 @@ class TtsSettingsViewModel @Inject constructor(
             is SpeechSynthesisOutcome.Ready -> playTestFile(outcome, failedMessage, discard)
             // The specific reason (invalid key, no credit, offline…) when there is one
             is SpeechSynthesisOutcome.Fallback -> toast(
-                if (outcome.reason == FallbackReason.OPENAI_FAILED || outcome.reason == FallbackReason.EDGE_FAILED) failedMessage
+                if (outcome.reason == FallbackReason.GEMINI_FAILED || outcome.reason == FallbackReason.EDGE_FAILED) failedMessage
                 else TtsFailureMessages.messageRes(outcome.reason)
             )
             SpeechSynthesisOutcome.UseSystem -> Unit

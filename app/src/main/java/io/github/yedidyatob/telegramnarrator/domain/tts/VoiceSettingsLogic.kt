@@ -11,8 +11,8 @@ enum class VoiceSettingsSection {
     /** Edge: Male / Female, Advanced custom voice (only for [SpeechProvider.EDGE]). */
     EDGE_VOICE,
 
-    /** OpenAI: key, quality, voice (only for [SpeechProvider.OPENAI]). */
-    OPENAI_VOICE,
+    /** Gemini: key, voice (only for [SpeechProvider.GEMINI]). */
+    GEMINI_VOICE,
 
     /** Speech rate (always shown) + the mark-as-read switch (debug builds only). */
     PLAYBACK
@@ -27,7 +27,7 @@ object VoiceSettingsLogic {
         when (provider) {
             SpeechProvider.SYSTEM -> VoiceSettingsSection.SYSTEM_VOICES
             SpeechProvider.EDGE -> VoiceSettingsSection.EDGE_VOICE
-            SpeechProvider.OPENAI -> VoiceSettingsSection.OPENAI_VOICE
+            SpeechProvider.GEMINI -> VoiceSettingsSection.GEMINI_VOICE
         },
         VoiceSettingsSection.PLAYBACK
     )
@@ -49,8 +49,8 @@ object VoiceSettingsLogic {
     /** "Test voice" for Edge: not while reading, not while a sample is already being fetched. */
     fun canTestEdge(isPlaying: Boolean, testing: Boolean): Boolean = !isPlaying && !testing
 
-    /** "Test voice" for OpenAI additionally needs a saved key (the request is billed to it). */
-    fun canTestOpenAi(isPlaying: Boolean, testing: Boolean, hasKey: Boolean): Boolean =
+    /** "Test voice" for Gemini additionally needs a saved key (the request is billed to it). */
+    fun canTestGemini(isPlaying: Boolean, testing: Boolean, hasKey: Boolean): Boolean =
         !isPlaying && !testing && hasKey
 
     /** Male / Female is ignored (and the toggle disabled) while an Advanced custom Edge voice is set. */

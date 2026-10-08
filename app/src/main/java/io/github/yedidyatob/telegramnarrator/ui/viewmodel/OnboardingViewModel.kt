@@ -12,7 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.data.onboarding.OnboardingPreferences
-import io.github.yedidyatob.telegramnarrator.data.openai.OpenAiKeyStore
+import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiKeyStore
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingFlow
 import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingStep
@@ -33,7 +33,7 @@ class OnboardingViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val onboardingPreferences: OnboardingPreferences,
     private val ttsPreferences: TtsPreferences,
-    private val openAiKeyStore: OpenAiKeyStore,
+    private val geminiKeyStore: GeminiKeyStore,
     private val ttsManager: TtsManager,
     private val savedState: SavedStateHandle
 ) : ViewModel() {
@@ -55,8 +55,8 @@ class OnboardingViewModel @Inject constructor(
         .map { it.provider }
         .stateIn(viewModelScope, SharingStarted.Eagerly, ttsPreferences.settings.value.provider)
 
-    private val _hasOpenAiKey = MutableStateFlow(openAiKeyStore.hasApiKey())
-    val hasOpenAiKey: StateFlow<Boolean> = _hasOpenAiKey.asStateFlow()
+    private val _hasGeminiKey = MutableStateFlow(geminiKeyStore.hasApiKey())
+    val hasGeminiKey: StateFlow<Boolean> = _hasGeminiKey.asStateFlow()
 
     private val _hebrewVoice = MutableStateFlow<Boolean?>(null)
 
@@ -95,11 +95,11 @@ class OnboardingViewModel @Inject constructor(
         ttsPreferences.update { it.copy(provider = provider) }
     }
 
-    fun saveOpenAiKey(key: String) {
+    fun saveGeminiKey(key: String) {
         val trimmed = key.trim()
         if (trimmed.isEmpty()) return
-        openAiKeyStore.setApiKey(trimmed)
-        _hasOpenAiKey.value = openAiKeyStore.hasApiKey()
+        geminiKeyStore.setApiKey(trimmed)
+        _hasGeminiKey.value = geminiKeyStore.hasApiKey()
     }
 
     /** Finished or skipped: never shown again. */

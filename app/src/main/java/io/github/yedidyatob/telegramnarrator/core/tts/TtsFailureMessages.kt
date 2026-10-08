@@ -9,15 +9,15 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
 object TtsFailureMessages {
     @StringRes
     fun messageRes(reason: FallbackReason): Int = when (reason) {
-        FallbackReason.OPENAI_NO_KEY -> R.string.tts_fallback_openai_no_key
-        FallbackReason.OPENAI_INVALID_KEY -> R.string.tts_fallback_openai_invalid_key
-        FallbackReason.OPENAI_NO_CREDIT -> R.string.tts_fallback_openai_no_credit
-        FallbackReason.OPENAI_RATE_LIMITED -> R.string.tts_fallback_openai_rate_limited
-        FallbackReason.OPENAI_TOO_LONG -> R.string.tts_fallback_openai_too_long
-        FallbackReason.OPENAI_BAD_REQUEST -> R.string.tts_fallback_openai_bad_request
-        FallbackReason.OPENAI_SERVER_ERROR -> R.string.tts_fallback_openai_server
-        FallbackReason.OPENAI_TIMEOUT -> R.string.tts_fallback_openai_timeout
-        FallbackReason.OPENAI_FAILED -> R.string.tts_fallback_openai_failed
+        FallbackReason.GEMINI_NO_KEY -> R.string.tts_fallback_gemini_no_key
+        FallbackReason.GEMINI_INVALID_KEY -> R.string.tts_fallback_gemini_invalid_key
+        FallbackReason.GEMINI_NO_CREDIT -> R.string.tts_fallback_gemini_no_credit
+        FallbackReason.GEMINI_RATE_LIMITED -> R.string.tts_fallback_gemini_rate_limited
+        FallbackReason.GEMINI_BAD_REQUEST -> R.string.tts_fallback_gemini_bad_request
+        FallbackReason.GEMINI_SERVER_ERROR -> R.string.tts_fallback_gemini_server
+        FallbackReason.GEMINI_TIMEOUT -> R.string.tts_fallback_gemini_timeout
+        FallbackReason.GEMINI_NO_AUDIO -> R.string.tts_fallback_gemini_no_audio
+        FallbackReason.GEMINI_FAILED -> R.string.tts_fallback_gemini_failed
         FallbackReason.EDGE_THROTTLED -> R.string.tts_fallback_edge_throttled
         FallbackReason.EDGE_UNAVAILABLE -> R.string.tts_fallback_edge_unavailable
         FallbackReason.EDGE_TIMEOUT -> R.string.tts_fallback_edge_timeout
@@ -30,6 +30,6 @@ object TtsFailureMessages {
     @StringRes
     fun helpActionRes(reason: FallbackReason): Int? = when (TtsFailures.helpUrl(reason)) {
         null -> null
-        else -> if (reason == FallbackReason.OPENAI_NO_CREDIT) R.string.tts_alert_open_billing else R.string.tts_alert_open_keys
+        else -> if (reason == FallbackReason.GEMINI_NO_CREDIT) R.string.tts_alert_open_billing else R.string.tts_alert_open_keys
     }
 }

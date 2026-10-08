@@ -5,8 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTtsOptions
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsSettings
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsVoiceLogic
@@ -24,6 +24,10 @@ import javax.inject.Singleton
  * No stored engine: a fresh install starts on [SpeechProvider.DEFAULT] (Edge); an install updated from a version
  * where "nothing stored" meant the system voice keeps [SpeechProvider.UPGRADE_DEFAULT] (System). The resolved
  * engine is saved right away, so a later update never changes it.
+ *
+ * Migration: a stored provider id of "openai" and the legacy `openai_enabled` flag are both migrated to
+ * "gemini" so existing BYOK users keep the paid-engine slot. The legacy `openai_model` key is dropped on next
+ * write (it has no Gemini equivalent). The `openai_voice` key is similarly dropped.
  */
 @Singleton
 class TtsPreferences @Inject constructor(
@@ -37,8 +41,7 @@ class TtsPreferences @Inject constructor(
         const val KEY_PROVIDER = "provider"
         /** Legacy (OpenAI PR builds): read once to migrate to [KEY_PROVIDER], no longer written. */
         const val KEY_OPENAI_ENABLED = "openai_enabled"
-        const val KEY_OPENAI_MODEL = "openai_model"
-        const val KEY_OPENAI_VOICE = "openai_voice"
+        const val KEY_GEMINI_VOICE = "gemini_voice"
         const val KEY_EDGE_GENDER = "edge_gender"
         const val KEY_EDGE_CUSTOM_VOICE = "edge_custom_voice"
         /** Legacy (before the voice-settings redesign): one Edge voice name; migrated on read, no longer written. */
@@ -75,9 +78,8 @@ class TtsPreferences @Inject constructor(
                 legacyOpenAiEnabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false),
                 freshInstall = !prefs.contains(KEY_PROVIDER) && isFreshInstall()
             ),
-            openAi = OpenAiTtsOptions(
-                model = OpenAiTts.normalizeModel(prefs.getString(KEY_OPENAI_MODEL, OpenAiTts.DEFAULT_MODEL)),
-                voice = OpenAiTts.normalizeVoice(prefs.getString(KEY_OPENAI_VOICE, OpenAiTts.DEFAULT_VOICE))
+            gemini = GeminiTtsOptions(
+                voice = GeminiTts.normalizeVoice(prefs.getString(KEY_GEMINI_VOICE, GeminiTts.DEFAULT_VOICE))
             ),
             edge = EdgeTts.optionsFromStored(
                 gender = prefs.getString(KEY_EDGE_GENDER, null),
@@ -116,8 +118,7 @@ class TtsPreferences @Inject constructor(
         editor.putFloat(KEY_RATE, settings.speechRate)
         settings.markAsReadOverride?.let { editor.putBoolean(KEY_MARK_AS_READ, it) }
         editor.putString(KEY_PROVIDER, settings.provider.id)
-        editor.putString(KEY_OPENAI_MODEL, OpenAiTts.normalizeModel(settings.openAi.model))
-        editor.putString(KEY_OPENAI_VOICE, OpenAiTts.normalizeVoice(settings.openAi.voice))
+        editor.putString(KEY_GEMINI_VOICE, GeminiTts.normalizeVoice(settings.gemini.voice))
         editor.putString(KEY_EDGE_GENDER, settings.edge.gender.id)
         settings.edge.customVoice?.let { editor.putString(KEY_EDGE_CUSTOM_VOICE, it) }
         settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }

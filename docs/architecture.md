@@ -13,10 +13,10 @@ Storage", a use-case layer; the Onboarding and Player screens came later with #2
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
-| Speech | Microsoft Edge neural TTS (unofficial; default on new installs), Android `TextToSpeech` (offline; fallback, and the engine of updated installs that never chose one), optional OpenAI TTS (BYOK) |
+| Speech | Microsoft Edge neural TTS (unofficial; default on new installs), Android `TextToSpeech` (offline; fallback, and the engine of updated installs that never chose one), optional Gemini 2.5 Flash TTS (BYOK) |
 | Playback | Foreground `PlaybackService` + `MediaSessionCompat`, `MediaPlayer` for voice notes, dings and cloud TTS audio |
-| Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; OpenAI key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
-| Backend | None. The app talks only to Telegram, plus OpenAI / Microsoft if the user opts into those engines |
+| Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; Gemini key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
+| Backend | None. The app talks only to Telegram, plus Gemini / Microsoft if the user opts into those engines |
 
 ## Layers and packages
 
@@ -51,7 +51,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── onboarding/   OnboardingFlow (steps, shown once, Hebrew voice check)
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
-│   ├── openai/       OpenAiTts (models, voices, cost estimate)
+│   ├── gemini/       GeminiTts (voices, cache key, helpers)
 │   ├── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
 │   └── edge/         EdgeTts (SSML/protocol helpers, voice mapping)
 ├── data/      Implementations that touch TDLib, Android or the network
@@ -64,7 +64,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── rules/                       ChannelRulesParser + ChannelRulesRepository (assets/channel_rules.json)
 │   ├── auth/DeviceCountrySignals    SIM / network / locale country for the login default country
 │   ├── tts/TtsPreferences           SharedPreferences (read synchronously by TtsManager)
-│   ├── openai/                      OpenAiKeyStore, OpenAiSpeechClient/Synthesizer/Cache
+│   ├── gemini/                      GeminiKeyStore, GeminiSpeechClient/Synthesizer/Cache
 │   ├── edge/                        EdgeTtsClient (OkHttp WebSocket), EdgeSpeechSynthesizer/Cache
 │   └── speech/DiskAudioCache        shared LRU file cache for synthesized audio
 └── core/      Android infrastructure
@@ -99,7 +99,7 @@ it is never reset while the Keystore is unavailable. `AppNavigation` in `MainAct
 after an update, never sees it): what the app does; the unofficial-app notice and what stays on the device, with the
 privacy policy link (and, when Edge is selected, that its text and chat names go to Microsoft); the voice engine
 (Edge first and preselected on a new install; System, with a check for an offline Hebrew voice and a shortcut to the
-system TTS settings; OpenAI with an inline API-key field), written to `TtsPreferences`; and on Android 13+
+system TTS settings; Gemini with an inline API-key field), written to `TtsPreferences`; and on Android 13+
 the notification permission (the step is left out when it is already granted). Skip, or finishing, sets the
 `OnboardingPreferences` flag and the login follows.
 
@@ -116,7 +116,7 @@ itself. A failed refresh with chats on screen only shows a snackbar.
 **Player (#20).** `PlaybackService` publishes a `NowPlaying` (chat, avatar, the message being read, its position from
 `PlaybackPlan` — only chats and messages that are actually heard count —, the engine speaking) through
 `PlaybackManager`; `PlayerUiState` adds pause / preparing / the sponsored ad / the engine indicator (a system voice
-standing in for Edge or OpenAI is shown as a fallback). The mini player at the bottom of Home opens the Player
+standing in for Edge or Gemini is shown as a fallback). The mini player at the bottom of Home opens the Player
 screen (slide up; closes with ⌄, the predictive back gesture or when playback ends): avatar, chat position, the
 message in its own direction, message position, previous / play-pause / next message (laid out left-to-right in RTL
 too, like media controls), next chat and stop. Previous (`ACTION_PREVIOUS_MSG`, `ChatPlaybackHistory`) stays within
@@ -132,7 +132,7 @@ settings only.
    the chat's official sponsored message, `Silence`, `Outro` = end ding),
 3. plays each item, running the generic `MessageCleaner` and `MessageSpeechBody` (silent skip of media-only /
    symbol-only rows) just before speaking: voice notes and dings through `MediaPlayer`; text through the selected `SpeechProvider`
-   (`SYSTEM` → `TtsManager`; `OPENAI` / `EDGE` → synthesize to an MP3 in the disk cache, prefetching the next
+   (`SYSTEM` → `TtsManager`; `GEMINI` / `EDGE` → synthesize to a WAV in the disk cache, prefetching the next
    messages while the current one plays, falling back to system TTS on failure),
 4. records progress in `ReadCheckpointer` and marks messages read in batches via
    `ChatRepository.markChatAsRead` (only messages that were actually played or deliberately skipped; always on in
@@ -162,7 +162,7 @@ Test with <https://t.me/SecretAdTestChannel> (join it in Telegram first): Telegr
 |---|---|
 | TDLib database "encrypted by default" | Encrypted since #15 with a random key wrapped by the Android Keystore (TDLib's default empty key is not a secret). Android backup is disabled. |
 | `Preferences: DataStore` | `SharedPreferences` (`TtsPreferences`), because `TtsManager` needs values synchronously. The unused DataStore dependency was removed. |
-| `Security: Encrypted File Storage` | TDLib database encrypted (above); the optional OpenAI key uses `EncryptedSharedPreferences`. |
+| `Security: Encrypted File Storage` | TDLib database encrypted (above); the optional Gemini key uses `EncryptedSharedPreferences`. |
 | `TtsRepository` | `TtsManager` (core) + `SpeechProvider` synthesizers (data). |
 | Use cases (`GetUnreadChats`, `PlayChatMessages`, `LoginUser`) | None; logic lives in `PlaybackService`, ViewModels and domain helpers. |
 | Screens: Onboarding, Login, ChatList, Player | Onboarding, Login, Home (chat list + mini player), Player, Voice settings sheet (#20). |

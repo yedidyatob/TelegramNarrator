@@ -2,8 +2,8 @@ package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTtsOptions
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection
 import org.junit.Assert.assertEquals
@@ -14,14 +14,14 @@ import org.junit.Test
 
 class VoiceSettingsUiStateTest {
 
-    private val rawKey = "sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789secretWXYZ"
+    private val rawKey = "AI-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789secretWXYZ"
 
     @Test
     fun `raw api key never appears in ui state`() {
-        val openAi = OpenAiVoiceUiState.from(OpenAiTtsOptions(), rawKey)
-        val state = TtsSettingsUiState(provider = SpeechProvider.OPENAI, openAi = openAi)
-        assertTrue(openAi.hasKey)
-        assertEquals("sk-…WXYZ", openAi.keyHint)
+        val gemini = GeminiVoiceUiState.from(GeminiTtsOptions(), rawKey)
+        val state = TtsSettingsUiState(provider = SpeechProvider.GEMINI, gemini = gemini)
+        assertTrue(gemini.hasKey)
+        assertEquals("AI-…WXYZ", gemini.keyHint)
         // Neither the whole key nor its secret middle is reachable from the state
         val dump = state.toString()
         assertFalse(dump.contains(rawKey))
@@ -31,16 +31,16 @@ class VoiceSettingsUiStateTest {
 
     @Test
     fun `no key gives no hint`() {
-        val none = OpenAiVoiceUiState.from(OpenAiTtsOptions(), null)
+        val none = GeminiVoiceUiState.from(GeminiTtsOptions(), null)
         assertFalse(none.hasKey)
         assertNull(none.keyHint)
-        assertFalse(OpenAiVoiceUiState.from(OpenAiTtsOptions(), "   ").hasKey)
+        assertFalse(GeminiVoiceUiState.from(GeminiTtsOptions(), "   ").hasKey)
     }
 
     @Test
     fun `short keys are fully masked`() {
-        val short = "sk-123456789"
-        val state = OpenAiVoiceUiState.from(OpenAiTtsOptions(), short)
+        val short = "ai-123456789"
+        val state = GeminiVoiceUiState.from(GeminiTtsOptions(), short)
         assertTrue(state.hasKey)
         assertEquals("••••", state.keyHint)
         assertFalse(state.toString().contains("123"))
@@ -50,17 +50,16 @@ class VoiceSettingsUiStateTest {
     fun `mask never contains the key for any length`() {
         for (length in 1..80) {
             val key = (1..length).joinToString("") { ('a' + (it % 26)).toString() }
-            val masked = OpenAiTts.maskKey(key)!!
+            val masked = GeminiTts.maskKey(key)!!
             if (length > 1) assertFalse("length $length", masked.contains(key))
             assertTrue(masked.length <= 8)
         }
     }
 
     @Test
-    fun `openai options are normalized`() {
-        val state = OpenAiVoiceUiState.from(OpenAiTtsOptions(model = "bogus", voice = "nope"), null)
-        assertEquals(OpenAiTts.DEFAULT_MODEL, state.model)
-        assertEquals(OpenAiTts.DEFAULT_VOICE, state.voice)
+    fun `gemini options are normalized`() {
+        val state = GeminiVoiceUiState.from(GeminiTtsOptions(voice = "nope"), null)
+        assertEquals(GeminiTts.DEFAULT_VOICE, state.voice)
     }
 
     @Test

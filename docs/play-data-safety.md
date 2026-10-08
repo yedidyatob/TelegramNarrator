@@ -12,13 +12,13 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 | Phone number, login code, 2FA password | Telegram (TDLib, MTProto) | Login | `TdLibAuthRepository` |
 | Telegram chat / message / user IDs, read receipts | Telegram | Loading chats, marking played messages as read (always on in release builds) | `TdLibChatRepository` |
 | Sponsored-message requests, views, clicks and reports (chat ID + sponsored message ID) | Telegram | Telegram's official sponsored messages in channels and bot chats (Telegram API ToS 3.3): fetched when a channel / bot chat is played or its preview opened; a view when the ad was read aloud in full or its text was fully on screen; a click when its link is opened; a report when the user reports it | `TdLibSponsoredMessagesSource` |
-| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS; a third-party service, not an official API) | Whenever **Edge** is the engine: it is the **default on new installs** (preselected in the onboarding's voice step), unless the user picks System or OpenAI there or in Voice settings. Installs updated from a version that defaulted to System keep System (`SpeechProvider.UPGRADE_DEFAULT`) | `EdgeTtsClient` |
-| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice/model, the user's own API key | OpenAI (`api.openai.com`, HTTPS) | Only if the user selects **OpenAI** and saves a key | `OpenAiSpeechClient` |
+| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice name, random per-request ID | Microsoft (Edge "Read aloud" endpoint, WSS; a third-party service, not an official API) | Whenever **Edge** is the engine: it is the **default on new installs** (preselected in the onboarding's voice step), unless the user picks System or Gemini there or in Voice settings. Installs updated from a version that defaulted to System keep System (`SpeechProvider.UPGRADE_DEFAULT`) | `EdgeTtsClient` |
+| Cleaned message text, chat titles (spoken before each chat) and the text of Telegram sponsored messages, voice, the user's own API key | Google (Generative AI API at `generativelanguage.googleapis.com`, HTTPS) | Only if the user selects **Gemini** and saves a key | `GeminiSpeechClient` |
 
 Nothing is sent to the developer: there is no backend, no analytics, no ad SDK, no crash reporting or other SDK that
 phones home (dependencies: AndroidX, Compose, Hilt, TDLib, OkHttp, security-crypto). The only ads are Telegram's
 own sponsored messages, served by Telegram through TDLib; the developer earns nothing from them. Stored on the device only:
-the TDLib database (encrypted), settings, the encrypted OpenAI key and the cloud-TTS audio cache; Android backup
+the TDLib database (encrypted), settings, the encrypted Gemini key and the cloud-TTS audio cache; Android backup
 and device transfer are disabled. The app cannot create Telegram accounts (it only logs in to existing ones).
 
 ## Data safety form
@@ -42,7 +42,7 @@ rather than to the developer.
 |---|---|---|---|---|---|
 | Personal info → **Phone number** | Yes | No | No | Required | App functionality, Account management |
 | Personal info → **User IDs** (Telegram user / chat IDs in API requests) | Yes | No | No | Required | App functionality |
-| Messages → **Other in-app messages** (message text and chat titles for online speech) | Yes | **Yes** (Microsoft with the default Edge engine, or OpenAI if chosen) | No | **Optional** (on by default with Edge; the user can switch to the offline System voice in the onboarding or Voice settings, and nothing is sent then) | App functionality |
+| Messages → **Other in-app messages** (message text and chat titles for online speech) | Yes | **Yes** (Microsoft with the default Edge engine, or Gemini if chosen) | No | **Optional** (on by default with Edge; the user can switch to the offline System voice in the onboarding or Voice settings, and nothing is sent then) | App functionality |
 
 Everything else: **not collected** (location, contacts, photos/videos, audio, files, calendar, health, financial
 info, web browsing, app activity, app info and performance / crash logs, device or other IDs).
@@ -56,12 +56,12 @@ Notes on the choices:
   go to Microsoft unless the user switches to the System voice. Because this happens by default rather than after
   a deliberate user choice, Play's "user-initiated action" exemption does not apply: it **must** be declared as
   *shared* (and collected). The onboarding's privacy step and the Edge card in the voice step say so, as do the
-  login notice and the privacy policy. OpenAI is shared only after the user picks it and saves a key.
+  login notice and the privacy policy. Gemini is shared only after the user picks it and saves a key.
 - It stays **Optional** in the form because users can choose not to send it: the System voice is offered in the
   onboarding and in Voice settings, and with it nothing leaves the device.
 - A one-on-one chat's title is a contact's name. It is declared under *Messages* (it is spoken as part of the
   conversation) rather than *Personal info → Name*, which describes the user's own name.
-- The login code, the Telegram password and the OpenAI API key are authentication secrets passed to the
+- The login code, the Telegram password and the Gemini API key are authentication secrets passed to the
   service they belong to; Play has no data type for them. They are covered in the privacy policy.
 - Voice messages and chat lists are *downloaded* from Telegram to the device, which is not collection.
 - Sponsored-message views, clicks and reports go to Telegram (the service the user is logged in to), like read
@@ -73,7 +73,7 @@ Notes on the choices:
 
 | Permission | Why it is needed |
 |---|---|
-| `INTERNET` | TDLib (Telegram) and the online speech engines (Edge, the default, and the optional OpenAI) |
+| `INTERNET` | TDLib (Telegram) and the online speech engines (Edge, the default, and the optional Gemini) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | `PlaybackService` keeps reading aloud with the screen off |
 | `POST_NOTIFICATIONS` | Optional media controls in the notification / lock screen; asked in the first-run introduction (Android 13+) or before the first playback, reading works without it |
 
@@ -153,7 +153,7 @@ FEATURES
 VOICES
 • Edge (default): free natural voices from Microsoft's online "Read aloud" service (unofficial); message text and chat names are sent to Microsoft
 • System: the text-to-speech engine on your phone, works offline; nothing is sent
-• OpenAI (optional): high-quality voices with your own OpenAI API key, billed by OpenAI; message text and chat names are sent to OpenAI
+• Gemini (optional): high-quality voices with your own Gemini API key, billed by Google; message text and chat names are sent to Google
 
 PRIVACY
 • No analytics, no tracking, and no developer servers
@@ -192,7 +192,7 @@ Unofficial Telegram Narrator מקריאה בקול את הצ'אטים שלא ק�
 קולות
 • Edge (ברירת מחדל): קולות טבעיים בחינם משירות ההקראה המקוון של Microsoft (לא רשמי); טקסט ההודעות ושמות הצ'אטים נשלחים ל־Microsoft
 • מערכת: מנוע ההקראה של הטלפון, עובד בלי אינטרנט; שום דבר לא נשלח
-• OpenAI (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של OpenAI; טקסט ההודעות ושמות הצ'אטים נשלחים ל־OpenAI
+• Gemini (אופציונלי): קולות באיכות גבוהה עם מפתח API משלכם, בחיוב של Google; טקסט ההודעות ושמות הצ'אטים נשלחים לגוגל
 
 פרטיות
 • בלי אנליטיקה, בלי מעקב ובלי שרתים של המפתח
