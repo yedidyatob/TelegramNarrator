@@ -86,7 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsVoiceLogic
@@ -95,7 +95,7 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceQuality
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsLogic
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OpenAiVoiceUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
@@ -105,7 +105,7 @@ import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
- * Voice settings bottom sheet: **Engine** (System | Edge | OpenAI), then only the selected engine's own section,
+ * Voice settings bottom sheet: **Engine** (System | Edge | Gemini), then only the selected engine's own section,
  * then **Playback** (speech rate; mark as read in debug builds only). See docs/tts-voice-settings.md.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,11 +131,10 @@ fun VoiceSettingsSheet(
             onSelectEdgeGender = viewModel::setEdgeGender,
             onSetEdgeCustomVoice = viewModel::setEdgeCustomVoice,
             onTestEdge = viewModel::testEdgeVoice,
-            onSaveOpenAiKey = viewModel::saveOpenAiApiKey,
-            onRemoveOpenAiKey = viewModel::removeOpenAiApiKey,
-            onSelectOpenAiModel = viewModel::setOpenAiModel,
-            onSelectOpenAiVoice = viewModel::setOpenAiVoice,
-            onTestOpenAi = viewModel::testOpenAiVoice,
+            onSaveGeminiKey = viewModel::saveGeminiApiKey,
+            onRemoveGeminiKey = viewModel::removeGeminiApiKey,
+            onSelectGeminiVoice = viewModel::setGeminiVoice,
+            onTestGemini = viewModel::testGeminiVoice,
             onSpeechRate = viewModel::setSpeechRate,
             onMarkAsRead = viewModel::setMarkAsRead,
             onSelectTestLanguage = viewModel::setTestLanguage
@@ -160,11 +159,10 @@ class VoiceSettingsActions(
     /** Returns false when the name is not a valid Edge voice; blank clears the custom voice. */
     val onSetEdgeCustomVoice: (String?) -> Boolean = { true },
     val onTestEdge: () -> Unit = {},
-    val onSaveOpenAiKey: (String) -> Unit = {},
-    val onRemoveOpenAiKey: () -> Unit = {},
-    val onSelectOpenAiModel: (String) -> Unit = {},
-    val onSelectOpenAiVoice: (String) -> Unit = {},
-    val onTestOpenAi: () -> Unit = {},
+    val onSaveGeminiKey: (String) -> Unit = {},
+    val onRemoveGeminiKey: () -> Unit = {},
+    val onSelectGeminiVoice: (String) -> Unit = {},
+    val onTestGemini: () -> Unit = {},
     val onSpeechRate: (Float) -> Unit = {},
     val onMarkAsRead: (Boolean) -> Unit = {},
     val onSelectTestLanguage: (TestLanguage) -> Unit = {}
@@ -204,7 +202,7 @@ fun VoiceSettingsContent(
                 VoiceSettingsSection.ENGINE -> EngineSection(state.provider, isPlaying, actions.onSelectProvider)
                 VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.EDGE_VOICE -> EdgeSection(state.edge, state.testLanguage, isPlaying, actions)
-                VoiceSettingsSection.OPENAI_VOICE -> OpenAiSection(state.openAi, state.testLanguage, isPlaying, actions)
+                VoiceSettingsSection.GEMINI_VOICE -> GeminiSection(state.gemini, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.PLAYBACK -> PlaybackSection(
                     speechRate = state.speechRate,
                     markAsRead = state.markAsRead,
@@ -405,28 +403,28 @@ private fun EdgeAdvanced(customVoice: String?, enabled: Boolean, onSetCustomVoic
 }
 
 /**
- * "Get an API key" link under the key field: opens the OpenAI API keys page in the browser (that page handles
+ * "Get an API key" link under the key field: opens the Gemini API keys page in the browser (that page handles
  * sign-up / login). A text button with a 48dp minimum touch target; TalkBack hears that it opens the browser.
  */
 @Composable
-private fun GetOpenAiKeyLink() {
+private fun GetGeminiKeyLink() {
     val context = LocalContext.current
-    val opensInBrowser = stringResource(R.string.settings_openai_get_key_a11y)
+    val opensInBrowser = stringResource(R.string.settings_gemini_get_key_a11y)
     TextButton(
         onClick = {
             try {
                 context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(OpenAiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    Intent(Intent.ACTION_VIEW, Uri.parse(GeminiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             } catch (e: ActivityNotFoundException) {
-                Toast.makeText(context, context.getString(R.string.settings_openai_get_key_no_browser), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.settings_gemini_get_key_no_browser), Toast.LENGTH_SHORT).show()
             }
         },
         modifier = Modifier
             .heightIn(min = 48.dp)
             .semantics { contentDescription = opensInBrowser }
     ) {
-        Text(stringResource(R.string.settings_openai_get_key))
+        Text(stringResource(R.string.settings_gemini_get_key))
         Spacer(Modifier.size(4.dp))
         // Decorative: the button's content description already says it opens the browser
         Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -444,13 +442,13 @@ private class ApiKeyVisualTransformation(private val mask: Char = '•') : Visua
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OpenAiSection(
-    openAi: OpenAiVoiceUiState,
+private fun GeminiSection(
+    gemini: GeminiVoiceUiState,
     testLanguage: TestLanguage,
     isPlaying: Boolean,
     actions: VoiceSettingsActions
 ) {
-    SettingsSection(R.string.settings_section_openai) {
+    SettingsSection(R.string.settings_section_gemini) {
         val enabled = !isPlaying
         // The typed key lives only here (not in the ViewModel / UI state) and is not saved in instance state
         var keyDraft by remember { mutableStateOf("") }
@@ -460,8 +458,8 @@ private fun OpenAiSection(
             value = keyDraft,
             onValueChange = { keyDraft = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.settings_openai_api_key)) },
-            placeholder = { Text(stringResource(R.string.settings_openai_api_key_hint)) },
+            label = { Text(stringResource(R.string.settings_gemini_api_key)) },
+            placeholder = { Text(stringResource(R.string.settings_gemini_api_key_hint)) },
             visualTransformation = if (showKey) VisualTransformation.None else ApiKeyVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false),
             trailingIcon = {
@@ -474,7 +472,7 @@ private fun OpenAiSection(
                         }) {
                             Icon(
                                 Icons.Filled.ContentPaste,
-                                contentDescription = stringResource(R.string.settings_openai_paste_key)
+                                contentDescription = stringResource(R.string.settings_gemini_paste_key)
                             )
                         }
                     }
@@ -482,7 +480,7 @@ private fun OpenAiSection(
                         Icon(
                             if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                             contentDescription = stringResource(
-                                if (showKey) R.string.settings_openai_hide_key else R.string.settings_openai_show_key
+                                if (showKey) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key
                             )
                         )
                     }
@@ -491,12 +489,12 @@ private fun OpenAiSection(
             singleLine = true,
             enabled = enabled
         )
-        GetOpenAiKeyLink()
+        GetGeminiKeyLink()
         Text(
-            if (openAi.keyHint != null) stringResource(R.string.settings_openai_key_saved, openAi.keyHint)
-            else stringResource(R.string.settings_openai_key_none),
+            if (gemini.keyHint != null) stringResource(R.string.settings_gemini_key_saved, gemini.keyHint)
+            else stringResource(R.string.settings_gemini_key_none),
             style = MaterialTheme.typography.bodyMedium,
-            color = if (openAi.hasKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (gemini.hasKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(top = 4.dp)
                 .semantics { liveRegion = LiveRegionMode.Polite }
@@ -504,48 +502,36 @@ private fun OpenAiSection(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
             Button(
                 onClick = {
-                    actions.onSaveOpenAiKey(keyDraft)
+                    actions.onSaveGeminiKey(keyDraft)
                     keyDraft = ""
                     showKey = false
                 },
                 enabled = enabled && keyDraft.isNotBlank()
-            ) { Text(stringResource(R.string.settings_openai_save_key)) }
+            ) { Text(stringResource(R.string.settings_gemini_save_key)) }
             OutlinedButton(
-                onClick = actions.onRemoveOpenAiKey,
-                enabled = enabled && openAi.hasKey
-            ) { Text(stringResource(R.string.settings_openai_remove_key)) }
-        }
-        Spacer(Modifier.height(8.dp))
-        FieldLabel(R.string.settings_openai_quality)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = MIN_TOUCH)) {
-            OPENAI_MODELS.forEachIndexed { index, (model, label) ->
-                SegmentedButton(
-                    selected = openAi.model == model,
-                    onClick = { actions.onSelectOpenAiModel(model) },
-                    shape = SegmentedButtonDefaults.itemShape(index, OPENAI_MODELS.size),
-                    enabled = enabled
-                ) { Text(stringResource(label)) }
-            }
+                onClick = actions.onRemoveGeminiKey,
+                enabled = enabled && gemini.hasKey
+            ) { Text(stringResource(R.string.settings_gemini_remove_key)) }
         }
         Spacer(Modifier.height(8.dp))
         Dropdown(
-            label = stringResource(R.string.settings_openai_voice),
-            value = openAi.voice,
+            label = stringResource(R.string.settings_gemini_voice),
+            value = gemini.voice,
             enabled = enabled,
-            options = OpenAiTts.VOICES.map { DropdownOption(it, it) },
-            selected = openAi.voice,
-            onSelect = actions.onSelectOpenAiVoice
+            options = GeminiTts.VOICES.map { DropdownOption(it, it) },
+            selected = gemini.voice,
+            onSelect = actions.onSelectGeminiVoice
         )
         TestVoiceRow(
             language = testLanguage,
             onSelectLanguage = actions.onSelectTestLanguage,
             isPlaying = isPlaying,
-            enabled = VoiceSettingsLogic.canTestOpenAi(isPlaying, openAi.testing, openAi.hasKey),
-            testing = openAi.testing,
-            onTest = actions.onTestOpenAi,
-            hint = if (!openAi.hasKey) stringResource(R.string.settings_openai_test_needs_key) else null
+            enabled = VoiceSettingsLogic.canTestGemini(isPlaying, gemini.testing, gemini.hasKey),
+            testing = gemini.testing,
+            onTest = actions.onTestGemini,
+            hint = if (!gemini.hasKey) stringResource(R.string.settings_gemini_test_needs_key) else null
         )
-        HelperText(stringResource(R.string.settings_openai_cost_privacy))
+        HelperText(stringResource(R.string.settings_gemini_cost_privacy))
     }
 }
 
@@ -796,17 +782,12 @@ private val ENGINE_ROWS = listOf(
     // Edge first: the default engine of new installs
     Triple(SpeechProvider.EDGE, R.string.settings_engine_edge, R.string.settings_engine_edge_desc),
     Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
-    Triple(SpeechProvider.OPENAI, R.string.settings_engine_openai, R.string.settings_engine_openai_desc)
+    Triple(SpeechProvider.GEMINI, R.string.settings_engine_gemini, R.string.settings_engine_gemini_desc)
 )
 
 private val EDGE_GENDERS = listOf(
     EdgeVoiceGender.MALE to R.string.settings_edge_gender_male,
     EdgeVoiceGender.FEMALE to R.string.settings_edge_gender_female
-)
-
-private val OPENAI_MODELS = listOf(
-    OpenAiTts.MODEL_TTS_1 to R.string.settings_openai_model_standard,
-    OpenAiTts.MODEL_TTS_1_HD to R.string.settings_openai_model_hd
 )
 
 // There is no Settings.ACTION_* constant for the system text-to-speech settings; this is the action string

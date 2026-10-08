@@ -23,7 +23,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Microsoft Edge neural voices, the **default engine on new installs** (just pick Male or Female; Hebrew and other languages switch automatically): free, no key, unofficial, and message text and chat names are sent to Microsoft - see [below](#microsoft-edge-neural-tts-default-unofficial). The offline system voice is one tap away (onboarding or Voice settings) and is the fallback when Edge fails; installs updated from a version that used the system voice keep it
-- Optional Bring-Your-Own-Key **OpenAI TTS** (`tts-1` / `tts-1-hd`, cached on device) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
+- Optional Bring-Your-Own-Key **Gemini 2.5 Flash TTS** (high-quality voices, cached on device) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
 The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
@@ -59,16 +59,14 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
    unless you opt in with `EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest`. CI (`.github/workflows/ci.yml`) runs
    `testDebugUnitTest assembleDebug` on every push to `main` and every pull request.
 
-### Optional: OpenAI TTS (Bring-Your-Own-Key)
+### Optional: Gemini TTS (Bring-Your-Own-Key)
 
-OpenAI is optional (new installs default to Edge, see below). No OpenAI key is required or shipped in the repo.
+Gemini is optional (new installs default to Edge, see below). No Gemini key is required or shipped in the repo.
 
-1. Create an API key at <https://platform.openai.com/api-keys> (you pay OpenAI directly).
-2. In the app: **Voice settings** → **Engine** → **OpenAI**. Paste the key (tap the eye icon to check it) → **Save key**
-   (the sheet then shows `Saved: sk-…abcd`) → pick **Standard (tts-1)** or **HD (tts-1-hd)** and a voice →
-   **Test voice** plays a sample in the language picked next to it. **Remove key** deletes it from the device.
-3. Pricing: <https://openai.com/api/pricing/> (tts-1 ≈ $15 per 1M characters, tts-1-hd ≈ $30 per 1M).
-4. **Warning:** when synthesizing, the key and cleaned message text leave the device to `api.openai.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache so they are not billed again.
+1. Create an API key at <https://aistudio.google.com/apikey> (free tier, with quotas).
+2. In the app: **Voice settings** → **Engine** → **Gemini**. Paste the key (tap the eye icon to check it) → **Save key**
+   (the sheet then shows `Saved: AI…abcd`) → pick a voice → **Test voice** plays a sample in the language picked next to it. **Remove key** deletes it from the device.
+3. **Warning:** when synthesizing, the key and cleaned message text leave the device to `generativelanguage.googleapis.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache.
 
 ### Microsoft Edge neural TTS (default, unofficial)
 
@@ -157,11 +155,10 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 - The app has no server and sends no analytics. Messages are read through TDLib (only Telegram is contacted for
   them). **On a new install the default voice is Microsoft Edge**, so the text being read and the chat names go to
   Microsoft; with the **System** voice everything is spoken on the device.
-- **Optional OpenAI TTS**: if you enable it and paste your own API key, cleaned message text is sent to
-  `api.openai.com` to synthesize speech. The key is stored in EncryptedSharedPreferences on device and is never
-  logged or shipped in the repo. Get a key at <https://platform.openai.com/api-keys>. Pricing:
-  <https://openai.com/api/pricing/> (tts-1 ≈ $15/1M characters, tts-1-hd ≈ $30/1M). Synthesized audio is cached
-  on disk by hash of text+voice+model so the same message is not billed twice.
+- **Optional Gemini TTS**: if you enable it and paste your own API key, cleaned message text is sent to
+  `generativelanguage.googleapis.com` to synthesize speech. The key is stored in EncryptedSharedPreferences on device and is never
+  logged or shipped in the repo. Get a key at <https://aistudio.google.com/apikey>. Synthesized audio is cached
+  on disk by hash of text+voice so the same message is not re-synthesized.
 - **Edge TTS** (default on new installs): cleaned message text and chat names are sent to Microsoft's unofficial Edge
   "Read aloud" endpoint (`speech.platform.bing.com`); no key or account is involved. Audio is cached on device.
 - The Telegram session and message cache live in the app's private storage (`filesDir/tdlib`). Android backup is
@@ -170,7 +167,7 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
   wrapped by a non-exportable Android Keystore key and stored in `noBackupFilesDir`. Existing unencrypted
   databases are re-keyed in place on first start, so you stay logged in. If the Keystore key is ever lost, the
   database is reset and you log in again.
-- Message text is never written to the log; debug logging is stripped from release builds. The OpenAI API key is never logged.
+- Message text is never written to the log; debug logging is stripped from release builds. The Gemini API key is never logged.
 - Full details: [docs/privacy-policy.md](docs/privacy-policy.md).
 
 ## Publishing

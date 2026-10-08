@@ -28,7 +28,7 @@ import io.github.yedidyatob.telegramnarrator.data.rules.ChannelRulesRepository
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer
-import io.github.yedidyatob.telegramnarrator.data.openai.OpenAiSpeechSynthesizer
+import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
@@ -74,7 +74,7 @@ class PlaybackService : Service() {
     @Inject lateinit var chatRepository: ChatRepository
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var channelRules: ChannelRulesRepository
-    @Inject lateinit var openAiSpeech: OpenAiSpeechSynthesizer
+    @Inject lateinit var geminiSpeech: GeminiSpeechSynthesizer
     @Inject lateinit var edgeSpeech: EdgeSpeechSynthesizer
     @Inject lateinit var ttsPreferences: TtsPreferences
     @Inject lateinit var sponsoredMessages: SponsoredMessagesRepository
@@ -464,12 +464,12 @@ class PlaybackService : Service() {
     // Speaks a message body or a chat title with the selected engine, then moves on. [onSpoken] runs only if the
     // speech finished (for messages: counts as played and gets marked as read). Every engine picks the
     // language / voice from [speechText] itself (LanguageDetector), so a Hebrew title gets a Hebrew voice.
-    // Network engines (OpenAI BYOK / experimental Edge) synthesize a cached MP3 that is played via the
+    // Network engines (Gemini BYOK / experimental Edge) synthesize a cached WAV that is played via the
     // MediaPlayer queue path; any failure shows a toast and falls back to system TTS.
     private fun speakText(speechText: String, onSpoken: () -> Unit) {
         val synthesize: ((String) -> SpeechSynthesisOutcome)? = when (ttsPreferences.settings.value.provider) {
             SpeechProvider.SYSTEM -> null
-            SpeechProvider.OPENAI -> openAiSpeech::synthesize
+            SpeechProvider.GEMINI -> geminiSpeech::synthesize
             SpeechProvider.EDGE -> edgeSpeech::synthesize
         }
         if (synthesize == null) {
@@ -499,7 +499,7 @@ class PlaybackService : Service() {
                         speed = outcome.playbackSpeed,
                         onPlaybackError = {
                             // Corrupt / unplayable synthesized file: drop it and read the text with system TTS
-                            openAiSpeech.discard(outcome.file)
+                            geminiSpeech.discard(outcome.file)
                             edgeSpeech.discard(outcome.file)
                             ttsFailures.onFailure(FallbackReason.UNPLAYABLE)
                             speakWithSystemTts(speechText, onSpoken)
@@ -535,9 +535,9 @@ class PlaybackService : Service() {
     private fun scheduleCloudPrefetch(generation: Int) {
         cancelPrefetch()
         val provider = ttsPreferences.settings.value.provider
-        if (provider != SpeechProvider.OPENAI && provider != SpeechProvider.EDGE) return
+        if (provider != SpeechProvider.GEMINI && provider != SpeechProvider.EDGE) return
         val synthesize: (String) -> SpeechSynthesisOutcome = when (provider) {
-            SpeechProvider.OPENAI -> openAiSpeech::synthesize
+            SpeechProvider.GEMINI -> geminiSpeech::synthesize
             SpeechProvider.EDGE -> edgeSpeech::synthesize
             SpeechProvider.SYSTEM -> return
         }
@@ -851,7 +851,7 @@ class PlaybackService : Service() {
                 refreshNotification()
                 // Resume warming the next cloud-TTS items for the remaining playback time
                 if ((currentItem is PlaybackItem.MessageItem || currentItem is PlaybackItem.ChatTitle) &&
-                    (ttsPreferences.settings.value.provider == SpeechProvider.OPENAI ||
+                    (ttsPreferences.settings.value.provider == SpeechProvider.GEMINI ||
                         ttsPreferences.settings.value.provider == SpeechProvider.EDGE)
                 ) {
                     scheduleCloudPrefetch(itemGeneration.get())

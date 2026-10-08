@@ -2,8 +2,8 @@ package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTtsOptions
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.tts.EngineOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
@@ -48,25 +48,23 @@ data class EdgeVoiceUiState(
 }
 
 /**
- * OpenAI section. Holds only whether a key is saved and its masked hint: the raw API key never enters UI
- * state (it stays in OpenAiKeyStore; the text the user is typing lives only in the key field).
+ * Gemini section. Holds only whether a key is saved and its masked hint: the raw API key never enters UI
+ * state (it stays in GeminiKeyStore; the text the user is typing lives only in the key field's local state).
  */
-data class OpenAiVoiceUiState(
-    val model: String = OpenAiTts.DEFAULT_MODEL,
-    val voice: String = OpenAiTts.DEFAULT_VOICE,
+data class GeminiVoiceUiState(
+    val voice: String = GeminiTts.DEFAULT_VOICE,
     val hasKey: Boolean = false,
-    /** "sk-…abcd" style hint of the saved key, null when no key is saved. */
+    /** "AI…abcd" style hint of the saved key, null when no key is saved. */
     val keyHint: String? = null,
     /** True while the Test voice sample is being synthesized. */
     val testing: Boolean = false
 ) {
     companion object {
         /** [apiKey] is only used to derive [hasKey] / [keyHint]; it is not stored. */
-        fun from(options: OpenAiTtsOptions, apiKey: String?, testing: Boolean = false): OpenAiVoiceUiState {
-            val hint = OpenAiTts.maskKey(apiKey)
-            return OpenAiVoiceUiState(
-                model = OpenAiTts.normalizeModel(options.model),
-                voice = OpenAiTts.normalizeVoice(options.voice),
+        fun from(options: GeminiTtsOptions, apiKey: String?, testing: Boolean = false): GeminiVoiceUiState {
+            val hint = GeminiTts.maskKey(apiKey)
+            return GeminiVoiceUiState(
+                voice = GeminiTts.normalizeVoice(options.voice),
                 hasKey = hint != null,
                 keyHint = hint,
                 testing = testing
@@ -80,7 +78,7 @@ data class TtsSettingsUiState(
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     val system: SystemVoiceUiState = SystemVoiceUiState(),
     val edge: EdgeVoiceUiState = EdgeVoiceUiState(),
-    val openAi: OpenAiVoiceUiState = OpenAiVoiceUiState(),
+    val gemini: GeminiVoiceUiState = GeminiVoiceUiState(),
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     /** Mark played messages as read in Telegram (always true in release builds). */
     val markAsRead: Boolean = true,

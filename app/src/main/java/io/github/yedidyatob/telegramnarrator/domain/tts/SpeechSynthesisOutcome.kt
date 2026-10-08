@@ -2,11 +2,11 @@ package io.github.yedidyatob.telegramnarrator.domain.tts
 
 import java.io.File
 
-/** Result of asking a network TTS engine (OpenAI / Edge) for a message's audio. */
+/** Result of asking a network TTS engine (Gemini / Edge) for a message's audio. */
 sealed class SpeechSynthesisOutcome {
     /**
-     * Audio is ready on disk. [playbackSpeed] is applied by the MediaPlayer (1.0 when the engine already
-     * baked the speech rate into the audio, like OpenAI's `speed`).
+     * Audio is ready on disk. [playbackSpeed] is applied by the MediaPlayer (1.0 when the engine caches
+     * at normal speed, like Gemini; Edge also caches at normal speed and applies rate at playback).
      */
     data class Ready(val file: File, val fromCache: Boolean, val playbackSpeed: Float = 1f) : SpeechSynthesisOutcome()
 
@@ -22,27 +22,32 @@ sealed class SpeechSynthesisOutcome {
  * values are specific enough for the user to know what to do (fix the key, add credit, wait, check the network).
  */
 enum class FallbackReason {
-    OPENAI_NO_KEY,
-    /** HTTP 401: the key is wrong or was revoked. */
-    OPENAI_INVALID_KEY,
-    /** HTTP 429 `insufficient_quota`: the OpenAI account is out of credit. */
-    OPENAI_NO_CREDIT,
+    // ---- Gemini ---------------------------------------------------------------------------------
+    GEMINI_NO_KEY,
+    /** HTTP 401 or 403: the key is wrong, was revoked, or lacks permission. */
+    GEMINI_INVALID_KEY,
+    /** HTTP 429 with "RESOURCE_EXHAUSTED" and quota hint: the account is out of credit. */
+    GEMINI_NO_CREDIT,
     /** HTTP 429 rate limit, still limited after the retries. */
-    OPENAI_RATE_LIMITED,
-    /** Over the input limit even after splitting, or HTTP 400 about the length. */
-    OPENAI_TOO_LONG,
-    /** Other HTTP 400: OpenAI refused this message. */
-    OPENAI_BAD_REQUEST,
+    GEMINI_RATE_LIMITED,
+    /** HTTP 400: Gemini refused this request (bad voice, input too long after splitting, etc.). */
+    GEMINI_BAD_REQUEST,
     /** HTTP 5xx. */
-    OPENAI_SERVER_ERROR,
-    OPENAI_TIMEOUT,
-    OPENAI_FAILED,
+    GEMINI_SERVER_ERROR,
+    GEMINI_TIMEOUT,
+    /** Successful response but no audio data in the payload. */
+    GEMINI_NO_AUDIO,
+    GEMINI_FAILED,
+
+    // ---- Edge -----------------------------------------------------------------------------------
     /** Edge WebSocket handshake HTTP 429. */
     EDGE_THROTTLED,
     /** Edge handshake refused (403 after the clock-skew retry, other HTTP codes, 5xx). */
     EDGE_UNAVAILABLE,
     EDGE_TIMEOUT,
     EDGE_FAILED,
+
+    // ---- Shared ---------------------------------------------------------------------------------
     /** No connection at all (DNS / connect failed), any engine. */
     NO_NETWORK,
     /** The synthesized file could not be played. */
@@ -50,6 +55,6 @@ enum class FallbackReason {
 
     /** Failures caused by the network or the service being down (not by this message or the account). */
     val isConnectivity: Boolean
-        get() = this == NO_NETWORK || this == OPENAI_TIMEOUT || this == EDGE_TIMEOUT ||
-            this == OPENAI_SERVER_ERROR || this == EDGE_UNAVAILABLE
+        get() = this == NO_NETWORK || this == GEMINI_TIMEOUT || this == EDGE_TIMEOUT ||
+            this == GEMINI_SERVER_ERROR || this == EDGE_UNAVAILABLE
 }

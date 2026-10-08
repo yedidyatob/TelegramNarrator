@@ -104,7 +104,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingStep
-import io.github.yedidyatob.telegramnarrator.domain.openai.OpenAiTts
+import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OnboardingViewModel
@@ -114,13 +114,13 @@ data class VoiceStepState(
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** null while the system engine starts. */
     val hebrewVoice: Boolean? = null,
-    val hasOpenAiKey: Boolean = false
+    val hasGeminiKey: Boolean = false
 )
 
 data class VoiceStepActions(
     val onSelect: (SpeechProvider) -> Unit = {},
     val onOpenTtsSettings: () -> Unit = {},
-    val onSaveOpenAiKey: (String) -> Unit = {}
+    val onSaveGeminiKey: (String) -> Unit = {}
 )
 
 /**
@@ -132,7 +132,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     val stepIndex by viewModel.stepIndex.collectAsStateWithLifecycle()
     val provider by viewModel.provider.collectAsStateWithLifecycle()
     val hebrewVoice by viewModel.hebrewVoice.collectAsStateWithLifecycle()
-    val hasKey by viewModel.hasOpenAiKey.collectAsStateWithLifecycle()
+    val hasKey by viewModel.hasGeminiKey.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val finish = {
@@ -166,7 +166,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
                     Toast.makeText(context, R.string.settings_system_tts_unavailable, Toast.LENGTH_SHORT).show()
                 }
             },
-            onSaveOpenAiKey = viewModel::saveOpenAiKey
+            onSaveGeminiKey = viewModel::saveGeminiKey
         ),
         onNext = { if (viewModel.isLastStep) finish() else viewModel.next() },
         onBack = { viewModel.back() },
@@ -200,7 +200,7 @@ fun OnboardingContent(
             Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
-                // Edge-to-edge: the OpenAI key field and the bottom buttons stay above the keyboard
+                // Edge-to-edge: the Gemini key field and the bottom buttons stay above the keyboard
                 .imePadding()
                 .fillMaxSize()
         ) {
@@ -405,12 +405,12 @@ private fun VoicePage(state: VoiceStepState, actions: VoiceStepActions) {
             HebrewVoiceStatus(state.hebrewVoice, actions.onOpenTtsSettings)
         }
         VoiceOptionCard(
-            selected = state.provider == SpeechProvider.OPENAI,
-            title = stringResource(R.string.onboarding_voice_openai_title),
-            description = stringResource(R.string.onboarding_voice_openai_desc),
-            onSelect = { actions.onSelect(SpeechProvider.OPENAI) }
+            selected = state.provider == SpeechProvider.GEMINI,
+            title = stringResource(R.string.onboarding_voice_gemini_title),
+            description = stringResource(R.string.onboarding_voice_gemini_desc),
+            onSelect = { actions.onSelect(SpeechProvider.GEMINI) }
         ) {
-            OpenAiKeyEntry(state.hasOpenAiKey, actions.onSaveOpenAiKey)
+            GeminiKeyEntry(state.hasGeminiKey, actions.onSaveGeminiKey)
         }
     }
 }
@@ -487,12 +487,12 @@ private class ApiKeyVisualTransformation(private val mask: Char = '•') : Visua
 }
 
 @Composable
-private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
+private fun GeminiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
     if (hasKey) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.onboarding_voice_openai_saved), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.onboarding_voice_gemini_saved), style = MaterialTheme.typography.bodySmall)
         }
         return
     }
@@ -505,8 +505,8 @@ private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
     OutlinedTextField(
         value = key,
         onValueChange = { key = it },
-        label = { Text(stringResource(R.string.settings_openai_api_key)) },
-        placeholder = { Text(stringResource(R.string.settings_openai_api_key_hint)) },
+        label = { Text(stringResource(R.string.settings_gemini_api_key)) },
+        placeholder = { Text(stringResource(R.string.settings_gemini_api_key_hint)) },
         singleLine = true,
         visualTransformation = if (visible) VisualTransformation.None else ApiKeyVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false, imeAction = ImeAction.Done),
@@ -521,14 +521,14 @@ private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
                     }) {
                         Icon(
                             Icons.Rounded.ContentPaste,
-                            contentDescription = stringResource(R.string.settings_openai_paste_key)
+                            contentDescription = stringResource(R.string.settings_gemini_paste_key)
                         )
                     }
                 }
                 IconButton(onClick = { visible = !visible }) {
                     Icon(
                         if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                        contentDescription = stringResource(if (visible) R.string.settings_openai_hide_key else R.string.settings_openai_show_key)
+                        contentDescription = stringResource(if (visible) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key)
                     )
                 }
             }
@@ -536,24 +536,24 @@ private fun OpenAiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
         modifier = Modifier.fillMaxWidth()
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
-        val getKeyA11y = stringResource(R.string.settings_openai_get_key_a11y)
+        val getKeyA11y = stringResource(R.string.settings_gemini_get_key_a11y)
         TextButton(
             onClick = {
                 try {
-                    uriHandler.openUri(OpenAiTts.API_KEYS_URL)
+                    uriHandler.openUri(GeminiTts.API_KEYS_URL)
                 } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, R.string.settings_openai_get_key_no_browser, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.settings_gemini_get_key_no_browser, Toast.LENGTH_SHORT).show()
                 } catch (e: IllegalArgumentException) {
-                    Toast.makeText(context, R.string.settings_openai_get_key_no_browser, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.settings_gemini_get_key_no_browser, Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier.semantics { contentDescription = getKeyA11y }
-        ) { Text(stringResource(R.string.settings_openai_get_key)) }
+        ) { Text(stringResource(R.string.settings_gemini_get_key)) }
         Spacer(Modifier.weight(1f))
-        Button(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text(stringResource(R.string.settings_openai_save_key)) }
+        Button(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text(stringResource(R.string.settings_gemini_save_key)) }
     }
     Text(
-        stringResource(R.string.onboarding_voice_openai_later),
+        stringResource(R.string.onboarding_voice_gemini_later),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )

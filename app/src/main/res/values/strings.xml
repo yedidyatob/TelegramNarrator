@@ -107,7 +107,7 @@
     <string name="mini_player_message">%1$s · %2$d of %3$d</string>
     <string name="player_engine_system">System voice</string>
     <string name="player_engine_edge">Edge voice</string>
-    <string name="player_engine_openai">OpenAI voice</string>
+    <string name="player_engine_gemini">Gemini voice</string>
     <string name="player_engine_original">Original audio</string>
     <string name="player_engine_fallback">%1$s (fallback)</string>
     <string name="player_engine_a11y">Voice: %1$s. Opens voice settings</string>
@@ -134,12 +134,12 @@
     <string name="onboarding_voice_system_desc">The text-to-speech engine of your phone. Free and offline: nothing leaves the device.</string>
     <string name="onboarding_voice_edge_title">Edge voice</string>
     <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet: the text of your messages and the chat names are sent to Microsoft. If it\'s unavailable, the system voice reads.</string>
-    <string name="onboarding_voice_openai_title">OpenAI voice</string>
-    <string name="onboarding_voice_openai_desc">Premium voices with your own OpenAI API key, billed to you. Message text is sent to OpenAI.</string>
+    <string name="onboarding_voice_gemini_title">Gemini voice</string>
+    <string name="onboarding_voice_gemini_desc">Natural voices with your own Gemini API key, billed to you. Message text is sent to Google.</string>
     <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
     <string name="onboarding_voice_hebrew_missing">No Hebrew voice found. Install one to hear Hebrew messages.</string>
-    <string name="onboarding_voice_openai_later">You can also add the key later in Voice settings. Until then the system voice reads.</string>
-    <string name="onboarding_voice_openai_saved">Key saved</string>
+    <string name="onboarding_voice_gemini_later">You can also add the key later in Voice settings. Until then the system voice reads.</string>
+    <string name="onboarding_voice_gemini_saved">Key saved</string>
     <string name="onboarding_notifications_title">Controls on your lock screen</string>
     <string name="onboarding_notifications_body">Allow notifications to pause, skip and stop from the notification and the lock screen. Reading works without it, but you won\'t see the controls.</string>
 
@@ -190,8 +190,8 @@
     <string name="settings_engine_system_desc">On your phone, works offline</string>
     <string name="settings_engine_edge">Edge</string>
     <string name="settings_engine_edge_desc">Free natural voices, needs internet</string>
-    <string name="settings_engine_openai">OpenAI</string>
-    <string name="settings_engine_openai_desc">Your own key, paid</string>
+    <string name="settings_engine_gemini">Gemini</string>
+    <string name="settings_engine_gemini_desc">Your own key, paid</string>
 
     <!-- 2a. System voice -->
     <string name="settings_section_system">System voice</string>
@@ -224,27 +224,24 @@
     <string name="settings_edge_custom_voice_clear">Clear</string>
     <string name="settings_edge_test_failed">Edge voice test failed (no network, or the unofficial service changed). Playback will use the system voice.</string>
 
-    <!-- 2c. OpenAI voice -->
-    <string name="settings_section_openai">OpenAI voice</string>
-    <string name="settings_openai_api_key">API key</string>
-    <string name="settings_openai_api_key_hint">sk-…</string>
-    <string name="settings_openai_show_key">Show key</string>
-    <string name="settings_openai_hide_key">Hide key</string>
-    <string name="settings_openai_paste_key">Paste key</string>
-    <string name="settings_openai_get_key">Get an API key</string>
-    <string name="settings_openai_get_key_a11y">Get an API key, opens platform.openai.com in the browser</string>
-    <string name="settings_openai_get_key_no_browser">No browser found to open platform.openai.com/api-keys</string>
-    <string name="settings_openai_key_saved">Saved: %1$s</string>
-    <string name="settings_openai_key_none">No key saved</string>
-    <string name="settings_openai_save_key">Save key</string>
-    <string name="settings_openai_remove_key">Remove key</string>
-    <string name="settings_openai_quality">Quality</string>
-    <string name="settings_openai_model_standard">Standard (tts-1)</string>
-    <string name="settings_openai_model_hd">HD (tts-1-hd)</string>
-    <string name="settings_openai_voice">Voice</string>
-    <string name="settings_openai_test_needs_key">Save a key to test the voice</string>
-    <string name="settings_openai_cost_privacy">About $15 per 1M characters ($30 for HD), billed to your key. Message text, chat names and the key go only to api.openai.com; the key is stored encrypted on this device.</string>
-    <string name="settings_openai_test_failed">OpenAI voice test failed (check the key and the network).</string>
+    <!-- 2c. Gemini voice -->
+    <string name="settings_section_gemini">Gemini voice</string>
+    <string name="settings_gemini_api_key">API key</string>
+    <string name="settings_gemini_api_key_hint">AIza…</string>
+    <string name="settings_gemini_show_key">Show key</string>
+    <string name="settings_gemini_hide_key">Hide key</string>
+    <string name="settings_gemini_paste_key">Paste key</string>
+    <string name="settings_gemini_get_key">Get an API key</string>
+    <string name="settings_gemini_get_key_a11y">Get an API key, opens aistudio.google.com in the browser</string>
+    <string name="settings_gemini_get_key_no_browser">No browser found to open aistudio.google.com/apikey</string>
+    <string name="settings_gemini_key_saved">Saved: %1$s</string>
+    <string name="settings_gemini_key_none">No key saved</string>
+    <string name="settings_gemini_save_key">Save key</string>
+    <string name="settings_gemini_remove_key">Remove key</string>
+    <string name="settings_gemini_voice">Voice</string>
+    <string name="settings_gemini_test_needs_key">Save a key to test the voice</string>
+    <string name="settings_gemini_cost_privacy">About the same price as OpenAI tts-1 (audio billed per token; intro rates can change). Message text, chat names and the key go only to generativelanguage.googleapis.com. The key is stored encrypted on this device.</string>
+    <string name="settings_gemini_test_failed">Gemini voice test failed (check the key and the network).</string>
 
     <!-- 3. Playback -->
     <string name="settings_section_playback">Playback</string>
@@ -259,25 +256,25 @@
     <!-- Network TTS fallback toasts (playback) -->
     <!-- Network voice failures (#63): one message per failure episode, then the system voice reads -->
     <string name="tts_fallback_unplayable">Couldn\'t play the downloaded audio. Using the system voice.</string>
-    <string name="tts_fallback_openai_no_key">OpenAI needs an API key. Add it in Voice settings. Using the system voice.</string>
-    <string name="tts_fallback_openai_invalid_key">Your OpenAI key is invalid or was revoked. Update it in Voice settings. Using the system voice.</string>
-    <string name="tts_fallback_openai_no_credit">Your OpenAI account is out of credit. Add credit in OpenAI billing. Using the system voice.</string>
-    <string name="tts_fallback_openai_rate_limited">OpenAI is limiting requests right now. Using the system voice.</string>
-    <string name="tts_fallback_openai_too_long">This message is too long for OpenAI. Using the system voice.</string>
-    <string name="tts_fallback_openai_bad_request">OpenAI couldn\'t read this message. Using the system voice.</string>
-    <string name="tts_fallback_openai_server">OpenAI is having problems right now. Using the system voice.</string>
-    <string name="tts_fallback_openai_timeout">OpenAI didn\'t answer in time. Using the system voice.</string>
-    <string name="tts_fallback_openai_failed">OpenAI voice failed. Using the system voice.</string>
+    <string name="tts_fallback_gemini_no_key">Gemini needs an API key. Add it in Voice settings. Using the system voice.</string>
+    <string name="tts_fallback_gemini_invalid_key">Your Gemini key is invalid or was revoked. Update it in Voice settings. Using the system voice.</string>
+    <string name="tts_fallback_gemini_no_credit">Your Gemini account is out of credit. Add credit in Google Cloud Console. Using the system voice.</string>
+    <string name="tts_fallback_gemini_rate_limited">Gemini is limiting requests right now. Using the system voice.</string>
+    <string name="tts_fallback_gemini_bad_request">Gemini couldn\'t read this message. Using the system voice.</string>
+    <string name="tts_fallback_gemini_server">Gemini is having problems right now. Using the system voice.</string>
+    <string name="tts_fallback_gemini_timeout">Gemini didn\'t answer in time. Using the system voice.</string>
+    <string name="tts_fallback_gemini_no_audio">Gemini returned no audio for this message. Using the system voice.</string>
+    <string name="tts_fallback_gemini_failed">Gemini voice failed. Using the system voice.</string>
     <string name="tts_fallback_edge_throttled">Edge voices are busy (too many requests). Using the system voice for a minute.</string>
     <string name="tts_fallback_edge_unavailable">Edge voices are unavailable right now. Using the system voice for a minute.</string>
     <string name="tts_fallback_edge_timeout">Edge voices didn\'t answer in time. Using the system voice for a minute.</string>
     <string name="tts_fallback_edge_failed">Edge voice failed. Using the system voice for a minute.</string>
     <string name="tts_fallback_no_network">No internet connection. Using the system voice until it\'s back.</string>
-    <!-- Notification for failures the user can fix on the OpenAI website (tap opens the page) -->
+    <!-- Notification for failures the user can fix on the Gemini website (tap opens the page) -->
     <string name="notification_channel_tts_alerts">Voice problems</string>
     <string name="tts_alert_title">Voice problem</string>
-    <string name="tts_alert_open_keys">Tap to open your OpenAI API keys.</string>
-    <string name="tts_alert_open_billing">Tap to open OpenAI billing.</string>
+    <string name="tts_alert_open_keys">Tap to open your Gemini API keys.</string>
+    <string name="tts_alert_open_billing">Tap to open Google Cloud billing.</string>
 
     <!-- Test voice samples: each language's own name and sentence (spoken content, never translated) -->
     <string name="test_language_en" translatable="false">English</string>

@@ -20,7 +20,7 @@ endorsed or supported by Telegram.
 - **The default voice engine on a new install is Microsoft Edge, an online service:** with it, the text of the
   messages being read and the chat titles are sent to Microsoft for speech synthesis. You can switch to the
   **System** voice, which works entirely on your device, in the first-run introduction or at any time in the voice
-  settings. (Installs updated from a version that used the System voice keep it.) OpenAI is optional and needs your
+  settings. (Installs updated from a version that used the System voice keep it.) Gemini is optional and needs your
   own API key.
 
 ## What the app handles and where it goes
@@ -63,13 +63,13 @@ voice engine, the ad's text is sent to it like a message.
 
 You choose the voice engine in the first-run introduction and, at any time, in the app's voice settings. A new
 install starts with **Edge**; an install updated from an earlier version keeps the engine it had (the System voice
-unless you had chosen another one). If Edge or OpenAI cannot be reached, that message is read with the System voice.
+unless you had chosen another one). If Edge or Gemini cannot be reached, that message is read with the System voice.
 
 | Engine | What leaves your device | Recipient |
 |---|---|---|
 | **System** | Nothing is sent by the app. The text is handed to the text-to-speech engine installed on your phone (for example Google Speech Services). The app lists only offline voices; what the engine itself does is governed by its own provider's policy. | None |
 | **Edge** (default on new installs; unofficial) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
-| **OpenAI** (optional, your own API key) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice and model, and your OpenAI API key (to authorize the request). | OpenAI ([Privacy Policy](https://openai.com/policies/privacy-policy), [API data usage](https://openai.com/policies/api-data-usage-policies)). Requests are billed to your own OpenAI account. |
+| **Gemini** (optional, your own API key) | The cleaned text of each message to be spoken and the title of each chat being read, and your Gemini API key (to authorize the request). | Google, through its Generative AI API ([Google Privacy Policy](https://policies.google.com/privacy)). Requests are billed to your own Google Cloud account. |
 
 "Cleaned text" means the message text after the app removes links, ads and similar parts it does not read
 aloud. Before a chat's messages the app speaks the chat's title (the group or channel name, or, for a one-on-one
@@ -77,13 +77,13 @@ chat, the other person's name, without emoji and symbols), so with an online eng
 Sender names of individual messages are not sent unless they appear in the message text.
 While one message plays, the app may already send the next few queued messages so that playback has no gaps.
 
-To save data and money, audio produced by Edge or OpenAI is **cached on your device** (in the app's cache
+To save data and money, audio produced by Edge or Gemini is **cached on your device** (in the app's cache
 folder), named by a one-way hash of the text, so that the same message is not sent again.
 
 ### 4. Settings and your OpenAI API key
 
-Voice and playback settings, and whether you have finished the first-run introduction, are stored on your device. If you enter an OpenAI API key it is stored on your
-device **encrypted** (Android EncryptedSharedPreferences) and is sent only to OpenAI. You can remove it at any
+Voice and playback settings, and whether you have finished the first-run introduction, are stored on your device. If you enter a Gemini API key it is stored on your
+device **encrypted** (Android EncryptedSharedPreferences) and is sent only to Google. You can remove it at any
 time with **Remove key** in the voice settings.
 
 ### 5. Backups
@@ -95,7 +95,7 @@ database, your settings and your API key are never copied to Google Drive or to 
 
 | Permission | Why |
 |---|---|
-| Internet | Connect to Telegram (including its sponsored messages) and to the online voice service in use (Edge by default, or OpenAI) |
+| Internet | Connect to Telegram (including its sponsored messages) and to the online voice service in use (Edge by default, or Gemini) |
 | Foreground service (media playback) | Keep reading aloud while the screen is off or another app is open |
 | Notifications (optional) | Show playback controls (pause, skip, stop) in the notification and on the lock screen |
 
@@ -104,20 +104,19 @@ The app does not access your contacts, location, camera, microphone, photos or f
 ## Security
 
 All network connections are encrypted in transit: Telegram traffic uses Telegram's MTProto protocol, the Edge
-and OpenAI services use TLS (HTTPS / secure WebSocket). Data at rest is kept in the app's private storage; the
-Telegram database and the OpenAI key are encrypted as described above.
+and Gemini services use TLS (HTTPS / secure WebSocket). Data at rest is kept in the app's private storage; the
+Telegram database and the Gemini key are encrypted as described above.
 
 ## Keeping and deleting your data
 
 - **Log out** (in the ⋮ menu of the main screen) ends the app's Telegram session and deletes the Telegram database
   (session, chats and cached messages) from your device.
-- **Remove key** in the voice settings deletes your OpenAI API key.
+- **Remove key** in the voice settings deletes your Gemini API key.
 - **Clear storage** (Android Settings → Apps → Unofficial Telegram Narrator → Storage) or **uninstalling** the
   app deletes everything the app stored on your device, including settings and the audio cache.
 - Data held by Telegram (your account and messages) is managed in Telegram; see Telegram's Privacy Policy. You
   can also end this app's session from another Telegram app under *Settings → Devices*.
-- Text you sent to Microsoft or OpenAI for speech synthesis is handled under their policies (OpenAI states that
-  API data is not used for training by default and may be retained for up to 30 days for abuse monitoring).
+- Text you sent to Microsoft or Gemini for speech synthesis is handled under their policies.
 
 Because I never receive your data, there is nothing for me to delete on a server; if you have questions, contact
 me (below).

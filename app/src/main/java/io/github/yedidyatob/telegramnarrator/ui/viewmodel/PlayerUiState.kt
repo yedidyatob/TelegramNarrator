@@ -5,7 +5,7 @@ import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 
 /** Which voice the Player's engine indicator names. */
-enum class EngineLabel { SYSTEM, EDGE, OPENAI, ORIGINAL_AUDIO }
+enum class EngineLabel { SYSTEM, EDGE, GEMINI, ORIGINAL_AUDIO }
 
 /** @param isFallback the system voice is speaking because the chosen online engine failed for this item */
 data class EngineIndicator(val label: EngineLabel, val isFallback: Boolean = false)
@@ -61,7 +61,7 @@ data class PlayerUiState(
                 label = when (active) {
                     SpeechProvider.SYSTEM -> EngineLabel.SYSTEM
                     SpeechProvider.EDGE -> EngineLabel.EDGE
-                    SpeechProvider.OPENAI -> EngineLabel.OPENAI
+                    SpeechProvider.GEMINI -> EngineLabel.GEMINI
                 },
                 isFallback = active == SpeechProvider.SYSTEM && selected != SpeechProvider.SYSTEM
             )
