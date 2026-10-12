@@ -32,8 +32,8 @@ class EdgeTtsTest {
     fun `wss url carries token, connection id, gec and version`() {
         val url = EdgeTts.buildWssUrl("abc123", "DEADBEEF")
         assertEquals(
-            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1" +
-                "?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4" +
+            "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1" +
+                "?Ocp-Apim-Subscription-Key=6A5AA1D4EAFF4E9FB37E23D68491D6F4" +
                 "&ConnectionId=abc123&Sec-MS-GEC=DEADBEEF&Sec-MS-GEC-Version=1-${EdgeTts.CHROMIUM_FULL_VERSION}",
             url
         )
