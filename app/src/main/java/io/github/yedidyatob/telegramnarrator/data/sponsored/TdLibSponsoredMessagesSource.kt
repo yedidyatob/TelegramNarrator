@@ -1,7 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.data.sponsored
 
 import android.util.Log
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredChatKind
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMedia
@@ -20,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class TdLibSponsoredMessagesSource @Inject constructor(
-    private val client: TdLibClient
+    private val client: TdGateway
 ) : SponsoredMessagesSource {
 
     private companion object {

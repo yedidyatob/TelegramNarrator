@@ -1,7 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.data.repository
 
 import android.util.Log
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TdLibUserCache @Inject constructor(
-    private val client: TdLibClient
+    private val client: TdGateway
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val users = MutableStateFlow<Map<Long, TdApi.User>>(emptyMap())
@@ -22,9 +22,14 @@ class TdLibUserCache @Inject constructor(
     init {
         scope.launch {
             client.updates.collect { update ->
-                if (update is TdApi.UpdateUser) {
-                    Log.d("UserCache", "Updating user: ${update.user.id}")
-                    users.update { it + (update.user.id to update.user) }
+                when (update) {
+                    is TdApi.UpdateUser -> {
+                        Log.d("UserCache", "Updating user: ${update.user.id}")
+                        users.update { it + (update.user.id to update.user) }
+                    }
+                    // The client was closed (logout / recreate): the next session starts without the old users
+                    is TdApi.UpdateAuthorizationState ->
+                        if (update.authorizationState is TdApi.AuthorizationStateClosed) users.value = emptyMap()
                 }
             }
         }

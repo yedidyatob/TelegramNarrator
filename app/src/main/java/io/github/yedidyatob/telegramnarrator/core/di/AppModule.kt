@@ -8,7 +8,9 @@ import io.github.yedidyatob.telegramnarrator.data.repository.TdLibAuthRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibChatRepository
 import io.github.yedidyatob.telegramnarrator.data.repository.TdLibUserCache
 import io.github.yedidyatob.telegramnarrator.data.sponsored.TdLibSponsoredMessagesSource
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
@@ -34,20 +36,19 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideTdLibClient(@ApplicationContext context: Context): TdLibClient {
-        return TdLibClient(context)
-    }
+    // The real TDLib client (@Inject constructor, singleton) behind the gateway interface (#13)
+    fun provideTdGateway(client: TdLibClient): TdGateway = client
 
     @Provides
     @Singleton
-    fun provideUserCache(client: TdLibClient): TdLibUserCache {
+    fun provideUserCache(client: TdGateway): TdLibUserCache {
         return TdLibUserCache(client)
     }
 
     @Provides
     @Singleton
     fun provideAuthRepository(
-        client: TdLibClient,
+        client: TdGateway,
         filesDir: File,
         databaseKeyStore: TdLibDatabaseKeyStore
     ): AuthRepository {
@@ -57,11 +58,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideChatRepository(
-        client: TdLibClient,
+        client: TdGateway,
         userCache: TdLibUserCache,
         ttsPreferences: TtsPreferences
     ): ChatRepository {
-        return TdLibChatRepository(client, userCache, ttsPreferences)
+        return TdLibChatRepository(client, userCache, { ttsPreferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG) })
     }
 
     @Provides

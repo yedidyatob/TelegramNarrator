@@ -2,7 +2,7 @@ package io.github.yedidyatob.telegramnarrator.data.repository
 
 import io.github.yedidyatob.telegramnarrator.domain.model.StartupFailure
 import io.github.yedidyatob.telegramnarrator.BuildConfig
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
 import io.github.yedidyatob.telegramnarrator.domain.model.ApiCredentials
@@ -22,7 +22,7 @@ import java.io.File
 
 @Singleton
 class TdLibAuthRepository @Inject constructor(
-    private val client: TdLibClient,
+    private val client: TdGateway,
     private val filesDir: File,
     private val keyStore: TdLibDatabaseKeyStore
 ) : AuthRepository {
@@ -43,11 +43,9 @@ class TdLibAuthRepository @Inject constructor(
 
     init {
         repositoryScope.launch {
-            client.updates.collect { update ->
-                if (update is TdApi.UpdateAuthorizationState) {
-                    handleAuthorizationState(update.authorizationState)
-                }
-            }
+            // A state flow (#13): the first state (WaitTdlibParameters) is often reported before this collector
+            // starts; with the update stream it would be missed and login would stay on "Initializing"
+            client.authorizationState.filterNotNull().collect { handleAuthorizationState(it) }
         }
     }
 

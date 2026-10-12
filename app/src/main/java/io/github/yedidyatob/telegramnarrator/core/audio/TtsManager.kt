@@ -29,6 +29,7 @@ class TtsManager @Inject constructor(
     private val lock = Any()
     private var onDoneCallback: ((Boolean) -> Unit)? = null
     private var onStartCallback: (() -> Unit)? = null
+    private var onRangeCallback: ((Int) -> Unit)? = null
     private var currentUtteranceId: String? = null
     private var utteranceCounter = 0L
 
@@ -74,6 +75,16 @@ class TtsManager @Inject constructor(
 
                 override fun onDone(utteranceId: String?) {
                     finishUtterance(utteranceId, completed = true)
+                }
+
+                // API 26+ (minSdk): start offset of the word about to be spoken; many engines report it,
+                // some never do. Used to resume a paused message near the word where it stopped.
+                override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                    val callback = synchronized(lock) {
+                        if (utteranceId == null || utteranceId != currentUtteranceId) return
+                        onRangeCallback
+                    }
+                    callback?.invoke(start)
                 }
 
                 override fun onError(utteranceId: String?) {
@@ -161,11 +172,14 @@ class TtsManager @Inject constructor(
      * It is not called at all if the utterance is cancelled with [stop] or replaced by a new speak().
      * [language] forces the language (used by the "Test voice" button); by default it is detected from the text.
      * [onStart] is called once when the engine actually starts speaking (used to end loading indicators).
+     * [onRange] gets the offset (into [text]) of each word as the engine starts speaking it, if the engine reports
+     * word ranges; it is called on the engine's binder thread.
      */
     fun speak(
         text: String,
         language: Locale? = null,
         onStart: (() -> Unit)? = null,
+        onRange: ((start: Int) -> Unit)? = null,
         onDone: (completed: Boolean) -> Unit
     ) {
         if (!_isInitialized.value || tts == null || text.isBlank()) {
@@ -176,6 +190,7 @@ class TtsManager @Inject constructor(
         val utteranceId = synchronized(lock) {
             onDoneCallback = onDone
             onStartCallback = onStart
+            onRangeCallback = onRange
             "utterance_${++utteranceCounter}".also { currentUtteranceId = it }
         }
 
@@ -205,6 +220,7 @@ class TtsManager @Inject constructor(
             val pending = onDoneCallback
             onDoneCallback = null
             onStartCallback = null
+            onRangeCallback = null
             currentUtteranceId = null
             pending
         }
@@ -258,6 +274,7 @@ class TtsManager @Inject constructor(
         synchronized(lock) {
             onDoneCallback = null
             onStartCallback = null
+            onRangeCallback = null
             currentUtteranceId = null
         }
         tts?.stop()
