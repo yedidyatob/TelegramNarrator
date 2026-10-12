@@ -19,8 +19,12 @@ import java.util.UUID
  */
 object EdgeTts {
     const val TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
-    private const val BASE_PATH = "speech.platform.bing.com/consumer/speech/synthesize/readaloud"
-    const val WSS_BASE_URL = "wss://$BASE_PATH/edge/v1"
+    /**
+     * Synthesis WebSocket. Since October 2026 the legacy speech.platform.bing.com readaloud endpoint answers the handshake
+     * with 403; current Edge synthesizes through api.msedgeservices.com, which accepts the same public token
+     * as `Ocp-Apim-Subscription-Key` plus the usual Sec-MS-GEC / Sec-MS-GEC-Version (see rany2/edge-tts#490/#491).
+     */
+    const val WSS_BASE_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
 
     /** Edge version the request pretends to come from (kept in sync with edge-tts 7.2.x). */
     const val CHROMIUM_FULL_VERSION = "143.0.3650.75"
@@ -125,7 +129,7 @@ object EdgeTts {
     }
 
     fun buildWssUrl(connectionId: String, secMsGec: String): String =
-        "$WSS_BASE_URL?TrustedClientToken=$TRUSTED_CLIENT_TOKEN" +
+        "$WSS_BASE_URL?Ocp-Apim-Subscription-Key=$TRUSTED_CLIENT_TOKEN" +
             "&ConnectionId=$connectionId" +
             "&Sec-MS-GEC=$secMsGec" +
             "&Sec-MS-GEC-Version=$SEC_MS_GEC_VERSION"
