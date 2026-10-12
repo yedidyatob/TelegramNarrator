@@ -13,6 +13,7 @@ import io.github.yedidyatob.telegramnarrator.MainActivity
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackItem
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
+import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredSpeech
 
 /** The playback notification (MediaStyle with pause/resume, next message, next chat, stop) and its texts. */
 class PlaybackNotifications(private val context: Context) {
@@ -45,6 +46,16 @@ class PlaybackNotifications(private val context: Context) {
     fun sponsoredStatus(ad: SponsoredAd, chatName: String): String = context.getString(
         if (ad.isRecommended) R.string.notification_recommended else R.string.notification_sponsored,
         isolate(ad.title.ifBlank { chatName })
+    )
+
+    /** "Sponsored" / "Recommended" in the ad's own language (Hebrew or English), like chat titles. */
+    fun sponsoredCue(ad: SponsoredAd): String = context.getString(
+        when (SponsoredSpeech.cue(ad)) {
+            SponsoredSpeech.Cue.SPONSORED_EN -> R.string.sponsored_cue_en
+            SponsoredSpeech.Cue.SPONSORED_HE -> R.string.sponsored_cue_he
+            SponsoredSpeech.Cue.RECOMMENDED_EN -> R.string.sponsored_cue_recommended_en
+            SponsoredSpeech.Cue.RECOMMENDED_HE -> R.string.sponsored_cue_recommended_he
+        }
     )
 
     fun build(text: String, isPaused: Boolean, session: MediaSessionCompat): Notification {
