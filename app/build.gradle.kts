@@ -116,6 +116,10 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    testOptions {
+        // JVM unit tests of the TDLib repositories (#13): android.util.Log & co. return defaults instead of throwing
+        unitTests.isReturnDefaultValues = true
+    }
     buildFeatures {
         compose = true
         buildConfig = true

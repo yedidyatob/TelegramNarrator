@@ -1,159 +1,99 @@
 package io.github.yedidyatob.telegramnarrator.data.repository
 
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import android.util.Log
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
-import io.github.yedidyatob.telegramnarrator.domain.home.UnreadChatFilter
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
-import io.github.yedidyatob.telegramnarrator.BuildConfig
-import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import org.drinkless.tdlib.TdApi
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import android.util.Log
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withTimeoutOrNull
+import org.drinkless.tdlib.TdApi
 
-@Singleton
-class TdLibChatRepository @Inject constructor(
-    private val client: TdLibClient,
+/**
+ * Chats and messages from TDLib (#13): the chat list is kept as immutable [ChatSnapshot]s in [ChatCache], fed by
+ * the lossless update stream of [TdGateway]; the cache is emptied when the TDLib client is closed.
+ */
+class TdLibChatRepository(
+    private val client: TdGateway,
     private val userCache: TdLibUserCache,
-    private val ttsPreferences: TtsPreferences
+    // Always on in release builds; debug builds can turn it off in Voice settings (Telegram API ToS 1.4)
+    private val markAsReadSetting: () -> Boolean,
+    private val repositoryScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 ) : ChatRepository {
 
-    // Internal cache of raw TdApi objects
-    private val chatCache = java.util.concurrent.ConcurrentHashMap<Long, TdApi.Chat>()
-    
-    // Public state for UI
-    private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
-    
-    // Always on in release builds; debug builds can turn it off in Voice settings (Telegram API ToS 1.4)
-    override val markAsReadEnabled: Boolean
-        get() = ttsPreferences.settings.value.markAsReadEnabled(BuildConfig.DEBUG)
+    companion object {
+        /** How long a voice note may take to download before it is skipped. */
+        const val VOICE_DOWNLOAD_TIMEOUT_MS = 30_000L
+    }
 
-    private val repositoryScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+    private val cache = ChatCache()
+    private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
+
+    override val markAsReadEnabled: Boolean get() = markAsReadSetting()
 
     init {
         repositoryScope.launch {
             client.updates.collect { update ->
-                when (val u = update) {
-                    is TdApi.UpdateAuthorizationState -> {
-                        if (u.authorizationState is TdApi.AuthorizationStateReady) {
-                            try {
-                                loadChats()
-                            } catch (e: Exception) {
-                                // Home retries (and shows the error) on its own
-                            }
-                        }
+                when (val result = cache.apply(update)) {
+                    ChatCache.Result.Changed -> refreshUnreadList()
+                    is ChatCache.Result.Unknown -> repositoryScope.launch { getOrFetchChat(result.chatId) }
+                    ChatCache.Result.Ignored -> Unit
+                }
+            }
+        }
+        // A state flow, so the current state is seen even if it was reached before this repository existed
+        repositoryScope.launch {
+            client.authorizationState.filterNotNull().collect { state ->
+                when (state) {
+                    is TdApi.AuthorizationStateReady -> try {
+                        loadChats()
+                    } catch (e: Exception) {
+                        // Home retries (and shows the error) on its own
                     }
-                    is TdApi.UpdateNewChat -> {
-                        chatCache[u.chat.id] = u.chat
+                    is TdApi.AuthorizationStateClosed -> {
+                        // A new client (new session / account) starts without the old chats
+                        cache.clear()
                         refreshUnreadList()
                     }
-                    is TdApi.UpdateChatTitle -> {
-                        chatCache[u.chatId]?.let {
-                            it.title = u.title
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
-                    is TdApi.UpdateChatPhoto -> {
-                        chatCache[u.chatId]?.let {
-                            it.photo = u.photo
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
-                    is TdApi.UpdateChatReadInbox -> {
-                        chatCache[u.chatId]?.let {
-                            it.unreadCount = u.unreadCount
-                            it.lastReadInboxMessageId = u.lastReadInboxMessageId
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
-                    is TdApi.UpdateChatUnreadMentionCount -> {
-                        chatCache[u.chatId]?.let {
-                            it.unreadMentionCount = u.unreadMentionCount
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
-                    is TdApi.UpdateChatPosition -> {
-                        chatCache[u.chatId]?.let { chat ->
-                            val newPositions = chat.positions.toMutableList()
-                            val index = newPositions.indexOfFirst { it.list.getConstructor() == u.position.list.getConstructor() }
-                            if (index != -1) newPositions[index] = u.position else newPositions.add(u.position)
-                            chat.positions = newPositions.toTypedArray()
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
-                    is TdApi.UpdateChatLastMessage -> {
-                        chatCache[u.chatId]?.let { chat ->
-                            chat.lastMessage = u.lastMessage
-                            chat.positions = u.positions
-                            refreshUnreadList()
-                        } ?: repositoryScope.launch { getOrFetchChat(u.chatId) }
-                    }
+                    else -> Unit
                 }
             }
         }
     }
 
     private fun refreshUnreadList() {
-        // Muted = Telegram mute (notificationSettings.muteFor != 0); silenced spam channels stay out
-        val newList = chatCache.values
-            .filter {
-                UnreadChatFilter.shouldIncludeInUnreadList(
-                    unreadCount = it.unreadCount,
-                    muteFor = it.notificationSettings?.muteFor
-                )
-            }
-            .map { mapChat(it) }
-            .sortedByDescending { it.order }
-        _unreadChats.value = newList
+        _unreadChats.value = cache.unreadChats()
     }
 
     override fun getUnreadChats(): Flow<List<Chat>> = _unreadChats.asStateFlow()
 
-    override suspend fun getChat(chatId: Long): Chat? {
-        chatCache[chatId]?.let { return mapChat(it) }
+    override suspend fun getChat(chatId: Long): Chat? = getOrFetchChat(chatId)?.toDomain()
+
+    private suspend fun getOrFetchChat(chatId: Long): ChatSnapshot? {
+        cache[chatId]?.let { return it }
         return try {
-            val tdChat = client.send<TdApi.Chat>(TdApi.GetChat(chatId))
-            chatCache[chatId] = tdChat
-            refreshUnreadList()
-            mapChat(tdChat)
+            fetchChat(chatId)
         } catch (e: Exception) {
             null
         }
     }
 
-    private suspend fun getOrFetchChat(chatId: Long): TdApi.Chat? {
-        chatCache[chatId]?.let { return it }
-        return try {
-            val chat = client.send<TdApi.Chat>(TdApi.GetChat(chatId))
-            chatCache[chatId] = chat
-            refreshUnreadList()
-            chat
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun mapChat(tdChat: TdApi.Chat): Chat {
-        val position = tdChat.positions?.find { it.list is TdApi.ChatListMain }
-        return Chat(
-            id = tdChat.id,
-            title = tdChat.title ?: "Unknown",
-            unreadCount = tdChat.unreadCount,
-            lastMessage = null,
-            order = position?.order ?: 0L,
-            photoFileId = tdChat.photo?.small?.id
-        )
-    }
+    private suspend fun fetchChat(chatId: Long): ChatSnapshot =
+        cache.put(client.send(TdApi.GetChat(chatId))).also { refreshUnreadList() }
 
     override suspend fun getChatMessages(chatId: Long, limit: Int): List<Message> {
         val tdChat = getOrFetchChat(chatId) ?: return emptyList()
@@ -241,9 +181,7 @@ class TdLibChatRepository @Inject constructor(
             // after pause the UI should not wait on that race — otherwise the badge stays stale
             // and a new Play All reloads the same messages from lastReadInboxMessageId.
             try {
-                val refreshed = client.send<TdApi.Chat>(TdApi.GetChat(chatId))
-                chatCache[chatId] = refreshed
-                refreshUnreadList()
+                val refreshed = fetchChat(chatId)
                 Log.d(
                     "ChatRepository",
                     "After mark-read chat=$chatId unread=${refreshed.unreadCount} lastRead=${refreshed.lastReadInboxMessageId}"
@@ -256,28 +194,39 @@ class TdLibChatRepository @Inject constructor(
         }
     }
 
-    override suspend fun getVoiceFilePath(fileId: Int): String? {
-        return try {
-            val file = client.send(TdApi.DownloadFile(fileId, 1, 0, 0, true))
-            if (file.local?.isDownloadingCompleted == true) {
-                file.local.path
-            } else {
-                // Wait for a reasonable amount of time to allow the file to download
-                var downloadedFile = file
-                for (i in 0..10) {
-                    kotlinx.coroutines.delay(500)
-                    downloadedFile = client.send(TdApi.GetFile(fileId))
-                    if (downloadedFile.local?.isDownloadingCompleted == true) {
-                        return downloadedFile.local.path
-                    }
+    /**
+     * Downloads a voice note and returns its local path, or null if it cannot be downloaded in
+     * [VOICE_DOWNLOAD_TIMEOUT_MS]. Waits for TDLib's UpdateFile instead of polling.
+     */
+    override suspend fun getVoiceFilePath(fileId: Int): String? = try {
+        withTimeoutOrNull(VOICE_DOWNLOAD_TIMEOUT_MS) {
+            coroutineScope {
+                // "Not active" only means stopped once TDLib has accepted the download request
+                val requested = java.util.concurrent.atomic.AtomicBoolean(false)
+                // Subscribed before the download starts, so the completing UpdateFile cannot be missed
+                val finished = async(start = CoroutineStart.UNDISPATCHED) {
+                    client.updates.filterIsInstance<TdApi.UpdateFile>()
+                        .first {
+                            it.file.id == fileId &&
+                                (it.file.local?.isDownloadingCompleted == true || (requested.get() && it.file.local.isFinished()))
+                        }
+                        .file
                 }
-                return null
+                val started = client.send(TdApi.DownloadFile(fileId, 1, 0, 0, false))
+                requested.set(true)
+                val file = if (started.local.isFinished()) started.also { finished.cancel() } else finished.await()
+                file.local?.takeIf { it.isDownloadingCompleted }?.path
             }
-        } catch (e: Exception) {
-            Log.e("ChatRepository", "Failed to get voice file path", e)
-            null
         }
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        Log.e("ChatRepository", "Failed to get voice file path", e)
+        null
     }
+
+    /** Downloaded, or stopped without being downloaded (failed / cancelled). */
+    private fun TdApi.LocalFile?.isFinished(): Boolean =
+        this != null && (isDownloadingCompleted || !isDownloadingActive)
 
     override suspend fun loadChats() {
         try {

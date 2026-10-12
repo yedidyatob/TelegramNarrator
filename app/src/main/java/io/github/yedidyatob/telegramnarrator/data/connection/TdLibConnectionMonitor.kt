@@ -1,6 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.data.connection
 
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibClient
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.domain.connection.ConnectionMonitor
 import io.github.yedidyatob.telegramnarrator.domain.connection.ConnectionStatus
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +16,7 @@ import javax.inject.Singleton
 
 /** [ConnectionMonitor] backed by TDLib's UpdateConnectionState. */
 @Singleton
-class TdLibConnectionMonitor @Inject constructor(client: TdLibClient) : ConnectionMonitor {
+class TdLibConnectionMonitor @Inject constructor(client: TdGateway) : ConnectionMonitor {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override val status: StateFlow<ConnectionStatus> = client.connectionState
