@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.core.playback.narration.TtsFailurePort
 import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailureEpisodes
 import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
@@ -26,12 +27,12 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
  * that opens the page. Prefetch failures only count when the network itself is down, so prefetching the next
  * messages never produces a message per item.
  */
-class TtsFailureNotifier(private val context: Context) {
+class TtsFailureNotifier(private val context: Context) : TtsFailurePort {
     private val episodes = TtsFailureEpisodes()
     private val mainHandler = Handler(Looper.getMainLooper())
 
     /** A message's synthesis failed with [reason]. */
-    fun onFailure(reason: FallbackReason) {
+    override fun onFailure(reason: FallbackReason) {
         if (!episodes.onFailure(reason)) return
         val message = context.getString(TtsFailureMessages.messageRes(reason))
         mainHandler.post { Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
@@ -39,11 +40,11 @@ class TtsFailureNotifier(private val context: Context) {
     }
 
     /** A prefetch of an upcoming message failed: only connectivity problems are worth telling. */
-    fun onPrefetchFailure(reason: FallbackReason) {
+    override fun onPrefetchFailure(reason: FallbackReason) {
         if (reason.isConnectivity) onFailure(reason)
     }
 
-    fun onNetworkSuccess() = episodes.onNetworkSuccess()
+    override fun onNetworkSuccess() = episodes.onNetworkSuccess()
 
     private fun postHelpNotification(reason: FallbackReason, message: String, url: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
