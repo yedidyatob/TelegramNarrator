@@ -20,7 +20,17 @@ For every unread message of a chat, in the order they are played:
    through the normal read-checkpoint flow, like a message that was heard.
 2. **Text rules** for messages that are read: `cut` -> `replace` -> `removeTelegramLinks` ->
    links (`readLinks` / `linkLabel`) -> `stripSymbols` -> `numberedLists`.
-3. The generic `MessageCleaner` (markdown, emoji, any URL that is still left is removed, whitespace).
+3. The generic `MessageCleaner` (also used for chat titles and sponsored messages):
+   - any URL that is still left is removed; markdown markers are stripped;
+   - repeated punctuation is collapsed: `!!!` -> `!`, `???` -> `?`, `....` / `. . .` / `…` -> `.`,
+     `----` / `====` / `~~~~` / `••••` runs -> a space, a standalone `##` / `###` run is removed
+     (`##tag` -> `#tag`); single punctuation and meaningful symbols (`.,?!:;`, `"` / `'` in רע"מ / צה"ל,
+     `%`, `₪`, `$`, `+`, `-`, parentheses, `12:30`, `1/2`) are kept;
+   - hashtags are read as words (`#foo_bar` -> `# foo bar`); emoji are removed;
+   - lines without a letter or digit (`##`, `---`, `***`, `•••`, emoji-only) are dropped, and the remaining
+     lines are joined with a pause: `, ` after a line that does not end in punctuation, `. ` before a
+     paragraph break (blank or dropped line), so lists are not read as one run-on phrase;
+   - whitespace is collapsed.
 
 If the rules leave nothing to say (e.g. the message was only "12 תגובות"), the message is skipped
 and marked as read, like any other empty message.
