@@ -390,6 +390,20 @@ class NarrationControllerTest {
     }
 
     @Test
+    fun `pause keeps the sponsored card and stop clears it`() = runTest {
+        val ad = SponsoredAd(chatId = chat, messageId = 99L, title = "Ad title", text = "Buy things")
+        sponsored.ad = ad
+        val c = started(PlaybackItem.SponsoredSlot(chat, "Chat"))
+        assertEquals(ad, ui.sponsoredAd.value)
+        c.userPause(); advanceUntilIdle()
+        assertEquals(ad, ui.sponsoredAd.value)
+        c.userResume(); advanceUntilIdle()
+        c.stop(); advanceUntilIdle()
+        assertNull(ui.sponsoredAd.value)
+        assertTrue(sponsored.viewed.isEmpty())
+    }
+
+    @Test
     fun `dropped and media-only messages are marked read without speaking`() = runTest {
         val dropped = PlaybackItem.MessageItem("A", "ad text", 5L, chat, dropped = true)
         val c = started(dropped, msg1)
