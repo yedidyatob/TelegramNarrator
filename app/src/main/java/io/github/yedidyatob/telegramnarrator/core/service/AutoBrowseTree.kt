@@ -10,12 +10,26 @@ import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 object AutoBrowseTree {
     const val ROOT_ID = "root"
     const val PLAY_ALL_ID = "play_all"
+    /** Single non-playable root child while logged out / Telegram not ready. */
+    const val SIGN_IN_ID = "sign_in"
     private const val CHAT_PREFIX = "chat:"
 
     /** Auto's list guidance: keep browse lists short enough to scan while driving. */
     const val MAX_CHATS = 50
 
-    data class Node(val mediaId: String, val title: String, val unreadCount: Int)
+    data class Node(val mediaId: String, val title: String, val unreadCount: Int, val playable: Boolean = true)
+
+    /** What the library could load: the unread chats, or nothing because Telegram isn't signed in / ready. */
+    sealed interface Library {
+        data class Ready(val unread: List<Chat>) : Library
+        data object SignedOut : Library
+    }
+
+    /** Root children for [library]: the sign-in message while signed out, else [rootChildren]. */
+    fun rootChildren(library: Library, playAllTitle: String, signInTitle: String): List<Node> = when (library) {
+        Library.SignedOut -> listOf(Node(SIGN_IN_ID, signInTitle, 0, playable = false))
+        is Library.Ready -> rootChildren(library.unread, playAllTitle)
+    }
 
     fun chatId(chat: Long) = "$CHAT_PREFIX$chat"
 
