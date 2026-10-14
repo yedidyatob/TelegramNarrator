@@ -37,7 +37,7 @@ import javax.inject.Inject
  * holds all playback logic (#12). Not exported: no other app can bind (see [SessionControllerPolicy], #41).
  */
 @AndroidEntryPoint
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class PlaybackService : MediaSessionService(), PlaybackHost {
     @Inject lateinit var ttsManager: TtsManager
     @Inject lateinit var chatRepository: ChatRepository

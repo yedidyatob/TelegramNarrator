@@ -21,7 +21,7 @@ import io.github.yedidyatob.telegramnarrator.R
  * The Media3 session around [NarrationPlayer]: notification buttons (stop, play/pause, next message,
  * next chat), the custom "next chat" command, the tap-to-open activity and the controller allow-list.
  */
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class PlaybackSession(
     context: Context,
     player: NarrationPlayer,

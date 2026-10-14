@@ -18,7 +18,7 @@ import com.google.common.util.concurrent.ListenableFuture
  * and "next chat", not playlist moves. A live, dynamic, seekable item is what makes Media3 route
  * seekToNext / seekToPrevious to [handleSeek] even though the playlist has a single entry.
  */
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class NarrationPlayer(
     private val commands: Commands,
     private val appName: String
