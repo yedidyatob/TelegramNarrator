@@ -627,6 +627,8 @@ class NarrationController(
         cancelPrefetch()
         flushReadCheckpoints()
         ui.setPlaying(false)
+        // Stop (unlike pause) ends the run: the sponsored card goes with it
+        ui.clearSponsoredAd()
         host.onStateChanged(isPlaying, isPaused)
         stopAllAudio()
         currentItem = null
