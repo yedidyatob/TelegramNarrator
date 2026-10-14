@@ -47,7 +47,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,12 +58,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
@@ -124,7 +123,9 @@ fun HomeScreen(
     // Opening a chat's preview sheet "opens" the chat: fetch its sponsored message (channels / bots only)
     LaunchedEffect(selectedChat?.id) { sponsoredViewModel.loadPreviewAd(selectedChat?.id) }
     val pullToRefreshState = rememberPullToRefreshState()
-    if (pullToRefreshState.isRefreshing) {
+    // True from the user's pull until the refresh (and the minimum spinner time) finishes
+    var userRefreshing by remember { mutableStateOf(false) }
+    if (userRefreshing) {
         LaunchedEffect(Unit) {
             // Run the refresh and a minimum display time in parallel; whichever takes longer wins.
             // This prevents the spinner from vanishing before the user even sees it.
@@ -137,7 +138,7 @@ fun HomeScreen(
             val waitForMinDuration = async { delay(300) }
             waitForLoad.await()
             waitForMinDuration.await()
-            pullToRefreshState.endRefresh()
+            userRefreshing = false
         }
     }
 
@@ -195,7 +196,7 @@ fun HomeScreen(
                     }
                 )
                 // A background refresh with chats on screen: a thin bar rather than replacing the list
-                val backgroundRefresh = uiState.isRefreshing && content is HomeContent.Chats && !pullToRefreshState.isRefreshing
+                val backgroundRefresh = uiState.isRefreshing && content is HomeContent.Chats && !userRefreshing
                 Box(Modifier.fillMaxWidth().height(2.dp)) {
                     if (backgroundRefresh) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
                 }
@@ -254,11 +255,15 @@ fun HomeScreen(
             }
         }
     ) { innerPadding ->
-        Box(
+        // The indicator animates in from above the box's top edge; clipToBounds() ensures it
+        // never bleeds into the TopAppBar above.
+        PullToRefreshBox(
+            isRefreshing = userRefreshing,
+            onRefresh = { userRefreshing = true },
+            state = pullToRefreshState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .nestedScroll(pullToRefreshState.nestedScrollConnection)
                 .clipToBounds()
         ) {
             AnimatedContent(
@@ -284,13 +289,6 @@ fun HomeScreen(
                     )
                 }
             }
-
-            // The indicator animates in from above the box's top edge; clipToBounds() on the
-            // parent ensures it never bleeds into the TopAppBar above.
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
 
         if (showVoiceSettings) {

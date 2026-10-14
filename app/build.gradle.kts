@@ -3,9 +3,9 @@ import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hiltAndroid)
-    kotlin("kapt")
 }
 
 // local.properties is git-ignored: Telegram API credentials and (optionally) the release keystore live there.
@@ -56,7 +56,7 @@ val useDebugSigningForRelease = !hasReleaseKeystore && setting("TN_RELEASE_DEBUG
 
 android {
     namespace = "io.github.yedidyatob.telegramnarrator"
-    compileSdk = 36
+    compileSdk = 37 // current AndroidX (core 1.19, hilt-navigation-compose 1.4, ...) requires 37; targetSdk stays 36
 
     defaultConfig {
         // Permanent: Google Play never allows the applicationId to change after the first upload.
@@ -110,11 +110,8 @@ android {
         baseline = file("lint-baseline.xml")
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     testOptions {
         // JVM unit tests of the TDLib repositories (#13): android.util.Log & co. return defaults instead of throwing
@@ -123,9 +120,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
     }
     packaging {
         resources {
@@ -146,7 +140,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     // Android 12-style splash on every API level (#17)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.media)
+    // Media3 session: notification, lock screen, Bluetooth / headset buttons (#12)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.common)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
@@ -155,11 +151,11 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.material.icons.extended)
     
     // Hilt
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     
     // Navigation
@@ -179,7 +175,7 @@ dependencies {
 
     testImplementation(libs.junit)
     // Unit tests run on the JVM, where the Android org.json stubs do nothing (used for the channel rules JSON)
-    testImplementation("org.json:json:20231013")
+    testImplementation(libs.json)
     // ViewModel tests (runTest, virtual time, Dispatchers.setMain)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
@@ -190,7 +186,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-// Allow references to generated Hilt code
-kapt {
-    correctErrorTypes = true
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        // Media3 marks most session / SimpleBasePlayer APIs as UnstableApi; the whole playback stack opts in
+        freeCompilerArgs.add("-opt-in=androidx.media3.common.util.UnstableApi")
+    }
 }

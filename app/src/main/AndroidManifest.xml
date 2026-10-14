@@ -8,6 +8,8 @@
     <!-- PlaybackService keeps reading aloud with the screen off (foreground service type mediaPlayback) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Keeps the CPU awake between messages while narration plays with the screen off (PlaybackWakeLock, #25) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Playback controls in the notification / lock screen (Android 13+ runtime permission, optional) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
