@@ -69,6 +69,12 @@ class NarrationPlayer(
     override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> =
         NarrationTransport.forSeek(seekCommand)?.let(::perform) ?: Futures.immediateVoidFuture()
 
+    /** Android Auto's setMediaItems + prepare: the library session already started the narration. */
+    override fun handleSetMediaItems(mediaItems: MutableList<MediaItem>, startIndex: Int, startPositionMs: Long): ListenableFuture<*> =
+        Futures.immediateVoidFuture()
+
+    override fun handlePrepare(): ListenableFuture<*> = Futures.immediateVoidFuture()
+
     private fun perform(action: NarrationTransport.Action): ListenableFuture<*> {
         commands.perform(action)
         // The narration reports its new state through the service, which calls update()
@@ -81,6 +87,9 @@ class NarrationPlayer(
             .addAll(
                 Player.COMMAND_PLAY_PAUSE,
                 Player.COMMAND_STOP,
+                Player.COMMAND_PREPARE,
+                Player.COMMAND_SET_MEDIA_ITEM,
+                Player.COMMAND_CHANGE_MEDIA_ITEMS,
                 Player.COMMAND_SEEK_TO_NEXT,
                 Player.COMMAND_SEEK_TO_PREVIOUS,
                 Player.COMMAND_GET_CURRENT_MEDIA_ITEM,
