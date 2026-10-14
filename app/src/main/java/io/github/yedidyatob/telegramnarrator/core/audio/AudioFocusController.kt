@@ -1,33 +1,32 @@
 package io.github.yedidyatob.telegramnarrator.core.audio
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
-import androidx.media.AudioAttributesCompat
-import androidx.media.AudioFocusRequestCompat
-import androidx.media.AudioManagerCompat
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy.FocusChange
 
 /**
  * Requests / abandons audio focus for spoken playback and reports focus changes (always on the main
- * thread) as [FocusChange].
+ * thread) as [FocusChange]. Uses the platform AudioFocusRequest (API 26+; minSdk is 26).
  */
 class AudioFocusController(
     context: Context,
     private val onChange: (FocusChange) -> Unit
 ) {
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    private var request: AudioFocusRequestCompat? = null
+    private var request: AudioFocusRequest? = null
 
     /** @return true if focus was granted. Calling again while already holding focus is cheap. */
     fun request(): Boolean {
-        val req = request ?: AudioFocusRequestCompat.Builder(AudioManagerCompat.AUDIOFOCUS_GAIN)
+        val req = request ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(
-                AudioAttributesCompat.Builder()
-                    .setUsage(AudioAttributesCompat.USAGE_MEDIA)
-                    .setContentType(AudioAttributesCompat.CONTENT_TYPE_SPEECH)
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
             .setWillPauseWhenDucked(true) // we pause ourselves; no automatic ducking of speech
@@ -42,11 +41,11 @@ class AudioFocusController(
             }, Handler(Looper.getMainLooper()))
             .build()
             .also { request = it }
-        return AudioManagerCompat.requestAudioFocus(audioManager, req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        return audioManager.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 
     fun abandon() {
-        request?.let { AudioManagerCompat.abandonAudioFocusRequest(audioManager, it) }
+        request?.let { audioManager.abandonAudioFocusRequest(it) }
         request = null
     }
 }

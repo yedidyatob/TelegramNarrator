@@ -1,11 +1,10 @@
 package io.github.yedidyatob.telegramnarrator.core.service
 
-import android.app.NotificationManager
-import android.app.Service
 import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.os.Build
-import android.os.IBinder
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaSession
+import androidx.media3.session.DefaultMediaNotificationProvider
 import android.os.SystemClock
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.yedidyatob.telegramnarrator.R
@@ -33,11 +32,13 @@ import kotlinx.coroutines.cancel
 import javax.inject.Inject
 
 /**
- * Foreground service that hosts the reading: it adapts Android (notification, MediaSession, audio focus,
- * becoming-noisy, TextToSpeech, MediaPlayer) to [NarrationController], which holds all playback logic (#12).
+ * Media3 MediaSessionService that hosts the reading: it adapts Android (Media3 session + notification via
+ * [NarrationPlayer], audio focus, becoming-noisy, TextToSpeech, MediaPlayer) to [NarrationController], which
+ * holds all playback logic (#12). Not exported: no other app can bind (see [SessionControllerPolicy], #41).
  */
 @AndroidEntryPoint
-class PlaybackService : Service(), PlaybackHost {
+@OptIn(UnstableApi::class)
+class PlaybackService : MediaSessionService(), PlaybackHost {
     @Inject lateinit var ttsManager: TtsManager
     @Inject lateinit var chatRepository: ChatRepository
     @Inject lateinit var playbackManager: PlaybackManager
@@ -57,6 +58,10 @@ class PlaybackService : Service(), PlaybackHost {
         /** Replays the previous message of the current chat (restarts the current one on the chat's first). */
         const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
+        private val OWN_ACTIONS = setOf(
+            ACTION_PLAY_ALL, ACTION_STOP, ACTION_PAUSE, ACTION_RESUME,
+            ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG
+        )
     }
 
     private val logErrors = CoroutineExceptionHandler { _, e -> android.util.Log.e("PlaybackService", "Playback error", e) }
@@ -67,20 +72,34 @@ class PlaybackService : Service(), PlaybackHost {
 
     private lateinit var narration: NarrationController
     private lateinit var notifications: PlaybackNotifications
-    private lateinit var mediaSession: PlaybackMediaSession
+    private lateinit var session: PlaybackSession
+    private lateinit var player: NarrationPlayer
     private lateinit var focusController: AudioFocusController
     @Volatile private var foregroundStarted = false
-    private var statusText = ""
+    private var phase = NarrationPhase.IDLE
+    private var statusTitle = ""
     private var paused = false
     private var playing = false
     private lateinit var wakeLock: PlaybackWakeLock
 
+    // Media3 has no audio focus / becoming-noisy handling for a custom (non-ExoPlayer) player, so the narration
+    // keeps its own AudioFocusPolicy and BecomingNoisyReceiver
     private val noisyReceiver = BecomingNoisyReceiver(this) { narration.onBecomingNoisy() }
 
     override fun onCreate() {
         super.onCreate()
         notifications = PlaybackNotifications(this).also { it.createChannel() }
         wakeLock = PlaybackWakeLock(this)
+        player = NarrationPlayer({ action ->
+            when (action) {
+                NarrationTransport.Action.RESUME -> narration.userResume()
+                NarrationTransport.Action.PAUSE -> narration.userPause()
+                NarrationTransport.Action.STOP -> narration.stop()
+                NarrationTransport.Action.NEXT_MESSAGE -> narration.skipMessage()
+                NarrationTransport.Action.NEXT_CHAT -> narration.skipChat()
+                NarrationTransport.Action.PREVIOUS_MESSAGE -> narration.previousMessage()
+            }
+        }, getString(R.string.app_name))
         narration = NarrationController(
             scope = scope,
             io = Dispatchers.IO,
@@ -96,20 +115,34 @@ class PlaybackService : Service(), PlaybackHost {
             clock = SystemClock::elapsedRealtime
         )
         focusController = AudioFocusController(this) { narration.onAudioFocusChange(it) }
-        mediaSession = PlaybackMediaSession(this) { narration }
+        session = PlaybackSession(this, player, onNextChat = narration::skipChat, onStop = narration::stop)
+        addSession(session.session)
+        // Media3 builds the media notification (on our channel) and runs the service in the foreground while
+        // the player is buffering / playing; a paused session keeps it for Media3's user-engaged timeout
+        setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this)
+            .setChannelId(PlaybackNotifications.CHANNEL_ID)
+            .setNotificationId(PlaybackNotifications.NOTIFICATION_ID)
+            .build()
+            .apply { setSmallIcon(R.drawable.ic_stat_narrator) })
         onStateChanged(isPlaying = false, isPaused = false)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (ServiceCommands.stopsIdleService(intent?.action, foregroundStarted)) {
+        // Media3 notification / media-button intents must go through super (play/pause/next/custom)
+        val action = intent?.action
+        if (action !in OWN_ACTIONS) return super.onStartCommand(intent, flags, startId)
+
+        if (ServiceCommands.stopsIdleService(action, foregroundStarted)) {
             stopSelf(startId)
             return START_NOT_STICKY
         }
-        when (intent?.action) {
+        when (action) {
             ACTION_PLAY_ALL -> {
-                // startForegroundService() requires startForeground() within ~5 s; loading chats can take longer
-                enterForeground()
-                narration.playChats(intent.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf())
+                // startForegroundService() requires startForeground() within ~5 s and loading chats can take
+                // longer: a buffering player with playWhenReady makes Media3 start the foreground right away
+                foregroundStarted = true
+                if (phase == NarrationPhase.IDLE) setPhase(NarrationPhase.PREPARING, getString(R.string.playback_preparing))
+                narration.playChats(intent!!.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf())
             }
             ACTION_STOP -> narration.stop()
             ACTION_PAUSE -> narration.userPause()
@@ -123,19 +156,6 @@ class PlaybackService : Service(), PlaybackHost {
         return START_NOT_STICKY
     }
 
-    /** Shows the "preparing" foreground notification once per run. */
-    private fun enterForeground() {
-        if (foregroundStarted) return
-        foregroundStarted = true
-        statusText = getString(R.string.playback_preparing)
-        val notification = notifications.build(statusText, paused, mediaSession.session)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(PlaybackNotifications.NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(PlaybackNotifications.NOTIFICATION_ID, notification)
-        }
-    }
-
     // ---- PlaybackHost ----
 
     override fun onItemStarted(item: PlaybackItem) {
@@ -147,18 +167,22 @@ class PlaybackService : Service(), PlaybackHost {
     override fun onSponsoredStarted(ad: SponsoredAd, chatName: String) = setStatusText(notifications.sponsoredStatus(ad, chatName))
 
     override fun onStateChanged(isPlaying: Boolean, isPaused: Boolean) {
-        val wasPaused = paused
         paused = isPaused
         playing = isPlaying
         wakeLock.update(ServiceCommands.holdsWakeLock(isPlaying, isPaused))
-        mediaSession.setState(isPlaying, isPaused)
-        if (isPlaying && foregroundStarted && wasPaused != isPaused) refreshNotification()
+        setPhase(NarrationTransport.phaseOf(isPlaying, isPaused, phase))
     }
 
     override fun onStopped() {
         foregroundStarted = false
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        setPhase(NarrationPhase.IDLE)
         stopSelf()
+    }
+
+    private fun setPhase(newPhase: NarrationPhase, title: String = statusTitle) {
+        phase = newPhase
+        statusTitle = title
+        player.update(newPhase, title)
     }
 
     override fun requestAudioFocus() {
@@ -175,17 +199,10 @@ class PlaybackService : Service(), PlaybackHost {
 
     private fun setStatusText(text: String) {
         playbackManager.setStatus(text)
-        statusText = text
-        refreshNotification()
+        setPhase(phase, text)
     }
 
-    private fun refreshNotification() {
-        val text = if (paused) getString(R.string.playback_paused) else statusText
-        getSystemService(NotificationManager::class.java)
-            .notify(PlaybackNotifications.NOTIFICATION_ID, notifications.build(text, paused, mediaSession.session))
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session.session
 
     override fun onDestroy() {
         super.onDestroy()
@@ -194,6 +211,6 @@ class PlaybackService : Service(), PlaybackHost {
         focusController.abandon()
         noisyReceiver.unregister()
         scope.cancel()
-        mediaSession.release()
+        session.release()
     }
 }

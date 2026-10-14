@@ -140,7 +140,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     // Android 12-style splash on every API level (#17)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.media)
+    // Media3 session: notification, lock screen, Bluetooth / headset buttons (#12)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.common)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
@@ -187,5 +189,7 @@ dependencies {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        // Media3 marks most session / SimpleBasePlayer APIs as UnstableApi; the whole playback stack opts in
+        freeCompilerArgs.add("-opt-in=androidx.media3.common.util.UnstableApi")
     }
 }
