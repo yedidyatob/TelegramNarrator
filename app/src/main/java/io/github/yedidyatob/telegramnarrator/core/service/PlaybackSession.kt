@@ -21,7 +21,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import io.github.yedidyatob.telegramnarrator.MainActivity
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 
 /**
  * The Media3 library session around [NarrationPlayer]: notification buttons (stop, play/pause, next message,
@@ -35,10 +34,12 @@ class PlaybackSession(
     player: NarrationPlayer,
     private val onNextChat: () -> Unit,
     private val onStop: () -> Unit,
-    private val unreadChats: () -> ListenableFuture<List<Chat>>,
+    private val library: () -> ListenableFuture<AutoBrowseTree.Library>,
     private val onPlayChats: (List<Long>) -> Unit
 ) {
     private val playAllTitle = context.getString(R.string.auto_play_all)
+    private val signInTitle = context.getString(R.string.auto_sign_in_on_phone)
+    private val signInSubtitle = context.getString(R.string.auto_sign_in_on_phone_detail)
     private val ownPackage = context.packageName
 
     private val stopButton = CommandButton.Builder(CommandButton.ICON_STOP)
@@ -105,9 +106,9 @@ class PlaybackSession(
         ): ListenableFuture<LibraryResult<MediaItem>> {
             if (!canBrowse(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (mediaId == AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), null))
-            return Futures.transform(unreadChats(), { chats ->
-                AutoBrowseTree.rootChildren(chats, playAllTitle).firstOrNull { it.mediaId == mediaId }
-                    ?.let { LibraryResult.ofItem(playable(it), null) }
+            return Futures.transform(library(), { lib ->
+                AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle).firstOrNull { it.mediaId == mediaId }
+                    ?.let { LibraryResult.ofItem(toItem(it), null) }
                     ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
             }, Runnable::run)
         }
@@ -122,8 +123,8 @@ class PlaybackSession(
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             if (!canBrowse(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (parentId != AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
-            return Futures.transform(unreadChats(), { chats ->
-                val nodes = AutoBrowseTree.rootChildren(chats, playAllTitle).map(::playable)
+            return Futures.transform(library(), { lib ->
+                val nodes = AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle).map(::toItem)
                 val from = (page * pageSize).coerceAtMost(nodes.size)
                 val to = if (pageSize <= 0) nodes.size else (from + pageSize).coerceAtMost(nodes.size)
                 LibraryResult.ofItemList(ImmutableList.copyOf(nodes.subList(from, to)), params)
@@ -142,7 +143,10 @@ class PlaybackSession(
             if (!canBrowse(controller) || item == null) {
                 return Futures.immediateFailedFuture(UnsupportedOperationException("Not allowed"))
             }
-            return Futures.transform(unreadChats(), { chats ->
+            return Futures.transform(library(), { lib ->
+                // Signed out: nothing to read (the browse root shows "Sign in on your phone")
+                val chats = (lib as? AutoBrowseTree.Library.Ready)?.unread
+                    ?: throw IllegalStateException("Telegram is not signed in")
                 val search = item.requestMetadata.searchQuery
                 val ids = if (item.mediaId.isEmpty() || search != null) {
                     AutoBrowseTree.chatsForSearch(search, chats)
@@ -178,14 +182,14 @@ class PlaybackSession(
             .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED).build())
         .build()
 
-    private fun playable(node: AutoBrowseTree.Node): MediaItem = MediaItem.Builder()
+    private fun toItem(node: AutoBrowseTree.Node): MediaItem = MediaItem.Builder()
         .setMediaId(node.mediaId)
         .setMediaMetadata(MediaMetadata.Builder()
             .setTitle(node.title)
-            .setSubtitle(unreadLabel(node.unreadCount))
+            .setSubtitle(if (node.playable) unreadLabel(node.unreadCount) else signInSubtitle)
             .setIsBrowsable(false)
-            .setIsPlayable(true)
-            .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
+            .setIsPlayable(node.playable)
+            .setMediaType(if (node.playable) MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE else MediaMetadata.MEDIA_TYPE_MIXED)
             .build())
         .build()
 

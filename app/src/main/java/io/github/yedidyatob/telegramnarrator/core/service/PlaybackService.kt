@@ -22,6 +22,8 @@ import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackItem
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackManager
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
+import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
+import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMessagesRepository
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -46,6 +48,7 @@ import javax.inject.Inject
 class PlaybackService : MediaLibraryService(), PlaybackHost {
     @Inject lateinit var ttsManager: TtsManager
     @Inject lateinit var chatRepository: ChatRepository
+    @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var channelRules: ChannelRulesRepository
     @Inject lateinit var geminiSpeech: GeminiSpeechSynthesizer
@@ -125,14 +128,9 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             this, player,
             onNextChat = narration::skipChat,
             onStop = narration::stop,
-            unreadChats = {
-                SettableFuture.create<List<io.github.yedidyatob.telegramnarrator.domain.model.Chat>>().also { result ->
-                    scope.launch {
-                        // TDLib not ready / logged out: an empty tree rather than a hanging Auto browser
-                        result.set(runCatching {
-                            withTimeoutOrNull(UNREAD_TIMEOUT_MS) { chatRepository.getUnreadChats().first() }
-                        }.getOrNull() ?: emptyList())
-                    }
+            library = {
+                SettableFuture.create<AutoBrowseTree.Library>().also { result ->
+                    scope.launch { result.set(loadLibrary()) }
                 }
             },
             onPlayChats = ::playChats
@@ -174,6 +172,18 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         // kept by Telegram (played messages were marked as read), so the next Play continues where it stopped.
         return START_NOT_STICKY
     }
+
+    /**
+     * Android Auto's view of Telegram: [AutoBrowseTree.Library.SignedOut] unless TDLib is authenticated and
+     * the unread chats load in time (logged out, still starting, startup error, timeout).
+     */
+    private suspend fun loadLibrary(): AutoBrowseTree.Library = runCatching {
+        val auth = withTimeoutOrNull(UNREAD_TIMEOUT_MS) { authRepository.authState.first { it !is AuthState.Initializing } }
+        if (auth !is AuthState.Authenticated) return@runCatching AutoBrowseTree.Library.SignedOut
+        withTimeoutOrNull(UNREAD_TIMEOUT_MS) { chatRepository.getUnreadChats().first() }
+            ?.let { AutoBrowseTree.Library.Ready(it) }
+            ?: AutoBrowseTree.Library.SignedOut
+    }.getOrDefault(AutoBrowseTree.Library.SignedOut)
 
     /** The app's Play and Android Auto's browse-tree items both start here. */
     private fun playChats(chatIds: List<Long>) {

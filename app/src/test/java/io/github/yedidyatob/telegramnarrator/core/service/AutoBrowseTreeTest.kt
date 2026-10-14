@@ -45,4 +45,20 @@ class AutoBrowseTreeTest {
         // A chat with nothing unread is never chosen
         assertEquals(listOf(1L, 3L), AutoBrowseTree.chatsForSearch("family", chats))
     }
+
+    @Test
+    fun `signed out shows a single non-playable sign-in item`() {
+        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.SignedOut, "Play all", "Sign in on your phone")
+        assertEquals(listOf(AutoBrowseTree.SIGN_IN_ID), nodes.map { it.mediaId })
+        assertEquals("Sign in on your phone", nodes.single().title)
+        assertTrue(!nodes.single().playable)
+        assertNull(AutoBrowseTree.chatsToPlay(AutoBrowseTree.SIGN_IN_ID, chats))
+    }
+
+    @Test
+    fun `signed in shows the unread tree`() {
+        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.Ready(chats), "Play all", "Sign in")
+        assertEquals(listOf("play_all", "chat:1", "chat:3"), nodes.map { it.mediaId })
+        assertTrue(nodes.all { it.playable })
+    }
 }
