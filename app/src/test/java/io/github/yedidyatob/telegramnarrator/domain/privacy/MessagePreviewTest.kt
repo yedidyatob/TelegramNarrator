@@ -19,6 +19,15 @@ class MessagePreviewTest {
     }
 
     @Test
+    fun `preview is about 60 characters`() {
+        assertEquals(60, MessagePreview.MAX_CHARS)
+        assertEquals(1, MessagePreview.MAX_LINES)
+        val sixty = "x".repeat(60)
+        assertEquals(sixty, MessagePreview.of(sixty))
+        assertEquals(sixty + "…", MessagePreview.of(sixty + "y"))
+    }
+
+    @Test
     fun `never shows the full text of a long message`() {
         val long = "א".repeat(500)
         assertEquals(MessagePreview.MAX_CHARS + 1, MessagePreview.of(long).length)
@@ -26,8 +35,8 @@ class MessagePreviewTest {
 
     @Test
     fun `an emoji is never split`() {
-        val text = "a".repeat(99) + "😀" + "b".repeat(10)
-        val preview = MessagePreview.of(text)
-        assertEquals("a".repeat(99) + "…", preview)
+        val n = MessagePreview.MAX_CHARS - 1
+        val text = "a".repeat(n) + "😀" + "b".repeat(10)
+        assertEquals("a".repeat(n) + "…", MessagePreview.of(text))
     }
 }

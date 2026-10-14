@@ -160,8 +160,8 @@ fun ChatPreviewSheet(
 }
 
 /**
- * One unread message in the chat's preview sheet, as a short preview ([MessagePreview]: at most
- * [MessagePreview.MAX_LINES] lines, ellipsized), never the full text. The card follows the message's
+ * One unread message in the chat's preview sheet, as a short preview ([MessagePreview]: one line
+ * ([MessagePreview.MAX_LINES]), ellipsized), never the full text. The card follows the message's
  * direction (a Hebrew message
  * is right-aligned, sender name included, even on an English device); each paragraph aligns by its own text.
  */

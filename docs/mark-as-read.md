@@ -26,8 +26,8 @@ Telegram treats showing a message's full text as reading it, and full display is
 is also marked as read. So the app never shows a message's full text outside playback:
 
 - **Home → chat preview sheet** (the only screen that lists unread message text) shows each message as a short
-  chat-list-style preview: `MessagePreview.of` (whitespace collapsed, at most 100 characters, cut at a word
-  boundary, ellipsized) rendered in at most 2 lines with `TextOverflow.Ellipsis`. Unit-tested in
+  chat-list-style preview: `MessagePreview.of` (whitespace collapsed, at most 60 characters, cut at a word
+  boundary, ellipsized) rendered on a single line with `TextOverflow.Ellipsis`. Unit-tested in
   `MessagePreviewTest`.
 - **Home chat rows** show no message text at all (title, unread badge, "playing" marker).
 - **Player screen** shows the full text only of the message currently being read aloud, during active playback

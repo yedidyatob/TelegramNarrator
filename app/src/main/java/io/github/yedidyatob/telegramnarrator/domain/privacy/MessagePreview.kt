@@ -6,9 +6,9 @@ package io.github.yedidyatob.telegramnarrator.domain.privacy
  * See docs/mark-as-read.md.
  */
 object MessagePreview {
-    const val MAX_CHARS = 100
+    const val MAX_CHARS = 60
     /** Lines the preview may take on screen (the text is also ellipsized to [MAX_CHARS]). */
-    const val MAX_LINES = 2
+    const val MAX_LINES = 1
     private const val ELLIPSIS = "…"
 
     /**
