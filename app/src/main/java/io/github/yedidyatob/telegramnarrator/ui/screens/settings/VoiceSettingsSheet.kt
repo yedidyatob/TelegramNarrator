@@ -83,7 +83,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
@@ -262,12 +262,13 @@ private fun SystemSection(
         }
         system.groups.forEach { group -> SystemVoicePicker(group, enabled, actions.onSelectSystemVoice) }
         HelperText(stringResource(R.string.settings_system_offline_note))
+        val ttsUnavailable = stringResource(R.string.settings_system_tts_unavailable)
         TextButton(
             onClick = {
                 try {
                     context.startActivity(Intent(TTS_SETTINGS_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, context.getString(R.string.settings_system_tts_unavailable), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, ttsUnavailable, Toast.LENGTH_SHORT).show()
                 }
             }
         ) { Text(stringResource(R.string.settings_system_open_tts)) }
@@ -410,6 +411,7 @@ private fun EdgeAdvanced(customVoice: String?, enabled: Boolean, onSetCustomVoic
 private fun GetGeminiKeyLink() {
     val context = LocalContext.current
     val opensInBrowser = stringResource(R.string.settings_gemini_get_key_a11y)
+    val noBrowser = stringResource(R.string.settings_gemini_get_key_no_browser)
     TextButton(
         onClick = {
             try {
@@ -417,7 +419,7 @@ private fun GetGeminiKeyLink() {
                     Intent(Intent.ACTION_VIEW, Uri.parse(GeminiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             } catch (e: ActivityNotFoundException) {
-                Toast.makeText(context, context.getString(R.string.settings_gemini_get_key_no_browser), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, noBrowser, Toast.LENGTH_SHORT).show()
             }
         },
         modifier = Modifier

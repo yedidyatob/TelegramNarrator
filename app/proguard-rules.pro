@@ -25,3 +25,7 @@
 # ---- security-crypto / Tink (OpenAI key store) -------------------------
 # Tink references compile-only Error Prone annotations; without this R8 fails the release build.
 -dontwarn com.google.errorprone.annotations.Immutable
+
+# Tink (pulled in by androidx.security:security-crypto 1.1.0) references errorprone annotations that
+# are compile-time only and not on the runtime classpath.
+-dontwarn com.google.errorprone.annotations.**

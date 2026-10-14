@@ -1,23 +1,26 @@
 [versions]
-agp = "8.2.1"
-kotlin = "1.9.22"
-coreKtx = "1.12.0"
-splashscreen = "1.0.1"
+agp = "9.4.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
+splashscreen = "1.2.0"
 junit = "4.13.2"
-coroutinesTest = "1.7.3"
-junitVersion = "1.1.5"
-espressoCore = "3.5.1"
-lifecycleRuntimeKtx = "2.7.0"
-activityCompose = "1.8.2"
-composeBom = "2024.02.00"
-hilt = "2.50"
-hiltNavigationCompose = "1.1.0"
-navigationCompose = "2.7.7"
-secureStorage = "1.1.0-alpha03" # androidx.security:security-crypto
+coroutinesTest = "1.11.0"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+lifecycleRuntimeKtx = "2.11.0"
+activityCompose = "1.13.0"
+composeBom = "2026.09.00"
+hilt = "2.60.1"
+hiltNavigationCompose = "1.4.0"
+navigationCompose = "2.10.2"
+secureStorage = "1.1.0" # androidx.security:security-crypto
 tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
-media = "1.7.0"
+media = "1.8.0"
 okhttp = "4.12.0" # WebSocket client for the experimental Edge TTS engine
-libphonenumber = "9.0.40" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
+libphonenumber = "9.0.41" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
+
+ksp = "2.3.12"
+json = "20260814" # org.json for JVM unit tests (Android's org.json is a stub there)
 
 [libraries]
 androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
@@ -45,6 +48,12 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 # Phone number parsing / validation (login)
 libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
 
+# Compose icons (version from the BOM)
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# JVM unit tests
+json = { group = "org.json", name = "json", version.ref = "json" }
+
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -61,5 +70,7 @@ tdlib = { group = "com.github.tdlibx", name = "td", version.ref = "tdlib" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# AGP 9 compiles Kotlin itself (built-in Kotlin); this plugin also pins the Kotlin version it uses
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hiltAndroid = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
