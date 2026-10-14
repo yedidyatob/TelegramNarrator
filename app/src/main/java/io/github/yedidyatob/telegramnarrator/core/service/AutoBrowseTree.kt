@@ -1,0 +1,53 @@
+package io.github.yedidyatob.telegramnarrator.core.service
+
+import io.github.yedidyatob.telegramnarrator.domain.model.Chat
+
+/**
+ * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> "Play all unread" + one playable
+ * node per chat with unread messages, in the Home list's order. Playing a node reads the same narration as
+ * the app (titles, dings, sponsored messages), so nothing here plays audio itself.
+ */
+object AutoBrowseTree {
+    const val ROOT_ID = "root"
+    const val PLAY_ALL_ID = "play_all"
+    private const val CHAT_PREFIX = "chat:"
+
+    /** Auto's list guidance: keep browse lists short enough to scan while driving. */
+    const val MAX_CHATS = 50
+
+    data class Node(val mediaId: String, val title: String, val unreadCount: Int)
+
+    fun chatId(chat: Long) = "$CHAT_PREFIX$chat"
+
+    /** Children of the root; empty when nothing is unread. */
+    fun rootChildren(unread: List<Chat>, playAllTitle: String): List<Node> {
+        val chats = unread.filter { it.unreadCount > 0 }.take(MAX_CHATS)
+        if (chats.isEmpty()) return emptyList()
+        return listOf(Node(PLAY_ALL_ID, playAllTitle, chats.sumOf { it.unreadCount })) +
+            chats.map { Node(chatId(it.id), it.title, it.unreadCount) }
+    }
+
+    /**
+     * Chats to read for a played [mediaId]: all unread for "Play all", one chat for a chat node, null for an
+     * unknown / malformed id (rejected).
+     */
+    fun chatsToPlay(mediaId: String, unread: List<Chat>): List<Long>? = when {
+        mediaId == PLAY_ALL_ID -> unread.filter { it.unreadCount > 0 }.map { it.id }
+        mediaId.startsWith(CHAT_PREFIX) -> mediaId.removePrefix(CHAT_PREFIX).toLongOrNull()?.let { listOf(it) }
+        else -> null
+    }
+
+    /**
+     * Voice search ("play News on Telegram Narrator"): the unread chat whose title best matches [query]
+     * (exact, then prefix, then contains, case-insensitive); all unread for a blank query or no match.
+     */
+    fun chatsForSearch(query: String?, unread: List<Chat>): List<Long> {
+        val chats = unread.filter { it.unreadCount > 0 }
+        val q = query?.trim()?.lowercase().orEmpty()
+        if (q.isEmpty()) return chats.map { it.id }
+        val match = chats.firstOrNull { it.title.lowercase() == q }
+            ?: chats.firstOrNull { it.title.lowercase().startsWith(q) }
+            ?: chats.firstOrNull { it.title.lowercase().contains(q) }
+        return match?.let { listOf(it.id) } ?: chats.map { it.id }
+    }
+}

@@ -323,4 +323,9 @@
     <string name="home_menu_system_colors">Use system colors</string>
     <!-- TalkBack click label of a chat row (opens the preview sheet) -->
     <string name="home_open_chat_preview">show messages</string>
+    <string name="auto_play_all">Play all unread</string>
+    <plurals name="auto_unread_count">
+        <item quantity="one">%d unread message</item>
+        <item quantity="other">%d unread messages</item>
+    </plurals>
 </resources>

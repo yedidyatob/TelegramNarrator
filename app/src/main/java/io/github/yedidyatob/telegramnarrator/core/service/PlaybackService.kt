@@ -2,7 +2,7 @@ package io.github.yedidyatob.telegramnarrator.core.service
 
 import android.content.Intent
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.DefaultMediaNotificationProvider
 import android.os.SystemClock
@@ -29,16 +29,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import com.google.common.util.concurrent.SettableFuture
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
- * Media3 MediaSessionService that hosts the reading: it adapts Android (Media3 session + notification via
+ * Media3 MediaLibraryService that hosts the reading: it adapts Android (Media3 session + notification via
  * [NarrationPlayer], audio focus, becoming-noisy, TextToSpeech, MediaPlayer) to [NarrationController], which
- * holds all playback logic (#12). Not exported: no other app can bind (see [SessionControllerPolicy], #41).
+ * holds all playback logic (#12). Exported for Android Auto (#41): [SessionControllerPolicy] rejects every
+ * controller except this app, the system and the Auto hosts, and only this app and Auto may browse / play.
  */
 @AndroidEntryPoint
 @androidx.annotation.OptIn(markerClass = [UnstableApi::class])
-class PlaybackService : MediaSessionService(), PlaybackHost {
+class PlaybackService : MediaLibraryService(), PlaybackHost {
     @Inject lateinit var ttsManager: TtsManager
     @Inject lateinit var chatRepository: ChatRepository
     @Inject lateinit var playbackManager: PlaybackManager
@@ -58,6 +63,7 @@ class PlaybackService : MediaSessionService(), PlaybackHost {
         /** Replays the previous message of the current chat (restarts the current one on the chat's first). */
         const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
+        private const val UNREAD_TIMEOUT_MS = 5_000L
         private val OWN_ACTIONS = setOf(
             ACTION_PLAY_ALL, ACTION_STOP, ACTION_PAUSE, ACTION_RESUME,
             ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG
@@ -115,7 +121,22 @@ class PlaybackService : MediaSessionService(), PlaybackHost {
             clock = SystemClock::elapsedRealtime
         )
         focusController = AudioFocusController(this) { narration.onAudioFocusChange(it) }
-        session = PlaybackSession(this, player, onNextChat = narration::skipChat, onStop = narration::stop)
+        session = PlaybackSession(
+            this, player,
+            onNextChat = narration::skipChat,
+            onStop = narration::stop,
+            unreadChats = {
+                SettableFuture.create<List<io.github.yedidyatob.telegramnarrator.domain.model.Chat>>().also { result ->
+                    scope.launch {
+                        // TDLib not ready / logged out: an empty tree rather than a hanging Auto browser
+                        result.set(runCatching {
+                            withTimeoutOrNull(UNREAD_TIMEOUT_MS) { chatRepository.getUnreadChats().first() }
+                        }.getOrNull() ?: emptyList())
+                    }
+                }
+            },
+            onPlayChats = ::playChats
+        )
         addSession(session.session)
         // Media3 builds the media notification (on our channel) and runs the service in the foreground while
         // the player is buffering / playing; a paused session keeps it for Media3's user-engaged timeout
@@ -140,9 +161,7 @@ class PlaybackService : MediaSessionService(), PlaybackHost {
             ACTION_PLAY_ALL -> {
                 // startForegroundService() requires startForeground() within ~5 s and loading chats can take
                 // longer: a buffering player with playWhenReady makes Media3 start the foreground right away
-                foregroundStarted = true
-                if (phase == NarrationPhase.IDLE) setPhase(NarrationPhase.PREPARING, getString(R.string.playback_preparing))
-                narration.playChats(intent!!.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf())
+                playChats((intent!!.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf()).toList())
             }
             ACTION_STOP -> narration.stop()
             ACTION_PAUSE -> narration.userPause()
@@ -154,6 +173,13 @@ class PlaybackService : MediaSessionService(), PlaybackHost {
         // Not restarted after the process is killed: playback never resumes by itself. The reading position is
         // kept by Telegram (played messages were marked as read), so the next Play continues where it stopped.
         return START_NOT_STICKY
+    }
+
+    /** The app's Play and Android Auto's browse-tree items both start here. */
+    private fun playChats(chatIds: List<Long>) {
+        foregroundStarted = true
+        if (phase == NarrationPhase.IDLE) setPhase(NarrationPhase.PREPARING, getString(R.string.playback_preparing))
+        narration.playChats(chatIds.toLongArray())
     }
 
     // ---- PlaybackHost ----
@@ -202,7 +228,7 @@ class PlaybackService : MediaSessionService(), PlaybackHost {
         setPhase(phase, text)
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session.session
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session.session
 
     override fun onDestroy() {
         super.onDestroy()
