@@ -75,11 +75,11 @@ Notes on the choices:
 |---|---|
 | `INTERNET` | TDLib (Telegram) and the online speech engines (Edge, the default, and the optional Gemini) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | `PlaybackService` keeps reading aloud with the screen off |
+| `WAKE_LOCK` | A partial wake lock is held only while narration is playing, so the next message is synthesized / downloaded with the screen off (see [background-playback.md](background-playback.md)); released on pause and stop |
 | `POST_NOTIFICATIONS` | Optional media controls in the notification / lock screen; asked in the first-run introduction (Android 13+) or before the first playback, reading works without it |
 
 `WRITE_EXTERNAL_STORAGE` (declared by the TDLib AAR) and the `READ_EXTERNAL_STORAGE` it implies are removed from the
-merged manifest; `WAKE_LOCK` was unused
-and has been dropped.
+merged manifest.
 
 ## Foreground service declaration
 

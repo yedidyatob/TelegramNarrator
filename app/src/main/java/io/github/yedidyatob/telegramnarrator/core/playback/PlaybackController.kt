@@ -14,7 +14,13 @@ class PlaybackController @Inject constructor(@ApplicationContext private val con
     /** Starts (or restarts) reading the unread messages of [chatIds], in that order. */
     fun playChats(chatIds: List<Long>) {
         val intent = intent(PlaybackService.ACTION_PLAY_ALL).putExtra(PlaybackService.EXTRA_CHAT_IDS, chatIds.toLongArray())
-        context.startForegroundService(intent)
+        try {
+            context.startForegroundService(intent)
+        } catch (e: IllegalStateException) {
+            // Android 12+: ForegroundServiceStartNotAllowedException if the app is no longer in the foreground
+            // (a tap that raced with leaving the app). Playback is only ever started by the user in the app.
+            android.util.Log.w("PlaybackController", "Could not start playback from the background", e)
+        }
     }
 
     fun togglePause(isPaused: Boolean) = send(if (isPaused) PlaybackService.ACTION_RESUME else PlaybackService.ACTION_PAUSE)

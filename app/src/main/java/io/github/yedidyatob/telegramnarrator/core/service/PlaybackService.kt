@@ -72,12 +72,15 @@ class PlaybackService : Service(), PlaybackHost {
     @Volatile private var foregroundStarted = false
     private var statusText = ""
     private var paused = false
+    private var playing = false
+    private lateinit var wakeLock: PlaybackWakeLock
 
     private val noisyReceiver = BecomingNoisyReceiver(this) { narration.onBecomingNoisy() }
 
     override fun onCreate() {
         super.onCreate()
         notifications = PlaybackNotifications(this).also { it.createChannel() }
+        wakeLock = PlaybackWakeLock(this)
         narration = NarrationController(
             scope = scope,
             io = Dispatchers.IO,
@@ -98,6 +101,10 @@ class PlaybackService : Service(), PlaybackHost {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (ServiceCommands.stopsIdleService(intent?.action, foregroundStarted)) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_PLAY_ALL -> {
                 // startForegroundService() requires startForeground() within ~5 s; loading chats can take longer
@@ -111,6 +118,8 @@ class PlaybackService : Service(), PlaybackHost {
             ACTION_SKIP_CHAT -> narration.skipChat()
             ACTION_PREVIOUS_MSG -> narration.previousMessage()
         }
+        // Not restarted after the process is killed: playback never resumes by itself. The reading position is
+        // kept by Telegram (played messages were marked as read), so the next Play continues where it stopped.
         return START_NOT_STICKY
     }
 
@@ -130,6 +139,8 @@ class PlaybackService : Service(), PlaybackHost {
     // ---- PlaybackHost ----
 
     override fun onItemStarted(item: PlaybackItem) {
+        // Renews the wake lock's timeout for the new item
+        wakeLock.update(ServiceCommands.holdsWakeLock(playing, paused))
         notifications.statusFor(item)?.let(::setStatusText)
     }
 
@@ -138,6 +149,8 @@ class PlaybackService : Service(), PlaybackHost {
     override fun onStateChanged(isPlaying: Boolean, isPaused: Boolean) {
         val wasPaused = paused
         paused = isPaused
+        playing = isPlaying
+        wakeLock.update(ServiceCommands.holdsWakeLock(isPlaying, isPaused))
         mediaSession.setState(isPlaying, isPaused)
         if (isPlaying && foregroundStarted && wasPaused != isPaused) refreshNotification()
     }
@@ -177,6 +190,7 @@ class PlaybackService : Service(), PlaybackHost {
     override fun onDestroy() {
         super.onDestroy()
         narration.shutdown()
+        wakeLock.update(false)
         focusController.abandon()
         noisyReceiver.unregister()
         scope.cancel()

@@ -286,6 +286,20 @@ class NarrationControllerTest {
     }
 
     @Test
+    fun `headphones unplugged pauses, and only the user resumes (mid-message)`() = runTest {
+        val c = started(msg1)
+        speech.last.onStart(); speech.last.rangeAt("six"); advanceUntilIdle()
+        c.onBecomingNoisy(); advanceUntilIdle()
+        assertTrue(c.isPaused)
+        assertEquals(true to true, host.states.last())
+        // Regaining focus after becoming noisy must not resume by itself
+        c.onAudioFocusChange(AudioFocusPolicy.FocusChange.GAIN); advanceUntilIdle()
+        assertTrue(c.isPaused)
+        c.userResume(); advanceUntilIdle()
+        assertEquals("three four five six seven eight. Nine ten eleven twelve.", speech.last.text)
+    }
+
+    @Test
     fun `late callbacks of a stopped utterance are ignored`() = runTest {
         val c = started(msg1, msg2)
         val first = speech.last
