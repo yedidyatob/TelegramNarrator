@@ -330,4 +330,7 @@
         <item quantity="one">%d unread message</item>
         <item quantity="other">%d unread messages</item>
     </plurals>
+    <string name="settings_share_debug_log">Share debug log</string>
+    <string name="settings_debug_log_empty">No debug log yet</string>
+    <string name="settings_debug_log_subject">Telegram Narrator debug log</string>
 </resources>

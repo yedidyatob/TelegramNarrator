@@ -8,6 +8,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import android.os.SystemClock
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 import io.github.yedidyatob.telegramnarrator.core.audio.AudioFocusController
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.core.playback.narration.BuildPlaybackQueue
@@ -67,6 +68,8 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
         private const val UNREAD_TIMEOUT_MS = 5_000L
+        /** After LoadChats, how long to wait for the first unread chats (none unread is a valid answer). */
+        private const val CHATS_SETTLE_MS = 3_000L
         private val OWN_ACTIONS = setOf(
             ACTION_PLAY_ALL, ACTION_STOP, ACTION_PAUSE, ACTION_RESUME,
             ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG
@@ -96,6 +99,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     private val noisyReceiver = BecomingNoisyReceiver(this) { narration.onBecomingNoisy() }
 
     override fun onCreate() {
+        AutoLog.event("PlaybackService onCreate")
         super.onCreate()
         notifications = PlaybackNotifications(this).also { it.createChannel() }
         wakeLock = PlaybackWakeLock(this)
@@ -179,11 +183,18 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
      */
     private suspend fun loadLibrary(): AutoBrowseTree.Library = runCatching {
         val auth = withTimeoutOrNull(UNREAD_TIMEOUT_MS) { authRepository.authState.first { it !is AuthState.Initializing } }
+        AutoLog.event("loadLibrary auth=${auth?.let { it::class.simpleName } ?: "timeout"}")
         if (auth !is AuthState.Authenticated) return@runCatching AutoBrowseTree.Library.SignedOut
-        withTimeoutOrNull(UNREAD_TIMEOUT_MS) { chatRepository.getUnreadChats().first() }
-            ?.let { AutoBrowseTree.Library.Ready(it) }
-            ?: AutoBrowseTree.Library.SignedOut
-    }.getOrDefault(AutoBrowseTree.Library.SignedOut)
+        // Started by Android Auto without the app's UI, nothing has asked TDLib for the chat list yet: the
+        // unread list would stay empty. Ask for it, then wait briefly for the first unread chats to arrive.
+        runCatching { chatRepository.loadChats() }.onFailure { AutoLog.error("loadChats failed", it) }
+        val unread = withTimeoutOrNull(CHATS_SETTLE_MS) { chatRepository.getUnreadChats().first { it.isNotEmpty() } }
+            ?: chatRepository.getUnreadChats().first()
+        AutoBrowseTree.Library.Ready(unread)
+    }.getOrElse {
+        AutoLog.error("loadLibrary failed", it)
+        AutoBrowseTree.Library.SignedOut
+    }
 
     /** The app's Play and Android Auto's browse-tree items both start here. */
     private fun playChats(chatIds: List<Long>) {

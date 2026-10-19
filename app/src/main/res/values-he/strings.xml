@@ -38,4 +38,7 @@
         <item quantity="two">%d הודעות שלא נקראו</item>
         <item quantity="other">%d הודעות שלא נקראו</item>
     </plurals>
+    <string name="settings_share_debug_log">שיתוף יומן ניפוי באגים</string>
+    <string name="settings_debug_log_empty">עדיין אין יומן ניפוי באגים</string>
+    <string name="settings_debug_log_subject">יומן ניפוי באגים של Telegram Narrator</string>
 </resources>

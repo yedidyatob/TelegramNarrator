@@ -23,6 +23,28 @@ object AutoBrowseTree {
     sealed interface Library {
         data class Ready(val unread: List<Chat>) : Library
         data object SignedOut : Library
+
+        /** For the diagnostic log: the state and a count, never chat titles. */
+        fun logState(): String = when (this) {
+            SignedOut -> "SignedOut"
+            is Ready -> "Ready(unread=${unread.count { it.unreadCount > 0 }})"
+        }
+    }
+
+    /** A media id for the diagnostic log: the fixed ids as is, a chat node as its numeric id only. */
+    fun logId(mediaId: String): String = when {
+        mediaId == ROOT_ID || mediaId == PLAY_ALL_ID || mediaId == SIGN_IN_ID -> mediaId
+        mediaId.startsWith(CHAT_PREFIX) && mediaId.removePrefix(CHAT_PREFIX).toLongOrNull() != null -> mediaId
+        mediaId.isEmpty() -> "<empty>"
+        else -> "<other:${mediaId.length}>"
+    }
+
+    /** Indices of one page of [size] items; overflow-safe for Media3's unpaged request (pageSize = MAX_VALUE). */
+    fun pageRange(size: Int, page: Int, pageSize: Int): IntRange {
+        if (page < 0 || pageSize <= 0) return 0 until size
+        val from = (page.toLong() * pageSize).coerceAtMost(size.toLong()).toInt()
+        val to = (from.toLong() + pageSize).coerceAtMost(size.toLong()).toInt()
+        return from until to
     }
 
     /** Root children for [library]: the sign-in message while signed out, else [rootChildren]. */

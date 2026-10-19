@@ -61,4 +61,20 @@ class AutoBrowseTreeTest {
         assertEquals(listOf("play_all", "chat:1", "chat:3"), nodes.map { it.mediaId })
         assertTrue(nodes.all { it.playable })
     }
+
+    @Test
+    fun `unpaged requests from a legacy browser return everything without overflow`() {
+        assertEquals(0 until 5, AutoBrowseTree.pageRange(5, 0, Int.MAX_VALUE))
+        assertEquals(5 until 5, AutoBrowseTree.pageRange(5, 1, Int.MAX_VALUE))
+        assertEquals(2 until 4, AutoBrowseTree.pageRange(5, 1, 2))
+        assertEquals(0 until 5, AutoBrowseTree.pageRange(5, -1, 0))
+    }
+
+    @Test
+    fun `log ids never contain titles or free text`() {
+        assertEquals("root", AutoBrowseTree.logId("root"))
+        assertEquals("chat:42", AutoBrowseTree.logId("chat:42"))
+        assertEquals("<other:4>", AutoBrowseTree.logId("Dana"))
+        assertEquals("Ready(unread=2)", AutoBrowseTree.Library.Ready(chats).logState())
+    }
 }

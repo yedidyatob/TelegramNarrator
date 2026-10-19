@@ -16,7 +16,9 @@ object SessionControllerPolicy {
     /** Android Auto hosts (#41), accepted while [ANDROID_AUTO_ENABLED]. */
     val ANDROID_AUTO_PACKAGES = setOf(
         "com.google.android.projection.gearhead",
-        "com.google.android.carassistant"
+        "com.google.android.carassistant",
+        // Android Automotive OS media host
+        "com.google.android.apps.automotive.templates.host"
     )
     const val ANDROID_AUTO_ENABLED = true
     private val SYSTEM_PACKAGES = setOf("android", "com.android.systemui")
@@ -37,4 +39,29 @@ object SessionControllerPolicy {
         ownPackage: String,
         autoEnabled: Boolean = ANDROID_AUTO_ENABLED
     ): Boolean = packageName == ownPackage || (autoEnabled && packageName in ANDROID_AUTO_PACKAGES)
+
+    /** What a connecting controller gets. */
+    enum class Access {
+        REJECT,
+        /** Transport (play / pause / skip / stop / next chat) on the running session, no library commands. */
+        TRANSPORT,
+        /** Transport plus the library (root, children, items, setMediaItems): this app and Android Auto. */
+        LIBRARY
+    }
+
+    /**
+     * The connection decision. Android Auto connects through the legacy MediaBrowserService path, so its
+     * controller is a legacy (platform) controller; it must still get [Access.LIBRARY], or Media3 answers its
+     * getRoot with null and Auto shows "doesn't seem to be working right now".
+     */
+    fun access(
+        packageName: String,
+        ownPackage: String,
+        isPlatformController: Boolean,
+        autoEnabled: Boolean = ANDROID_AUTO_ENABLED
+    ): Access = when {
+        canBrowse(packageName, ownPackage, autoEnabled) -> Access.LIBRARY
+        isTrusted(packageName, ownPackage, isPlatformController, autoEnabled) -> Access.TRANSPORT
+        else -> Access.REJECT
+    }
 }
