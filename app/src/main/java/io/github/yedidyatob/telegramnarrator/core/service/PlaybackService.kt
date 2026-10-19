@@ -319,15 +319,10 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         setPhase(phase, text)
     }
 
-    /**
-     * Closing the phone app (swiping it from Recents) must not touch playback that Android Auto (or the
-     * notification) controls. Media3's default pauses every player and stops the service unless a session
-     * "is playing", and our narration is not "playing" for Media3 while it prepares or moves between items
-     * (BUFFERING), so swiping the app away paused Auto. Only an idle narration ends the service here.
-     */
+    /** Diagnostics only: Media3's default behaviour is kept. */
     override fun onTaskRemoved(rootIntent: Intent?) {
         AutoLog.event("task removed phase=$phase playing=$playing paused=$paused")
-        if (phase == NarrationPhase.IDLE) pauseAllPlayersAndStopSelf()
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session.session
