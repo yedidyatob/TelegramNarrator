@@ -14,6 +14,7 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
@@ -21,6 +22,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import io.github.yedidyatob.telegramnarrator.MainActivity
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 
 /**
  * The Media3 library session around [NarrationPlayer]: notification buttons (stop, play/pause, next message,
@@ -77,10 +79,14 @@ class PlaybackSession(
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
             val platform = controller.controllerVersion == MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION ||
                 session.isMediaNotificationController(controller)
-            if (!SessionControllerPolicy.isTrusted(controller.packageName, ownPackage, platform)) {
-                return MediaSession.ConnectionResult.reject()
-            }
-            val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+            val access = SessionControllerPolicy.access(controller.packageName, ownPackage, platform)
+            AutoLog.event(
+                "onConnect package=${controller.packageName} uid=${controller.uid} " +
+                    "version=${controller.controllerVersion} legacy=${controller.controllerVersion == MediaSession.ControllerInfo.LEGACY_CONTROLLER_VERSION} " +
+                    "trustedForMediaControl=${controller.isTrusted} access=$access"
+            )
+            if (access == SessionControllerPolicy.Access.REJECT) return MediaSession.ConnectionResult.reject()
+            val sessionCommands = baseCommandsFor(access).buildUpon()
                 .add(SessionCommand(COMMAND_STOP, Bundle.EMPTY))
                 .add(SessionCommand(COMMAND_NEXT_CHAT, Bundle.EMPTY))
                 .build()
@@ -95,7 +101,9 @@ class PlaybackSession(
             browser: MediaSession.ControllerInfo,
             params: MediaLibraryService.LibraryParams?
         ): ListenableFuture<LibraryResult<MediaItem>> {
-            if (!canBrowse(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+            val allowed = canBrowse(browser)
+            AutoLog.event("onGetLibraryRoot package=${browser.packageName} recent=${params?.isRecent} allowed=$allowed")
+            if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), params))
         }
 
@@ -104,7 +112,9 @@ class PlaybackSession(
             browser: MediaSession.ControllerInfo,
             mediaId: String
         ): ListenableFuture<LibraryResult<MediaItem>> {
-            if (!canBrowse(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+            val allowed = canBrowse(browser)
+            AutoLog.event("onGetItem package=${browser.packageName} id=${AutoBrowseTree.logId(mediaId)} allowed=$allowed")
+            if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (mediaId == AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), null))
             return Futures.transform(library(), { lib ->
                 AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle).firstOrNull { it.mediaId == mediaId }
@@ -121,13 +131,19 @@ class PlaybackSession(
             pageSize: Int,
             params: MediaLibraryService.LibraryParams?
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-            if (!canBrowse(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
+            val allowed = canBrowse(browser)
+            AutoLog.event("onGetChildren package=${browser.packageName} parent=${AutoBrowseTree.logId(parentId)} page=$page pageSize=$pageSize allowed=$allowed")
+            if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (parentId != AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
-            return Futures.transform(library(), { lib ->
-                val nodes = AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle).map(::toItem)
-                val from = (page * pageSize).coerceAtMost(nodes.size)
-                val to = if (pageSize <= 0) nodes.size else (from + pageSize).coerceAtMost(nodes.size)
-                LibraryResult.ofItemList(ImmutableList.copyOf(nodes.subList(from, to)), params)
+            val result = Futures.transform(library(), { lib ->
+                val nodes = AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle)
+                val range = AutoBrowseTree.pageRange(nodes.size, page, pageSize)
+                AutoLog.event("onGetChildren result library=${lib.logState()} items=${nodes.size} returned=${range.last - range.first + 1}")
+                LibraryResult.ofItemList(ImmutableList.copyOf(nodes.slice(range).map(::toItem)), params)
+            }, Runnable::run)
+            return Futures.catching(result, Throwable::class.java, { e ->
+                AutoLog.error("onGetChildren failed", e)
+                LibraryResult.ofError<ImmutableList<MediaItem>>(SessionError.ERROR_UNKNOWN)
             }, Runnable::run)
         }
 
@@ -140,6 +156,10 @@ class PlaybackSession(
             startPositionMs: Long
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val item = mediaItems.getOrNull(startIndex.coerceAtLeast(0))
+            AutoLog.event(
+                "onSetMediaItems package=${controller.packageName} items=${mediaItems.size} " +
+                    "id=${item?.mediaId?.let(AutoBrowseTree::logId)} search=${item?.requestMetadata?.searchQuery != null}"
+            )
             if (!canBrowse(controller) || item == null) {
                 return Futures.immediateFailedFuture(UnsupportedOperationException("Not allowed"))
             }
@@ -153,6 +173,7 @@ class PlaybackSession(
                 } else {
                     AutoBrowseTree.chatsToPlay(item.mediaId, chats) ?: throw IllegalArgumentException("Unknown media id")
                 }
+                AutoLog.event("onSetMediaItems play chats=${ids.size}")
                 onPlayChats(ids)
                 MediaSession.MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
             }, Runnable::run)
@@ -196,7 +217,19 @@ class PlaybackSession(
     private val resources = context.resources
     private fun unreadLabel(count: Int) = resources.getQuantityString(R.plurals.auto_unread_count, count, count)
 
-    private companion object {
+    internal companion object {
+        /**
+         * Library commands (get root / children / item, search) must be granted explicitly: with only
+         * DEFAULT_SESSION_COMMANDS, Media3's legacy MediaBrowserService stub answers Android Auto's getRoot with
+         * null and Auto shows "<app> doesn't seem to be working right now" (the #81 / #82 field failure).
+         */
+        fun baseCommandsFor(access: SessionControllerPolicy.Access): SessionCommands =
+            if (access == SessionControllerPolicy.Access.LIBRARY) {
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+            } else {
+                MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
+            }
+
         const val COMMAND_NEXT_CHAT = "io.github.yedidyatob.telegramnarrator.NEXT_CHAT"
         const val COMMAND_STOP = "io.github.yedidyatob.telegramnarrator.STOP"
     }
