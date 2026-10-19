@@ -9,6 +9,7 @@ import android.os.SystemClock
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
+import io.github.yedidyatob.telegramnarrator.core.artwork.ChatArtworkProvider
 import io.github.yedidyatob.telegramnarrator.core.audio.AudioFocusController
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
 import io.github.yedidyatob.telegramnarrator.core.playback.narration.BuildPlaybackQueue
@@ -33,6 +34,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.withTimeoutOrNull
@@ -68,8 +72,6 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
         private const val UNREAD_TIMEOUT_MS = 5_000L
-        /** After LoadChats, how long to wait for the first unread chats (none unread is a valid answer). */
-        private const val CHATS_SETTLE_MS = 3_000L
         private val OWN_ACTIONS = setOf(
             ACTION_PLAY_ALL, ACTION_STOP, ACTION_PAUSE, ACTION_RESUME,
             ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG
@@ -140,13 +142,24 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             onPlayChats = ::playChats
         )
         addSession(session.session)
+        // Auto caches its browse list: refresh it whenever Home's unread list changes (new chat, chat read)
+        scope.launch {
+            chatRepository.getUnreadChats()
+                .map { list -> list.map { it.id to it.unreadCount } }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { list ->
+                    AutoLog.event("unread list changed items=${list.size}: notifyChildrenChanged")
+                    session.notifyUnreadChanged(list.size)
+                }
+        }
         // Media3 builds the media notification (on our channel) and runs the service in the foreground while
         // the player is buffering / playing; a paused session keeps it for Media3's user-engaged timeout
         setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this)
             .setChannelId(PlaybackNotifications.CHANNEL_ID)
             .setNotificationId(PlaybackNotifications.NOTIFICATION_ID)
             .build()
-            .apply { setSmallIcon(R.drawable.ic_stat_narrator) })
+            .apply { setSmallIcon(R.drawable.ic_notification) })
         onStateChanged(isPlaying = false, isPaused = false)
     }
 
@@ -188,8 +201,8 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         // Started by Android Auto without the app's UI, nothing has asked TDLib for the chat list yet: the
         // unread list would stay empty. Ask for it, then wait briefly for the first unread chats to arrive.
         runCatching { chatRepository.loadChats() }.onFailure { AutoLog.error("loadChats failed", it) }
-        val unread = withTimeoutOrNull(CHATS_SETTLE_MS) { chatRepository.getUnreadChats().first { it.isNotEmpty() } }
-            ?: chatRepository.getUnreadChats().first()
+        // The whole list, not the first chats TDLib delivers (#84 showed a partial list on a cold start)
+        val unread = ChatListSettle.await(chatRepository.getUnreadChats())
         AutoBrowseTree.Library.Ready(unread)
     }.getOrElse {
         AutoLog.error("loadLibrary failed", it)
@@ -206,6 +219,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     // ---- PlaybackHost ----
 
     override fun onItemStarted(item: PlaybackItem) {
+        chatIdOf(item)?.let { player.setArtwork(ChatArtworkProvider.uriFor(this, it)) }
         // Renews the wake lock's timeout for the new item
         wakeLock.update(ServiceCommands.holdsWakeLock(playing, paused))
         notifications.statusFor(item)?.let(::setStatusText)
@@ -220,7 +234,16 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         setPhase(NarrationTransport.phaseOf(isPlaying, isPaused, phase))
     }
 
+    private fun chatIdOf(item: PlaybackItem): Long? = when (item) {
+        is PlaybackItem.Intro -> item.chatId
+        is PlaybackItem.ChatTitle -> item.chatId
+        is PlaybackItem.MessageItem -> item.chatId
+        is PlaybackItem.SponsoredSlot -> item.chatId
+        else -> null
+    }
+
     override fun onStopped() {
+        player.setArtwork(null)
         foregroundStarted = false
         setPhase(NarrationPhase.IDLE)
         stopSelf()

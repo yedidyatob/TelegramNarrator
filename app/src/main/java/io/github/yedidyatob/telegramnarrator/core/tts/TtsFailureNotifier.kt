@@ -60,7 +60,7 @@ class TtsFailureNotifier(private val context: Context) : TtsFailurePort {
         val action = TtsFailureMessages.helpActionRes(reason)?.let { context.getString(it) }
         val text = if (action != null) "$message $action" else message
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_narrator)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.tts_alert_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))

@@ -80,6 +80,13 @@
                 android:resource="@xml/diagnostic_paths" />
         </provider>
 
+        <!-- Chat artwork for Android Auto and the media notification (read access granted per URI) -->
+        <provider
+            android:name=".core.artwork.ChatArtworkProvider"
+            android:authorities="${applicationId}.artwork"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />

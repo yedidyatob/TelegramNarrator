@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import io.github.yedidyatob.telegramnarrator.domain.avatar.AvatarPalette
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -69,17 +70,8 @@ private fun InitialsAvatar(chatId: Long, title: String, size: Dp) {
 
 /** Telegram's seven avatar gradients (red, orange, violet, green, cyan, blue, pink), picked by chat id. */
 internal object AvatarColors {
-    private val gradients = listOf(
-        Color(0xFFFF885E) to Color(0xFFFF516A),
-        Color(0xFFFFCD6A) to Color(0xFFFFA85C),
-        Color(0xFFE0A2F3) to Color(0xFFD669ED),
-        Color(0xFFA0DE7E) to Color(0xFF54CB68),
-        Color(0xFF53EDD6) to Color(0xFF28C9B7),
-        Color(0xFF72D5FD) to Color(0xFF2A9EF1),
-        Color(0xFFFFA8A8) to Color(0xFFFF719A)
-    )
-
-    fun forChat(chatId: Long): Pair<Color, Color> = gradients[Math.floorMod(chatId, gradients.size.toLong()).toInt()]
+    fun forChat(chatId: Long): Pair<Color, Color> =
+        AvatarPalette.forChat(chatId).let { (top, bottom) -> Color(top) to Color(bottom) }
 }
 
 /** Up to two initials of a chat title: first letters of the first two words ("Daily Tech" → "DT"). */
