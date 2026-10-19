@@ -26,12 +26,12 @@ object NarrationTransport {
     }
 
     /**
-     * Next = next message. Previous keeps the legacy MediaSession mapping (headset / Bluetooth "previous" =
-     * next chat); "previous message" stays an in-app button.
+     * Next = next message; previous = previous message (same as the in-app previous button). Next chat is
+     * the custom session command on the notification overflow, not a transport seek.
      */
     fun forSeek(seekCommand: Int): Action? = when (seekCommand) {
         Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> Action.NEXT_MESSAGE
-        Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> Action.NEXT_CHAT
+        Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> Action.PREVIOUS_MESSAGE
         else -> null
     }
 }

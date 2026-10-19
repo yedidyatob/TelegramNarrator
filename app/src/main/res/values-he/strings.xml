@@ -30,4 +30,12 @@
     <string name="playback_pause">השהה</string>
     <string name="playback_resume">המשך</string>
     <string name="playback_paused">מושהה</string>
+    <string name="auto_play_all">השמע את כל הלא-נקראות</string>
+    <string name="auto_sign_in_on_phone">יש להתחבר בטלפון</string>
+    <string name="auto_sign_in_on_phone_detail">יש לפתוח את Telegram Narrator בטלפון ולהתחבר לטלגרם</string>
+    <plurals name="auto_unread_count">
+        <item quantity="one">הודעה %d שלא נקראה</item>
+        <item quantity="two">%d הודעות שלא נקראו</item>
+        <item quantity="other">%d הודעות שלא נקראו</item>
+    </plurals>
 </resources>

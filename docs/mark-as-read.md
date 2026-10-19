@@ -20,6 +20,25 @@ After a message finishes TTS (or is deliberately skipped), `PlaybackService` rec
 `UpdateChatReadInbox` usually arrives afterwards and also refreshes the list; the explicit GetChat
 avoids a race after pause/stop.
 
+## Message text outside playback: preview only
+
+Telegram treats showing a message's full text as reading it, and full display is only honest when the message
+is also marked as read. So the app never shows a message's full text outside playback:
+
+- **Home → chat preview sheet** (the only screen that lists unread message text) shows each message as a short
+  chat-list-style preview: `MessagePreview.of` (whitespace collapsed, at most 60 characters, cut at a word
+  boundary, ellipsized) rendered on a single line with `TextOverflow.Ellipsis`. Unit-tested in
+  `MessagePreviewTest`.
+- **Home chat rows** show no message text at all (title, unread badge, "playing" marker).
+- **Player screen** shows the full text only of the message currently being read aloud, during active playback
+  (playing or paused). That message is marked as read when it finishes, as described below. With playback
+  stopped the Player shows no message.
+- **Mini player / notification / Android Auto** show the chat title and status only, never message text.
+- **Sponsored messages** are unchanged: the official card shows the ad as Telegram requires; ads are never
+  marked as read (see below).
+
+New screens that list message text must use `MessagePreview` unless the message is being read aloud.
+
 ## Release vs debug builds
 
 | Build | Voice settings switch | Behaviour |

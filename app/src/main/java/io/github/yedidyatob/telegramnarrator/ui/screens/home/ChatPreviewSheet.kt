@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
+import io.github.yedidyatob.telegramnarrator.domain.privacy.MessagePreview
 import io.github.yedidyatob.telegramnarrator.core.labelRes
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
@@ -133,7 +134,8 @@ fun ChatPreviewSheet(
                 items(messages, key = { it.id }) { msg ->
                     SheetMessageCard(
                         senderName = msg.senderName ?: stringResource(R.string.playback_unknown_sender),
-                        text = msg.text.ifBlank {
+                        // Short preview only: full text outside playback would be reading without marking as read
+                        text = MessagePreview.of(msg.text).ifBlank {
                             stringResource(msg.contentType.labelRes() ?: R.string.message_unsupported_content)
                         },
                         isOutgoing = msg.isOutgoing
@@ -158,7 +160,9 @@ fun ChatPreviewSheet(
 }
 
 /**
- * One unread message in the chat's preview sheet. The card follows the message's direction (a Hebrew message
+ * One unread message in the chat's preview sheet, as a short preview ([MessagePreview]: one line
+ * ([MessagePreview.MAX_LINES]), ellipsized), never the full text. The card follows the message's
+ * direction (a Hebrew message
  * is right-aligned, sender name included, even on an English device); each paragraph aligns by its own text.
  */
 @Composable
@@ -187,6 +191,8 @@ internal fun SheetMessageCard(senderName: String, text: String, isOutgoing: Bool
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
+                    maxLines = MessagePreview.MAX_LINES,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

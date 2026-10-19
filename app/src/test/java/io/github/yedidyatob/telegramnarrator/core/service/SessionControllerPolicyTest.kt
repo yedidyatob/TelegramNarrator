@@ -20,10 +20,20 @@ class SessionControllerPolicyTest {
     }
 
     @Test
-    fun `Android Auto is rejected until it is explicitly enabled`() {
-        assertFalse(SessionControllerPolicy.ANDROID_AUTO_ENABLED)
+    fun `Android Auto is accepted only while enabled`() {
+        assertTrue(SessionControllerPolicy.ANDROID_AUTO_ENABLED)
         val auto = "com.google.android.projection.gearhead"
-        assertFalse(SessionControllerPolicy.isTrusted(auto, own, isPlatformController = false))
-        assertTrue(SessionControllerPolicy.isTrusted(auto, own, isPlatformController = false, autoEnabled = true))
+        assertTrue(SessionControllerPolicy.isTrusted(auto, own, isPlatformController = false))
+        assertFalse(SessionControllerPolicy.isTrusted(auto, own, isPlatformController = false, autoEnabled = false))
+    }
+
+    @Test
+    fun `only this app and Android Auto may browse and start reading`() {
+        assertTrue(SessionControllerPolicy.canBrowse(own, own))
+        assertTrue(SessionControllerPolicy.canBrowse("com.google.android.projection.gearhead", own))
+        assertTrue(SessionControllerPolicy.canBrowse("com.google.android.carassistant", own))
+        assertFalse(SessionControllerPolicy.canBrowse("com.example.other", own))
+        assertFalse(SessionControllerPolicy.canBrowse("com.android.systemui", own))
+        assertFalse(SessionControllerPolicy.canBrowse("com.google.android.projection.gearhead", own, autoEnabled = false))
     }
 }
