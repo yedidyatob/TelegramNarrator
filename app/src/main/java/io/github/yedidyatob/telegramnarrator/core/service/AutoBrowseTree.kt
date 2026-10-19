@@ -3,8 +3,10 @@ package io.github.yedidyatob.telegramnarrator.core.service
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 
 /**
- * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> "Play all unread" + one playable
- * node per chat with unread messages, in the Home list's order. Playing a node reads the same narration as
+ * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> one playable node per unread chat,
+ * exactly the Home list (same filter, same order, no cap). "Play all unread" is not a row: Android Auto has
+ * no app-defined floating action in its browse view, so play-all is Auto's own Play control (playback
+ * resumption, [PLAY_ALL_ID]) and voice ("play Telegram Narrator"). Playing a node reads the same narration as
  * the app (titles, dings, sponsored messages), so nothing here plays audio itself.
  */
 object AutoBrowseTree {
@@ -14,10 +16,14 @@ object AutoBrowseTree {
     const val SIGN_IN_ID = "sign_in"
     private const val CHAT_PREFIX = "chat:"
 
-    /** Auto's list guidance: keep browse lists short enough to scan while driving. */
-    const val MAX_CHATS = 50
-
-    data class Node(val mediaId: String, val title: String, val unreadCount: Int, val playable: Boolean = true)
+    data class Node(
+        val mediaId: String,
+        val title: String,
+        val unreadCount: Int,
+        val playable: Boolean = true,
+        /** The chat, for its artwork; null for the sign-in item. */
+        val chatId: Long? = null
+    )
 
     /** What the library could load: the unread chats, or nothing because Telegram isn't signed in / ready. */
     sealed interface Library {
@@ -27,7 +33,7 @@ object AutoBrowseTree {
         /** For the diagnostic log: the state and a count, never chat titles. */
         fun logState(): String = when (this) {
             SignedOut -> "SignedOut"
-            is Ready -> "Ready(unread=${unread.count { it.unreadCount > 0 }})"
+            is Ready -> "Ready(unread=${unread.size})"
         }
     }
 
@@ -48,27 +54,23 @@ object AutoBrowseTree {
     }
 
     /** Root children for [library]: the sign-in message while signed out, else [rootChildren]. */
-    fun rootChildren(library: Library, playAllTitle: String, signInTitle: String): List<Node> = when (library) {
+    fun rootChildren(library: Library, signInTitle: String): List<Node> = when (library) {
         Library.SignedOut -> listOf(Node(SIGN_IN_ID, signInTitle, 0, playable = false))
-        is Library.Ready -> rootChildren(library.unread, playAllTitle)
+        is Library.Ready -> rootChildren(library.unread)
     }
 
     fun chatId(chat: Long) = "$CHAT_PREFIX$chat"
 
-    /** Children of the root; empty when nothing is unread. */
-    fun rootChildren(unread: List<Chat>, playAllTitle: String): List<Node> {
-        val chats = unread.filter { it.unreadCount > 0 }.take(MAX_CHATS)
-        if (chats.isEmpty()) return emptyList()
-        return listOf(Node(PLAY_ALL_ID, playAllTitle, chats.sumOf { it.unreadCount })) +
-            chats.map { Node(chatId(it.id), it.title, it.unreadCount) }
-    }
+    /** Children of the root: [unread] is already Home's list (filtered and ordered by the repository). */
+    fun rootChildren(unread: List<Chat>): List<Node> =
+        unread.map { Node(chatId(it.id), it.title, it.unreadCount, chatId = it.id) }
 
     /**
      * Chats to read for a played [mediaId]: all unread for "Play all", one chat for a chat node, null for an
      * unknown / malformed id (rejected).
      */
     fun chatsToPlay(mediaId: String, unread: List<Chat>): List<Long>? = when {
-        mediaId == PLAY_ALL_ID -> unread.filter { it.unreadCount > 0 }.map { it.id }
+        mediaId == PLAY_ALL_ID -> unread.map { it.id }
         mediaId.startsWith(CHAT_PREFIX) -> mediaId.removePrefix(CHAT_PREFIX).toLongOrNull()?.let { listOf(it) }
         else -> null
     }
@@ -78,7 +80,7 @@ object AutoBrowseTree {
      * (exact, then prefix, then contains, case-insensitive); all unread for a blank query or no match.
      */
     fun chatsForSearch(query: String?, unread: List<Chat>): List<Long> {
-        val chats = unread.filter { it.unreadCount > 0 }
+        val chats = unread
         val q = query?.trim()?.lowercase().orEmpty()
         if (q.isEmpty()) return chats.map { it.id }
         val match = chats.firstOrNull { it.title.lowercase() == q }

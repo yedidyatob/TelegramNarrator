@@ -323,7 +323,6 @@
     <string name="home_menu_system_colors">Use system colors</string>
     <!-- TalkBack click label of a chat row (opens the preview sheet) -->
     <string name="home_open_chat_preview">show messages</string>
-    <string name="auto_play_all">Play all unread</string>
     <string name="auto_sign_in_on_phone">Sign in on your phone</string>
     <string name="auto_sign_in_on_phone_detail">Open Telegram Narrator on your phone and sign in to Telegram</string>
     <plurals name="auto_unread_count">

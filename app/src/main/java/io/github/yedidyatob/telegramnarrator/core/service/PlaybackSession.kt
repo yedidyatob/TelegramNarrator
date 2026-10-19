@@ -12,6 +12,7 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
+import androidx.media3.session.MediaConstants
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
@@ -22,12 +23,13 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import io.github.yedidyatob.telegramnarrator.MainActivity
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.core.artwork.ChatArtworkProvider
 import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 
 /**
  * The Media3 library session around [NarrationPlayer]: notification buttons (stop, play/pause, next message,
  * next chat), the custom "next chat" command, the tap-to-open activity, the controller allow-list and the
- * Android Auto browse tree (#41, see [AutoBrowseTree]). [unreadChats] loads the Home list's unread chats;
+ * Android Auto browse tree (#41, see [AutoBrowseTree]) with chat artwork. [library] loads the Home list's unread chats;
  * [onPlayChats] starts the same narration as the app's Play.
  */
 @androidx.annotation.OptIn(markerClass = [UnstableApi::class])
@@ -39,7 +41,7 @@ class PlaybackSession(
     private val library: () -> ListenableFuture<AutoBrowseTree.Library>,
     private val onPlayChats: (List<Long>) -> Unit
 ) {
-    private val playAllTitle = context.getString(R.string.auto_play_all)
+    private val appContext = context.applicationContext
     private val signInTitle = context.getString(R.string.auto_sign_in_on_phone)
     private val signInSubtitle = context.getString(R.string.auto_sign_in_on_phone_detail)
     private val ownPackage = context.packageName
@@ -104,7 +106,34 @@ class PlaybackSession(
             val allowed = canBrowse(browser)
             AutoLog.event("onGetLibraryRoot package=${browser.packageName} recent=${params?.isRecent} allowed=$allowed")
             if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
-            return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), params))
+            return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), rootParams()))
+        }
+
+        /**
+         * Android Auto's own Play control (media card / mini player / steering wheel) with nothing loaded, and
+         * "Hey Google, play Telegram Narrator": read all unread chats, the app's Play all. Only for this app and
+         * Auto, and only for an actual playback request: a car's Bluetooth auto-play on connect (a platform
+         * controller) or System UI's resumption card never starts reading on its own.
+         */
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            isForPlayback: Boolean
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val allowed = isForPlayback && canBrowse(controller)
+            AutoLog.event("onPlaybackResumption package=${controller.packageName} forPlayback=$isForPlayback allowed=$allowed")
+            if (!allowed) return Futures.immediateFailedFuture(UnsupportedOperationException("No resumption"))
+            return Futures.transform(library(), { lib ->
+                val chats = (lib as? AutoBrowseTree.Library.Ready)?.unread
+                    ?: throw IllegalStateException("Telegram is not signed in")
+                val ids = AutoBrowseTree.chatsToPlay(AutoBrowseTree.PLAY_ALL_ID, chats).orEmpty()
+                AutoLog.event("onPlaybackResumption play chats=${ids.size}")
+                if (ids.isEmpty()) throw IllegalStateException("Nothing unread")
+                onPlayChats(ids)
+                MediaSession.MediaItemsWithStartPosition(
+                    listOf(MediaItem.Builder().setMediaId(AutoBrowseTree.PLAY_ALL_ID).build()), 0, 0L
+                )
+            }, Runnable::run)
         }
 
         override fun onGetItem(
@@ -117,7 +146,7 @@ class PlaybackSession(
             if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (mediaId == AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), null))
             return Futures.transform(library(), { lib ->
-                AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle).firstOrNull { it.mediaId == mediaId }
+                AutoBrowseTree.rootChildren(lib, signInTitle).firstOrNull { it.mediaId == mediaId }
                     ?.let { LibraryResult.ofItem(toItem(it), null) }
                     ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
             }, Runnable::run)
@@ -136,7 +165,7 @@ class PlaybackSession(
             if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (parentId != AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
             val result = Futures.transform(library(), { lib ->
-                val nodes = AutoBrowseTree.rootChildren(lib, playAllTitle, signInTitle)
+                val nodes = AutoBrowseTree.rootChildren(lib, signInTitle)
                 val range = AutoBrowseTree.pageRange(nodes.size, page, pageSize)
                 AutoLog.event("onGetChildren result library=${lib.logState()} items=${nodes.size} returned=${range.last - range.first + 1}")
                 LibraryResult.ofItemList(ImmutableList.copyOf(nodes.slice(range).map(::toItem)), params)
@@ -194,6 +223,31 @@ class PlaybackSession(
         }
     }
 
+    /** Auto caches browse lists: tell subscribed browsers whenever the unread list changes. */
+    fun notifyUnreadChanged(itemCount: Int) {
+        session.notifyChildrenChanged(AutoBrowseTree.ROOT_ID, itemCount, null)
+    }
+
+    /** Root extras: playable chats as list rows with their photo as the row icon. */
+    private fun rootParams(): MediaLibraryService.LibraryParams = MediaLibraryService.LibraryParams.Builder()
+        .setExtras(Bundle().apply {
+            putBoolean(CONTENT_STYLE_SUPPORTED, true)
+            putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM)
+            putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM)
+        })
+        .build()
+
+    private val granted = HashSet<String>()
+
+    /** Chat photo (or initials) as a content:// URI Auto can read; granted once per URI. */
+    private fun artworkFor(chatId: Long): android.net.Uri {
+        val uri = ChatArtworkProvider.uriFor(appContext, chatId)
+        if (granted.add(uri.toString())) {
+            ChatArtworkProvider.grantToAuto(appContext, uri, SessionControllerPolicy.ANDROID_AUTO_PACKAGES)
+        }
+        return uri
+    }
+
     private fun canBrowse(controller: MediaSession.ControllerInfo) =
         SessionControllerPolicy.canBrowse(controller.packageName, ownPackage)
 
@@ -211,6 +265,7 @@ class PlaybackSession(
             .setIsBrowsable(false)
             .setIsPlayable(node.playable)
             .setMediaType(if (node.playable) MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE else MediaMetadata.MEDIA_TYPE_MIXED)
+            .apply { node.chatId?.let { setArtworkUri(artworkFor(it)) } }
             .build())
         .build()
 
@@ -229,6 +284,9 @@ class PlaybackSession(
             } else {
                 MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
             }
+
+        /** androidx.media.utils.MediaConstants.BROWSER_SERVICE_EXTRAS_KEY_CONTENT_STYLE_SUPPORTED (legacy key). */
+        const val CONTENT_STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED"
 
         const val COMMAND_NEXT_CHAT = "io.github.yedidyatob.telegramnarrator.NEXT_CHAT"
         const val COMMAND_STOP = "io.github.yedidyatob.telegramnarrator.STOP"

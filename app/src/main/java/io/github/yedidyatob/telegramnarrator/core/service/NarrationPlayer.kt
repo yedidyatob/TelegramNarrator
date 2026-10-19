@@ -31,6 +31,14 @@ class NarrationPlayer(
 
     private var phase = NarrationPhase.IDLE
     private var title = ""
+    private var artwork: android.net.Uri? = null
+
+    /** The current chat's photo / initials (content:// from ChatArtworkProvider) for the notification and Auto. */
+    fun setArtwork(uri: android.net.Uri?) {
+        if (uri == artwork) return
+        artwork = uri
+        invalidateState()
+    }
 
     /** Called by the service from its PlaybackHost callbacks (main thread). */
     fun update(phase: NarrationPhase, title: String = this.title) {
@@ -50,6 +58,7 @@ class NarrationPlayer(
             .setTitle(title.ifEmpty { appName })
             .setArtist(appName)
             .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
+            .setArtworkUri(artwork)
             .build()
         val item = MediaItemData.Builder(MEDIA_ID)
             .setMediaItem(MediaItem.Builder().setMediaId(MEDIA_ID).setMediaMetadata(metadata).build())
