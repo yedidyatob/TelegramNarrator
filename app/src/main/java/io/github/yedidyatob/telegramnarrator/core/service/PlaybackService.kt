@@ -98,23 +98,39 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
 
     // Media3 has no audio focus / becoming-noisy handling for a custom (non-ExoPlayer) player, so the narration
     // keeps its own AudioFocusPolicy and BecomingNoisyReceiver
-    private val noisyReceiver = BecomingNoisyReceiver(this) { narration.onBecomingNoisy() }
+    private val noisyReceiver = BecomingNoisyReceiver(this) {
+        AutoLog.event("becoming noisy (audio route lost) phase=$phase: pause")
+        narration.onBecomingNoisy()
+    }
 
     override fun onCreate() {
         AutoLog.event("PlaybackService onCreate")
         super.onCreate()
         notifications = PlaybackNotifications(this).also { it.createChannel() }
         wakeLock = PlaybackWakeLock(this)
-        player = NarrationPlayer({ action ->
-            when (action) {
-                NarrationTransport.Action.RESUME -> narration.userResume()
-                NarrationTransport.Action.PAUSE -> narration.userPause()
-                NarrationTransport.Action.STOP -> narration.stop()
-                NarrationTransport.Action.NEXT_MESSAGE -> narration.skipMessage()
-                NarrationTransport.Action.NEXT_CHAT -> narration.skipChat()
-                NarrationTransport.Action.PREVIOUS_MESSAGE -> narration.previousMessage()
+        player = NarrationPlayer(object : NarrationPlayer.Commands {
+            override fun perform(action: NarrationTransport.Action) {
+                // Who asked: the controller of the Media3 request being handled (onPlayerCommandRequest)
+                if (action != NarrationTransport.Action.RESUME) {
+                    AutoLog.event("transport $action from=${session.lastCommandFrom ?: "internal"} phase=$phase")
+                }
+                when (action) {
+                    NarrationTransport.Action.RESUME -> narration.userResume()
+                    NarrationTransport.Action.PAUSE -> narration.userPause()
+                    NarrationTransport.Action.STOP -> narration.stop()
+                    NarrationTransport.Action.NEXT_MESSAGE -> narration.skipMessage()
+                    NarrationTransport.Action.NEXT_CHAT -> narration.skipChat()
+                    NarrationTransport.Action.PREVIOUS_MESSAGE -> narration.previousMessage()
+                }
+            }
+
+            override fun jumpToQueueIndex(index: Int) {
+                val ids = NarrationQueue.chatsFrom(queue, index) ?: return
+                AutoLog.event("queue jump index=$index of=${queue.size} from=${session.lastCommandFrom}")
+                startRun(ids, keepQueue = true)
             }
         }, getString(R.string.app_name))
+        player.artworkForChat = { ChatArtworkProvider.uriFor(this, it) }
         narration = NarrationController(
             scope = scope,
             io = Dispatchers.IO,
@@ -129,7 +145,10 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             host = this,
             clock = SystemClock::elapsedRealtime
         )
-        focusController = AudioFocusController(this) { narration.onAudioFocusChange(it) }
+        focusController = AudioFocusController(this) {
+            AutoLog.event("audio focus change=$it phase=$phase")
+            narration.onAudioFocusChange(it)
+        }
         session = PlaybackSession(
             this, player,
             onNextChat = narration::skipChat,
@@ -172,6 +191,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             stopSelf(startId)
             return START_NOT_STICKY
         }
+        if (action != ACTION_PLAY_ALL) AutoLog.event("app command $action phase=$phase")
         when (action) {
             ACTION_PLAY_ALL -> {
                 // startForegroundService() requires startForeground() within ~5 s and loading chats can take
@@ -210,16 +230,39 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     }
 
     /** The app's Play and Android Auto's browse-tree items both start here. */
-    private fun playChats(chatIds: List<Long>) {
+    private fun playChats(chatIds: List<Long>) = startRun(chatIds, keepQueue = false)
+
+    /** The run's chats as Media3's queue (Android Auto "Up next"); a queue jump keeps the full list. */
+    private var queue: List<NarrationQueue.Entry> = emptyList()
+
+    private fun startRun(chatIds: List<Long>, keepQueue: Boolean) {
         foregroundStarted = true
         if (phase == NarrationPhase.IDLE) setPhase(NarrationPhase.PREPARING, getString(R.string.playback_preparing))
+        if (!keepQueue) {
+            val fallback = getString(R.string.playback_unknown_chat)
+            queue = NarrationQueue.entries(chatIds, emptyMap(), fallback)
+            player.setQueue(queue, chatIds.firstOrNull())
+            scope.launch {
+                val titles = chatIds.associateWith { id -> runCatching { chatRepository.getChat(id)?.title }.getOrNull().orEmpty() }
+                val resolved = NarrationQueue.entries(chatIds, titles, fallback)
+                if (queue.map { it.chatId } == resolved.map { it.chatId }) {
+                    queue = resolved
+                    player.setQueue(queue)
+                }
+            }
+        } else {
+            player.setCurrentChat(chatIds.firstOrNull())
+        }
         narration.playChats(chatIds.toLongArray())
     }
 
     // ---- PlaybackHost ----
 
     override fun onItemStarted(item: PlaybackItem) {
-        chatIdOf(item)?.let { player.setArtwork(ChatArtworkProvider.uriFor(this, it)) }
+        chatIdOf(item)?.let {
+            player.setArtwork(ChatArtworkProvider.uriFor(this, it))
+            player.setCurrentChat(it)
+        }
         // Renews the wake lock's timeout for the new item
         wakeLock.update(ServiceCommands.holdsWakeLock(playing, paused))
         notifications.statusFor(item)?.let(::setStatusText)
@@ -243,7 +286,10 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     }
 
     override fun onStopped() {
+        AutoLog.event("narration stopped (end of queue or stop)")
         player.setArtwork(null)
+        queue = emptyList()
+        player.setQueue(emptyList(), null)
         foregroundStarted = false
         setPhase(NarrationPhase.IDLE)
         stopSelf()
@@ -256,7 +302,8 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     }
 
     override fun requestAudioFocus() {
-        focusController.request()
+        val granted = focusController.request()
+        AutoLog.event("audio focus request granted=$granted")
     }
 
     override fun abandonAudioFocus() = focusController.abandon()
@@ -270,6 +317,12 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     private fun setStatusText(text: String) {
         playbackManager.setStatus(text)
         setPhase(phase, text)
+    }
+
+    /** Diagnostics only: Media3's default behaviour is kept. */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        AutoLog.event("task removed phase=$phase playing=$playing paused=$paused")
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session.session

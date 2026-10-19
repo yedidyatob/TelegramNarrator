@@ -11,24 +11,26 @@ class AutoBrowseTreeTest {
     private val chats = listOf(Chat(1, "News", 3), Chat(3, "Work", 2))
 
     @Test
-    fun `root is exactly Home's unread list, in order, without a play-all row`() {
-        val nodes = AutoBrowseTree.rootChildren(chats)
-        assertEquals(listOf("chat:1", "chat:3"), nodes.map { it.mediaId })
-        assertEquals(listOf(1L, 3L), nodes.map { it.chatId })
+    fun `root is play-all first, then exactly Home's unread list, in order`() {
+        val nodes = AutoBrowseTree.rootChildren(chats, "Play all")
+        assertEquals(listOf(AutoBrowseTree.PLAY_ALL_ID, "chat:1", "chat:3"), nodes.map { it.mediaId })
+        assertEquals(listOf(null, 1L, 3L), nodes.map { it.chatId })
+        assertEquals("Play all", nodes.first().title)
+        assertEquals(5, nodes.first().unreadCount)
         assertTrue(nodes.all { it.playable })
         assertEquals("Work", nodes.last().title)
     }
 
     @Test
     fun `nothing unread gives an empty root`() {
-        assertTrue(AutoBrowseTree.rootChildren(emptyList()).isEmpty())
+        assertTrue(AutoBrowseTree.rootChildren(emptyList(), "Play all").isEmpty())
     }
 
     @Test
     fun `long lists are not capped, so no Home chat goes missing`() {
         val many = (1L..120L).map { Chat(it, "c$it", 1) }
-        val nodes = AutoBrowseTree.rootChildren(many)
-        assertEquals(120, nodes.size)
+        val nodes = AutoBrowseTree.rootChildren(many, "Play all")
+        assertEquals(121, nodes.size)
         // Every page of Auto's paged requests together covers the list exactly once
         val paged = (0 until 6).flatMap { page -> nodes.slice(AutoBrowseTree.pageRange(nodes.size, page, 25)) }
         assertEquals(nodes, paged)
@@ -53,7 +55,7 @@ class AutoBrowseTreeTest {
 
     @Test
     fun `signed out shows a single non-playable sign-in item`() {
-        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.SignedOut, "Sign in on your phone")
+        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.SignedOut, "Sign in on your phone", "Play all")
         assertEquals(listOf(AutoBrowseTree.SIGN_IN_ID), nodes.map { it.mediaId })
         assertEquals("Sign in on your phone", nodes.single().title)
         assertTrue(!nodes.single().playable)
@@ -63,8 +65,8 @@ class AutoBrowseTreeTest {
 
     @Test
     fun `signed in shows the unread chats`() {
-        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.Ready(chats), "Sign in")
-        assertEquals(listOf("chat:1", "chat:3"), nodes.map { it.mediaId })
+        val nodes = AutoBrowseTree.rootChildren(AutoBrowseTree.Library.Ready(chats), "Sign in", "Play all")
+        assertEquals(listOf(AutoBrowseTree.PLAY_ALL_ID, "chat:1", "chat:3"), nodes.map { it.mediaId })
     }
 
     @Test

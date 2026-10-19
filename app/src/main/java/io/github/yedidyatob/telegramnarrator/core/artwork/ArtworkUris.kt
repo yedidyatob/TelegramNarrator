@@ -4,6 +4,8 @@ package io.github.yedidyatob.telegramnarrator.core.artwork
 object ArtworkUris {
     const val AUTHORITY_SUFFIX = ".artwork"
     private const val CHAT_SEGMENT = "chat"
+    private const val ICON_SEGMENT = "icon"
+    const val PLAY_ALL_ICON = "play_all"
 
     fun authority(packageName: String) = packageName + AUTHORITY_SUFFIX
 
@@ -12,4 +14,9 @@ object ArtworkUris {
     /** The chat id of a provider path such as "/chat/-1001234", or null for anything else. */
     fun chatIdOf(pathSegments: List<String>): Long? =
         pathSegments.takeIf { it.size == 2 && it[0] == CHAT_SEGMENT }?.get(1)?.toLongOrNull()
+
+    fun playAllIcon(packageName: String): String = "content://${authority(packageName)}/$ICON_SEGMENT/$PLAY_ALL_ICON"
+
+    /** Whether a provider path is the "Play all unread" row icon. */
+    fun isPlayAllIcon(pathSegments: List<String>): Boolean = pathSegments == listOf(ICON_SEGMENT, PLAY_ALL_ICON)
 }

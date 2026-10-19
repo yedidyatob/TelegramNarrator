@@ -3,10 +3,9 @@ package io.github.yedidyatob.telegramnarrator.core.service
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 
 /**
- * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> one playable node per unread chat,
- * exactly the Home list (same filter, same order, no cap). "Play all unread" is not a row: Android Auto has
- * no app-defined floating action in its browse view, so play-all is Auto's own Play control (playback
- * resumption, [PLAY_ALL_ID]) and voice ("play Telegram Narrator"). Playing a node reads the same narration as
+ * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> "Play all unread" (first row, with
+ * an icon) + one playable node per unread chat, exactly the Home list (same filter, same order, no cap).
+ * Auto's own Play control (playback resumption) and voice ("play Telegram Narrator") also play all. Playing a node reads the same narration as
  * the app (titles, dings, sponsored messages), so nothing here plays audio itself.
  */
 object AutoBrowseTree {
@@ -54,16 +53,22 @@ object AutoBrowseTree {
     }
 
     /** Root children for [library]: the sign-in message while signed out, else [rootChildren]. */
-    fun rootChildren(library: Library, signInTitle: String): List<Node> = when (library) {
+    fun rootChildren(library: Library, signInTitle: String, playAllTitle: String): List<Node> = when (library) {
         Library.SignedOut -> listOf(Node(SIGN_IN_ID, signInTitle, 0, playable = false))
-        is Library.Ready -> rootChildren(library.unread)
+        is Library.Ready -> rootChildren(library.unread, playAllTitle)
     }
 
     fun chatId(chat: Long) = "$CHAT_PREFIX$chat"
 
-    /** Children of the root: [unread] is already Home's list (filtered and ordered by the repository). */
-    fun rootChildren(unread: List<Chat>): List<Node> =
-        unread.map { Node(chatId(it.id), it.title, it.unreadCount, chatId = it.id) }
+    /**
+     * Children of the root: "Play all unread" first, then [unread], which is already Home's list (filtered and
+     * ordered by the repository). Nothing unread: no rows.
+     */
+    fun rootChildren(unread: List<Chat>, playAllTitle: String): List<Node> {
+        if (unread.isEmpty()) return emptyList()
+        val playAll = Node(PLAY_ALL_ID, playAllTitle, unread.sumOf { it.unreadCount })
+        return listOf(playAll) + unread.map { Node(chatId(it.id), it.title, it.unreadCount, chatId = it.id) }
+    }
 
     /**
      * Chats to read for a played [mediaId]: all unread for "Play all", one chat for a chat node, null for an
