@@ -34,4 +34,8 @@ object NarrationTransport {
         Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> Action.PREVIOUS_MESSAGE
         else -> null
     }
+
+    /** Picking another playlist entry (Android Auto's queue): jump to that chat. */
+    fun isQueueSelection(seekCommand: Int): Boolean =
+        seekCommand == Player.COMMAND_SEEK_TO_MEDIA_ITEM || seekCommand == Player.COMMAND_SEEK_TO_DEFAULT_POSITION
 }

@@ -42,6 +42,7 @@ class PlaybackSession(
     private val onPlayChats: (List<Long>) -> Unit
 ) {
     private val appContext = context.applicationContext
+    private val playAllTitle = context.getString(R.string.auto_play_all)
     private val signInTitle = context.getString(R.string.auto_sign_in_on_phone)
     private val signInSubtitle = context.getString(R.string.auto_sign_in_on_phone_detail)
     private val ownPackage = context.packageName
@@ -98,6 +99,18 @@ class PlaybackSession(
                 .build()
         }
 
+        override fun onPlayerCommandRequest(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            playerCommand: Int
+        ): Int {
+            lastCommandFrom = controller.packageName
+            if (playerCommand == Player.COMMAND_PLAY_PAUSE || playerCommand == Player.COMMAND_STOP) {
+                AutoLog.event("player command=$playerCommand from=${controller.packageName} uid=${controller.uid}")
+            }
+            return SessionResult.RESULT_SUCCESS
+        }
+
         override fun onGetLibraryRoot(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -146,7 +159,7 @@ class PlaybackSession(
             if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (mediaId == AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItem(rootItem(), null))
             return Futures.transform(library(), { lib ->
-                AutoBrowseTree.rootChildren(lib, signInTitle).firstOrNull { it.mediaId == mediaId }
+                AutoBrowseTree.rootChildren(lib, signInTitle, playAllTitle).firstOrNull { it.mediaId == mediaId }
                     ?.let { LibraryResult.ofItem(toItem(it), null) }
                     ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
             }, Runnable::run)
@@ -165,7 +178,7 @@ class PlaybackSession(
             if (!allowed) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
             if (parentId != AutoBrowseTree.ROOT_ID) return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
             val result = Futures.transform(library(), { lib ->
-                val nodes = AutoBrowseTree.rootChildren(lib, signInTitle)
+                val nodes = AutoBrowseTree.rootChildren(lib, signInTitle, playAllTitle)
                 val range = AutoBrowseTree.pageRange(nodes.size, page, pageSize)
                 AutoLog.event("onGetChildren result library=${lib.logState()} items=${nodes.size} returned=${range.last - range.first + 1}")
                 LibraryResult.ofItemList(ImmutableList.copyOf(nodes.slice(range).map(::toItem)), params)
@@ -239,9 +252,14 @@ class PlaybackSession(
 
     private val granted = HashSet<String>()
 
+    /** Package of the controller whose player command is being handled (diagnostics: who paused). */
+    var lastCommandFrom: String? = null
+        private set
+
     /** Chat photo (or initials) as a content:// URI Auto can read; granted once per URI. */
-    private fun artworkFor(chatId: Long): android.net.Uri {
-        val uri = ChatArtworkProvider.uriFor(appContext, chatId)
+    private fun artworkFor(chatId: Long): android.net.Uri = grantOnce(ChatArtworkProvider.uriFor(appContext, chatId))
+
+    private fun grantOnce(uri: android.net.Uri): android.net.Uri {
         if (granted.add(uri.toString())) {
             ChatArtworkProvider.grantToAuto(appContext, uri, SessionControllerPolicy.ANDROID_AUTO_PACKAGES)
         }
@@ -265,7 +283,12 @@ class PlaybackSession(
             .setIsBrowsable(false)
             .setIsPlayable(node.playable)
             .setMediaType(if (node.playable) MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE else MediaMetadata.MEDIA_TYPE_MIXED)
-            .apply { node.chatId?.let { setArtworkUri(artworkFor(it)) } }
+            .apply {
+                when {
+                    node.chatId != null -> setArtworkUri(artworkFor(node.chatId))
+                    node.mediaId == AutoBrowseTree.PLAY_ALL_ID -> setArtworkUri(grantOnce(ChatArtworkProvider.playAllIconUri(appContext)))
+                }
+            }
             .build())
         .build()
 

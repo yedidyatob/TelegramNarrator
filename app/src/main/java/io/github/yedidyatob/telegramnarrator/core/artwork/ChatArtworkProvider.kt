@@ -45,6 +45,9 @@ class ChatArtworkProvider : ContentProvider() {
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
         if (mode != "r") throw SecurityException("Read only")
         val context = context ?: throw FileNotFoundException()
+        if (ArtworkUris.isPlayAllIcon(uri.pathSegments)) {
+            return ParcelFileDescriptor.open(playAllIconFile(context), ParcelFileDescriptor.MODE_READ_ONLY)
+        }
         val chatId = ArtworkUris.chatIdOf(uri.pathSegments) ?: throw FileNotFoundException("Unknown artwork")
         val file = runCatching { runBlocking { artworkFile(context, chatId) } }
             .onFailure { AutoLog.error("artwork failed chat=$chatId", it) }
@@ -89,6 +92,31 @@ class ChatArtworkProvider : ContentProvider() {
         return file
     }
 
+    /** "Play all unread" row icon: a white play triangle on the app's blue gradient. */
+    private fun playAllIconFile(context: Context): File {
+        val dir = File(context.cacheDir, "artwork").apply { mkdirs() }
+        val file = File(dir, "play_all_v1.png")
+        if (file.isFile) return file
+        val size = SIZE_PX.toFloat()
+        val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawRect(0f, 0f, size, size, Paint().apply {
+            shader = LinearGradient(0f, 0f, 0f, size, 0xFF3DB6EC.toInt(), 0xFF1A86C7.toInt(), Shader.TileMode.CLAMP)
+        })
+        val triangle = android.graphics.Path().apply {
+            moveTo(size * 0.38f, size * 0.28f)
+            lineTo(size * 0.74f, size * 0.5f)
+            lineTo(size * 0.38f, size * 0.72f)
+            close()
+        }
+        canvas.drawPath(triangle, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE })
+        val tmp = File(dir, file.name + ".tmp")
+        tmp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        tmp.renameTo(file)
+        return file
+    }
+
     override fun query(uri: Uri, p: Array<out String>?, s: String?, a: Array<out String>?, o: String?): Cursor? = null
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
     override fun delete(uri: Uri, s: String?, a: Array<out String>?): Int = 0
@@ -97,6 +125,8 @@ class ChatArtworkProvider : ContentProvider() {
     companion object {
         private const val SIZE_PX = 256
         private const val PHOTO_TIMEOUT_MS = 8_000L
+
+        fun playAllIconUri(context: Context): Uri = Uri.parse(ArtworkUris.playAllIcon(context.packageName))
 
         fun uriFor(context: Context, chatId: Long): Uri = Uri.parse(ArtworkUris.forChat(context.packageName, chatId))
 
