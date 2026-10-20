@@ -15,8 +15,8 @@ The rules live in `app/src/main/assets/channel_rules.json` and are loaded once w
 
 For every unread message of a chat, in the order they are played:
 
-1. **Drop decision** (on the original text): `dropMessage` and `dropNext` rules decide whether the
-   message is read at all. A dropped message is not spoken, but it is still **marked as read**, in order,
+1. **Drop decision** (on the original text): `dropMessage` rules decide whether the
+   message is read at all. Each message is decided on its own text only. A dropped message is not spoken, but it is still **marked as read**, in order,
    through the normal read-checkpoint flow, like a message that was heard.
 2. **Text rules** for messages that are read: `cut` -> `replace` -> `removeTelegramLinks` ->
    links (`readLinks` / `linkLabel`) -> `stripSymbols` -> `numberedLists`.
@@ -60,7 +60,6 @@ and marked as read, like any other empty message.
 
       "rules": {
         "dropMessage": [ "<regex>", ... ],
-        "dropNext":    [ { "pattern": "<regex>", "count": 1 }, ... ],
         "cut":         [ "<regex>", ... ],
         "replace":     [ { "pattern": "<regex>", "replacement": "text or $1" }, ... ]
       },
@@ -89,18 +88,15 @@ as `(?i)` (ignore case) or `(?s)` (dot matches newlines). Remember that backslas
 | Rule | Meaning |
 |------|---------|
 | `dropMessage` | A message whose text matches **any** pattern is not read (but marked read). Example: `"(?i)givechak\\.co\\.il"`. |
-| `dropNext` | A message matching `pattern` (the *marker*) is dropped **and so are the next `count` messages** (default 1) in the order they are played. Markers inside a dropped group extend it. Make the pattern match *only* the marker message when the ad can also be in the same message, e.g. `"\\A\\s*°\\s*תוכן שיווקי\\s*\\z"` matches a message that contains nothing else, so an ad that already contains its own marker doesn't swallow the next real message (use `dropMessage` for that case). |
 | `cut` | Every match is deleted from the text. Example: trailing comment counts `"^[ \\t]*(?:\\d+[ \\t]+(?:תגובות|תגובה)|תגובה[ \\t]+אחת)[ \\t]*$"` (covers `N תגובות`, `1 תגובה`, and `תגובה אחת`). |
 | `replace` | Every match of `pattern` is replaced by `replacement` (Java syntax: `$1` is group 1, write `\\$` for a literal dollar). |
 
 Messages are matched on their text or caption; media without a caption has an empty text.
 
-**Groups that span two runs.** At most 100 unread messages are queued per chat and run. If a
-`dropNext` group is cut off by the end of the batch **and the chat has more unread messages**, the marker
-(and anything after it in the batch) is *deferred*: it is not read and **not** marked read, so the
-next run sees the marker together with its ad. If nothing follows at all, the marker is simply dropped and
-marked; an ad that arrives later is then only caught by `dropMessage` rules, so keep a rule for the ad
-itself (like the `givechak` one) as a backstop.
+**No "skip the next message" rule.** There used to be a `dropNext` rule (a marker message drops the
+message(s) after it), used to skip a channel's own ad posts. It was removed (#96): channels' own ad posts are
+read aloud like any other message, to support channel owners. A `dropNext` key in the JSON is ignored.
+Telegram's official sponsored messages are a separate feature and are unaffected.
 
 ### Options
 
@@ -114,7 +110,7 @@ itself (like the `givechak` one) as a backstop.
 
 ### Inheritance
 
-A channel starts from the `default` preset: its `dropMessage` / `dropNext` / `cut` / `replace` lists and
+A channel starts from the `default` preset: its `dropMessage` / `cut` / `replace` lists and
 `stripSymbols` are placed **before** the channel's own, and a channel only needs to set the options it wants to
 change. Put `"inheritDefault": false` to ignore the default completely.
 
@@ -133,6 +129,6 @@ pattern.
 ## Example: Abu Ali Express
 
 See the `Abu Ali Express` entry in `channel_rules.json` and the reconstructed sample messages in
-`app/src/test/resources/channel_rules/abu_ali/`: it drops `°תוכן שיווקי` ads (inline, or as a separate marker
-message followed by the ad) and `givechak` / donation links, cuts `N תגובות` / `1 תגובה` / `תגובה אחת` and `כדי להגיב לכתבה לחצו כאן`, drops all
+`app/src/test/resources/channel_rules/abu_ali/`: it reads the channel's own `°תוכן שיווקי` posts like any message
+(the `°` is stripped; no ad skipping since #96), drops `givechak` / donation links, cuts `N תגובות` / `1 תגובה` / `תגובה אחת` and `כדי להגיב לכתבה לחצו כאן`, drops all
 `t.me` links (via the default `removeTelegramLinks` / `readLinks: false`), reads list numbers naturally and removes `°`.

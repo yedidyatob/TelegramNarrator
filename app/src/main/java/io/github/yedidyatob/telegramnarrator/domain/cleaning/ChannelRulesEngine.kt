@@ -18,11 +18,6 @@ class ChannelRulesEngine(
         val message: Message,
         /** Not read aloud, but still marked as read when its turn comes. */
         val dropped: Boolean,
-        /**
-         * Neither read nor marked: it belongs to a "drop the next N" group that continues in the
-         * next batch, so it is left for the next run. Never set for dropped=false messages.
-         */
-        val deferred: Boolean,
         /** The message text after the rules (still to be run through MessageCleaner). */
         val text: String
     )
@@ -39,47 +34,16 @@ class ChannelRulesEngine(
 
     /**
      * Decides for every message of [messages] (one chat, oldest first, as played) whether it is
-     * read, and with which text.
-     *
-     * "Drop the next N" markers count messages in batch order. If the batch ends in the middle of such
-     * a group and [moreUnreadFollows] is true (the group continues in the next batch), the marker and
-     * the messages after it are deferred so that the next run sees the whole group. If there is nothing
-     * after the batch, they are simply dropped.
+     * read, and with which text. Each message is decided on its own text (`dropMessage`).
      */
-    fun evaluate(chatId: Long, title: String?, messages: List<Message>, moreUnreadFollows: Boolean): List<Decision> {
+    fun evaluate(chatId: Long, title: String?, messages: List<Message>): List<Decision> {
         val preset = presetFor(chatId, title)
-        val dropped = BooleanArray(messages.size)
-        var remaining = 0 // messages still to drop because of an earlier marker
-        var lastMarkerIndex = -1
-
-        messages.forEachIndexed { index, message ->
-            val text = message.text
-            if (remaining > 0) {
-                dropped[index] = true
-                remaining--
-            }
-            if (preset.dropMessage.any { it.containsMatchIn(text) }) dropped[index] = true
-
-            val marker = preset.dropNext.filter { it.pattern.containsMatchIn(text) }.maxOfOrNull { it.count }
-            if (marker != null) {
-                dropped[index] = true
-                if (marker > 0) {
-                    remaining = maxOf(remaining, marker)
-                    lastMarkerIndex = index
-                }
-            }
-        }
-
-        val deferFrom = if (remaining > 0 && moreUnreadFollows && lastMarkerIndex >= 0) lastMarkerIndex else messages.size
-
-        return messages.mapIndexed { index, message ->
-            val deferred = index >= deferFrom
-            val isDropped = dropped[index] || deferred
+        return messages.map { message ->
+            val dropped = preset.dropMessage.any { it.containsMatchIn(message.text) }
             Decision(
                 message = message,
-                dropped = isDropped && !deferred,
-                deferred = deferred,
-                text = if (isDropped) "" else applyTextRules(message.text, preset)
+                dropped = dropped,
+                text = if (dropped) "" else applyTextRules(message.text, preset)
             )
         }
     }

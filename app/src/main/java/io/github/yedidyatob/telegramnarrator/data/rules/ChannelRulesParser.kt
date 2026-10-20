@@ -4,7 +4,6 @@ import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelMatch
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelPreset
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelRulesConfig
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.CleaningPreset
-import io.github.yedidyatob.telegramnarrator.domain.cleaning.DropNextRule
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.NumberedListMode
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.ReplaceRule
 import org.json.JSONArray
@@ -53,7 +52,6 @@ object ChannelRulesParser {
 
     private class Spec(
         val dropMessage: List<Regex>,
-        val dropNext: List<DropNextRule>,
         val cut: List<Regex>,
         val replace: List<ReplaceRule>,
         val readLinks: Boolean?,
@@ -68,11 +66,6 @@ object ChannelRulesParser {
         val options = json?.optJSONObject("options")
         return Spec(
             dropMessage = strings(rules, "dropMessage").map { regex(it, "$where: dropMessage") },
-            dropNext = objects(rules, "dropNext").map {
-                val count = it.optInt("count", 1)
-                if (count < 0) throw ChannelRulesParseException("$where: dropNext count must be >= 0")
-                DropNextRule(regex(requireString(it, "pattern", "$where: dropNext"), "$where: dropNext"), count)
-            },
             cut = strings(rules, "cut").map { regex(it, "$where: cut") },
             replace = objects(rules, "replace").map {
                 ReplaceRule(
@@ -99,7 +92,6 @@ object ChannelRulesParser {
         val base = inherited ?: CleaningPreset()
         return CleaningPreset(
             dropMessage = base.dropMessage + spec.dropMessage,
-            dropNext = base.dropNext + spec.dropNext,
             cut = base.cut + spec.cut,
             replace = base.replace + spec.replace,
             readLinks = spec.readLinks ?: base.readLinks,
