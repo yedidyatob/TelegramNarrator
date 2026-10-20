@@ -16,10 +16,6 @@
       "match": { "titleEquals": "אבו עלי אקספרס" },
       "inheritDefault": true,
       "rules": {
-        "dropMessage": [
-          "(?i)givechak\\.co\\.il",
-          "(?i)https?://\\S*(?:donate|donation)\\S*"
-        ],
         "cut": [
           "^[ \\t]*(?:\\d+[ \\t]+(?:תגובות|תגובה)|תגובה[ \\t]+אחת)[ \\t]*$",
           "כדי להגיב לכתבה לחצו כאן"

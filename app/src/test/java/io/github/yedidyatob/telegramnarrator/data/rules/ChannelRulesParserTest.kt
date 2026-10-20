@@ -22,9 +22,8 @@ class ChannelRulesParserTest {
         assertFalse(channel.match.matches(1L, "ערוץ אחר"))
         assertEquals(NumberedListMode.NATURAL, channel.preset.numberedLists)
         assertEquals(listOf("°"), channel.preset.stripSymbols)
-        // Only the donation-link drops remain; the channel's own ad marker is not a drop rule (#96)
-        assertEquals(2, channel.preset.dropMessage.size)
-        assertFalse(channel.preset.dropMessage.any { it.containsMatchIn("°תוכן שיווקי") })
+        // No drop rules ship: ad markers (#96) and donation posts are read, links stripped
+        assertTrue(channel.preset.dropMessage.isEmpty())
         assertEquals(2, channel.preset.cut.size)
         // everything else is the default
         assertTrue(config.default.dropMessage.isEmpty())

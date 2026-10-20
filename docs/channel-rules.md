@@ -87,7 +87,7 @@ as `(?i)` (ignore case) or `(?s)` (dot matches newlines). Remember that backslas
 
 | Rule | Meaning |
 |------|---------|
-| `dropMessage` | A message whose text matches **any** pattern is not read (but marked read). Example: `"(?i)givechak\\.co\\.il"`. |
+| `dropMessage` | A message whose text matches **any** pattern is not read (but marked read). No shipped preset uses it (it is kept as a small, general tool for future channels). Example: `"(?i)\\bpromo code\\b"`. |
 | `cut` | Every match is deleted from the text. Example: trailing comment counts `"^[ \\t]*(?:\\d+[ \\t]+(?:תגובות|תגובה)|תגובה[ \\t]+אחת)[ \\t]*$"` (covers `N תגובות`, `1 תגובה`, and `תגובה אחת`). |
 | `replace` | Every match of `pattern` is replaced by `replacement` (Java syntax: `$1` is group 1, write `\\$` for a literal dollar). |
 
@@ -130,5 +130,5 @@ pattern.
 
 See the `Abu Ali Express` entry in `channel_rules.json` and the reconstructed sample messages in
 `app/src/test/resources/channel_rules/abu_ali/`: it reads the channel's own `°תוכן שיווקי` posts like any message
-(the `°` is stripped; no ad skipping since #96), drops `givechak` / donation links, cuts `N תגובות` / `1 תגובה` / `תגובה אחת` and `כדי להגיב לכתבה לחצו כאן`, drops all
+(the `°` is stripped; no ad skipping since #96), reads donation posts too (their links are removed like all links), cuts `N תגובות` / `1 תגובה` / `תגובה אחת` and `כדי להגיב לכתבה לחצו כאן`, drops all
 `t.me` links (via the default `removeTelegramLinks` / `readLinks: false`), reads list numbers naturally and removes `°`.
