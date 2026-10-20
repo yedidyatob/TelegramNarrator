@@ -212,7 +212,9 @@ class TtsSettingsViewModel @Inject constructor(
     /** Saves the typed API key (encrypted). Never log [key]; it is not kept in the ViewModel. */
     fun saveGeminiApiKey(key: String) {
         if (key.isBlank()) return
-        geminiKeyStore.setApiKey(key)
+        if (!geminiKeyStore.setApiKey(key)) {
+            Toast.makeText(context, context.getString(R.string.gemini_key_secure_storage_unavailable), Toast.LENGTH_LONG).show()
+        }
         _state.update { it.copy(gemini = geminiState(testing = it.gemini.testing)) }
     }
 

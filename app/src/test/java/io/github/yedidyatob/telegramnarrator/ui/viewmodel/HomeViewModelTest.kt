@@ -81,7 +81,7 @@ class HomeViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun TestScope.viewModel(): HomeViewModel {
-        val vm = HomeViewModel(repo, FakeAuth(), PlaybackManager(), connection)
+        val vm = HomeViewModel(repo, FakeAuth(), PlaybackManager(), connection, {})
         // uiState / unreadChats are shared WhileSubscribed, like the screen collecting them
         backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
         return vm

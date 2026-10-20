@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.yedidyatob.telegramnarrator.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
@@ -30,7 +31,7 @@ import javax.inject.Inject
 /** First-run onboarding: which step is shown, the voice choice, and finishing (shown once). */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val onboardingPreferences: OnboardingPreferences,
     private val ttsPreferences: TtsPreferences,
     private val geminiKeyStore: GeminiKeyStore,
@@ -98,7 +99,9 @@ class OnboardingViewModel @Inject constructor(
     fun saveGeminiKey(key: String) {
         val trimmed = key.trim()
         if (trimmed.isEmpty()) return
-        geminiKeyStore.setApiKey(trimmed)
+        if (!geminiKeyStore.setApiKey(trimmed)) {
+            android.widget.Toast.makeText(context, R.string.gemini_key_secure_storage_unavailable, android.widget.Toast.LENGTH_LONG).show()
+        }
         _hasGeminiKey.value = geminiKeyStore.hasApiKey()
     }
 

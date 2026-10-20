@@ -36,6 +36,20 @@ TN_VERSION_NAME=1.0.0
 rebuild of the same code needs at least a `PATCH` bump), commit, and tag the commit `v<version>` (e.g. `v1.0.1`)
 if you use the release workflow below.
 
+**Version bump checklist:**
+
+1. Edit `TN_VERSION_NAME` in `gradle.properties` (`MAJOR` for breaking changes, `MINOR` for features, `PATCH`
+   for fixes or a rebuild). Leave `TN_VERSION_CODE` unset so it is derived and always increases.
+2. Commit (`Release 1.0.1`), open a PR, merge.
+3. Tag the merge commit: `git tag v1.0.1 && git push origin v1.0.1`.
+4. Build the bundle (section 4), upload, and check that **About** (main ⋮ menu) on the installed build shows
+   `1.0.1 (10001)` and *Build: release*.
+
+**CI builds:** when `GITHUB_RUN_NUMBER` / `GITHUB_SHA` are set (GitHub Actions sets both; the workflow needs no
+change), the build stores them in `BuildConfig.CI_RUN_NUMBER` / `BuildConfig.GIT_SHA` (short SHA) and About shows
+*CI run N · abc1234*. Debug CI APKs also get a unique `versionName` suffix, e.g. `1.0.0-debug+42.abc1234`, so two
+test APKs can be told apart; release builds keep the plain `versionName`. Local builds show no CI line.
+
 One-off overrides (rarely needed): `./gradlew bundleRelease -PTN_VERSION_NAME=1.2.3` and/or
 `-PTN_VERSION_CODE=10204`.
 

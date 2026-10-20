@@ -103,7 +103,6 @@ import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.nameRes
 import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
-import io.github.yedidyatob.telegramnarrator.ui.components.ShareDebugLogButton
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Edge | Gemini), then only the selected engine's own section,
@@ -592,7 +591,7 @@ private fun AboutSection() {
         HelperText(stringResource(R.string.settings_about_unofficial))
         HelperText(stringResource(R.string.settings_about_version, BuildConfig.VERSION_NAME))
         PrivacyPolicyLink()
-        ShareDebugLogButton()
+        // Share debug log moved to the main menu's About (#87)
     }
 }
 

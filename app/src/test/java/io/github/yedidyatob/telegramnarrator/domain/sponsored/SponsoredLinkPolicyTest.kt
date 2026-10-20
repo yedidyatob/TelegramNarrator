@@ -59,4 +59,28 @@ class SponsoredLinkPolicyTest {
         assertEquals("tg://resolve?domain=x", SponsoredLinkPolicy.normalized("tg://resolve?domain=x"))
         assertEquals("https://example.com", SponsoredLinkPolicy.normalized(" https://example.com "))
     }
+
+    @Test
+    fun `only https and Telegram links may be opened`() {
+        val p = SponsoredLinkPolicy
+        org.junit.Assert.assertEquals("https://example.com/a", p.safeUrl("https://example.com/a"))
+        org.junit.Assert.assertEquals("https://shop.example", p.safeUrl("shop.example"))
+        org.junit.Assert.assertEquals("tg://resolve?domain=durov", p.safeUrl("tg://resolve?domain=durov"))
+        org.junit.Assert.assertEquals("https://t.me/x", p.safeUrl("http://t.me/x"))
+        org.junit.Assert.assertNull(p.safeUrl("http://example.com"))
+        org.junit.Assert.assertNull(p.safeUrl("intent://scan/#Intent;scheme=zxing;package=x;end"))
+        org.junit.Assert.assertNull(p.safeUrl("content://evil/file"))
+        org.junit.Assert.assertNull(p.safeUrl("file:///sdcard/x"))
+        org.junit.Assert.assertNull(p.safeUrl("javascript:alert(1)"))
+        org.junit.Assert.assertNull(p.safeUrl("myapp://open"))
+        org.junit.Assert.assertNull(p.safeUrl(""))
+    }
+
+    @Test
+    fun `tg links without a Telegram app go to t_me or nowhere, never another tg handler`() {
+        val p = SponsoredLinkPolicy
+        org.junit.Assert.assertEquals("https://t.me/durov", p.browserFallback("tg://resolve?domain=durov&start=1"))
+        org.junit.Assert.assertNull(p.browserFallback("tg://join?invite=abc"))
+        org.junit.Assert.assertEquals("https://example.com", p.browserFallback("https://example.com"))
+    }
 }

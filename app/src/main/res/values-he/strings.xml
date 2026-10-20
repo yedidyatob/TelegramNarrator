@@ -41,4 +41,30 @@
     <string name="settings_share_debug_log">שיתוף יומן ניפוי באגים</string>
     <string name="settings_debug_log_empty">עדיין אין יומן ניפוי באגים</string>
     <string name="settings_debug_log_subject">יומן ניפוי באגים של Telegram Narrator</string>
+    <!-- TTS failures (#63) -->
+    <string name="tts_fallback_gemini_permission_denied">למפתח Gemini שלך אין הרשאה להמרת טקסט לדיבור (ה-API לא מופעל או שהמפתח מוגבל). בדקו אותו ב-Google AI Studio. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_unsupported_voice">הקול או השפה של Gemini אינם נתמכים. בחרו קול אחר בהגדרות הקול. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_endpoint_changed">Gemini שינה את השירות שלו. עדכנו את Telegram Narrator. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_edge_blocked">Microsoft שינתה את שירות הקולות של Edge. עדכנו את Telegram Narrator. משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_edge_unsupported_voice">קול Edge הזה לא החזיר שמע (הקול או השפה אינם נתמכים). בחרו קול אחר. משתמשים בקול המערכת לדקה.</string>
+    <string name="gemini_key_secure_storage_unavailable">האחסון המאובטח אינו זמין במכשיר כרגע, ולכן המפתח לא נשמר. נסו שוב מאוחר יותר.</string>
+    <string name="tts_fallback_unplayable">לא ניתן להשמיע את השמע שהורד. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_no_key">ל-Gemini דרוש מפתח API. הוסיפו אותו בהגדרות הקול. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_invalid_key">מפתח Gemini שלך שגוי או בוטל. עדכנו אותו בהגדרות הקול. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_no_credit">נגמרה היתרה בחשבון Gemini שלך. הוסיפו יתרה ב-Google Cloud Console. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_rate_limited">Gemini מגביל כרגע את מספר הבקשות. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_bad_request">Gemini לא הצליח להקריא את ההודעה הזו. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_server">ל-Gemini יש כרגע תקלה. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_timeout">Gemini לא ענה בזמן. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_no_audio">Gemini לא החזיר שמע להודעה הזו. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_gemini_failed">קול Gemini נכשל. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_edge_throttled">קולות Edge עמוסים (יותר מדי בקשות). משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_edge_unavailable">קולות Edge אינם זמינים כרגע. משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_edge_timeout">קולות Edge לא ענו בזמן. משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_edge_failed">קול Edge נכשל. משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_no_network">אין חיבור לאינטרנט. משתמשים בקול המערכת עד שהחיבור יחזור.</string>
+    <string name="home_menu_about">אודות</string>
+    <string name="about_version">גרסה %1$s</string>
+    <string name="about_build_type">סוג בנייה: %1$s</string>
+    <string name="about_close">סגירה</string>
 </resources>

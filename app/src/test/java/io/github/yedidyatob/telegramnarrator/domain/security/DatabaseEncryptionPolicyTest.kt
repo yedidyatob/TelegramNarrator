@@ -23,8 +23,10 @@ class DatabaseEncryptionPolicyTest {
         assertEquals(listOf(APP_KEY, LEGACY_EMPTY), policy.openOrder(databaseExists = true, markedEncrypted = true, appKeyAvailable = true))
 
     @Test fun `without a keystore key only the empty key is possible`() {
-        assertEquals(listOf(LEGACY_EMPTY), policy.openOrder(databaseExists = true, markedEncrypted = true, appKeyAvailable = false))
-        assertEquals(listOf(LEGACY_EMPTY), policy.openOrder(databaseExists = false, markedEncrypted = false, appKeyAvailable = false))
+        // Fail closed (#66): no key, nothing is opened (never an unencrypted database)
+        assertEquals(emptyList<Any>(), policy.openOrder(databaseExists = true, markedEncrypted = true, appKeyAvailable = false))
+        assertEquals(emptyList<Any>(), policy.openOrder(databaseExists = false, markedEncrypted = false, appKeyAvailable = false))
+        assertFalse(policy.mayUseAfterFailedRekey())
     }
 
     @Test fun `rekey only after opening with the empty key when a key exists`() {
@@ -35,7 +37,7 @@ class DatabaseEncryptionPolicyTest {
 
     @Test fun `reset starts encrypted when possible`() {
         assertEquals(APP_KEY, policy.keyAfterReset(appKeyAvailable = true))
-        assertEquals(LEGACY_EMPTY, policy.keyAfterReset(appKeyAvailable = false))
+        org.junit.Assert.assertNull(policy.keyAfterReset(appKeyAvailable = false))
     }
 
     @Test fun `never reset the database while the keystore is unavailable`() {

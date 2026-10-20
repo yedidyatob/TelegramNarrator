@@ -10,6 +10,11 @@ object TtsFailureMessages {
     @StringRes
     fun messageRes(reason: FallbackReason): Int = when (reason) {
         FallbackReason.GEMINI_NO_KEY -> R.string.tts_fallback_gemini_no_key
+        FallbackReason.GEMINI_PERMISSION_DENIED -> R.string.tts_fallback_gemini_permission_denied
+        FallbackReason.GEMINI_UNSUPPORTED_VOICE -> R.string.tts_fallback_gemini_unsupported_voice
+        FallbackReason.GEMINI_ENDPOINT_CHANGED -> R.string.tts_fallback_gemini_endpoint_changed
+        FallbackReason.EDGE_BLOCKED -> R.string.tts_fallback_edge_blocked
+        FallbackReason.EDGE_UNSUPPORTED_VOICE -> R.string.tts_fallback_edge_unsupported_voice
         FallbackReason.GEMINI_INVALID_KEY -> R.string.tts_fallback_gemini_invalid_key
         FallbackReason.GEMINI_NO_CREDIT -> R.string.tts_fallback_gemini_no_credit
         FallbackReason.GEMINI_RATE_LIMITED -> R.string.tts_fallback_gemini_rate_limited

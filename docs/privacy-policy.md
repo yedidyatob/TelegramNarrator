@@ -37,7 +37,9 @@ session on your device so that you stay logged in.
 To find and read your unread messages the app downloads, from Telegram, your chat list (chat names, unread
 counts, chat photos shown as avatars), the text of unread messages, sender names and voice messages. This data is stored by TDLib in a
 database in the app's private storage on your device. That database is **encrypted** with a random key that is
-itself protected by the Android Keystore of your device.
+itself protected by the Android Keystore of your device. If the Android Keystore is not available, the app does
+not open or create the database at all (it never falls back to an unencrypted one); it shows an error and you
+can retry.
 
 When a message has been read aloud (or skipped), the app tells Telegram to **mark it as read**, like opening the
 chat in any Telegram app would. Only messages that were actually read aloud (or skipped) are marked; messages you
@@ -80,11 +82,12 @@ While one message plays, the app may already send the next few queued messages s
 To save data and money, audio produced by Edge or Gemini is **cached on your device** (in the app's cache
 folder), named by a one-way hash of the text, so that the same message is not sent again.
 
-### 4. Settings and your OpenAI API key
+### 4. Settings and your Gemini API key
 
 Voice and playback settings, and whether you have finished the first-run introduction, are stored on your device. If you enter a Gemini API key it is stored on your
 device **encrypted** (Android EncryptedSharedPreferences) and is sent only to Google. You can remove it at any
-time with **Remove key** in the voice settings.
+time with **Remove key** in the voice settings. If encrypted storage is not available on your device, the key is
+**not saved** (never stored unencrypted) and the app tells you so.
 
 ### 5. Backups
 
@@ -110,7 +113,7 @@ Telegram database and the Gemini key are encrypted as described above.
 ## Keeping and deleting your data
 
 - **Log out** (in the ⋮ menu of the main screen) ends the app's Telegram session and deletes the Telegram database
-  (session, chats and cached messages) from your device.
+  (session, chats and cached messages) from your device. It also deletes the cached Edge and Gemini audio.
 - **Remove key** in the voice settings deletes your Gemini API key.
 - **Clear storage** (Android Settings → Apps → Unofficial Telegram Narrator → Storage) or **uninstalling** the
   app deletes everything the app stored on your device, including settings and the audio cache.

@@ -108,7 +108,7 @@ fun SponsoredCard(
     }
 
     val openLink: (Boolean) -> Unit = { isMediaClick ->
-        if (ad.url.isNotBlank()) {
+        if (SponsoredLinkPolicy.safeUrl(ad.url) != null) {
             if (SponsoredLinkPolicy.requiresConfirmation(ad.url)) {
                 confirmMediaClick = isMediaClick
             } else {
@@ -370,7 +370,12 @@ private val TELEGRAM_PACKAGES = listOf(
 
 /** Opens the ad URL: t.me / tg: links in the Telegram app when installed, everything else in the browser. */
 private fun openSponsoredUrl(context: Context, rawUrl: String, openInBrowser: (String) -> Unit) {
-    val url = SponsoredLinkPolicy.normalized(rawUrl)
+    val url = SponsoredLinkPolicy.safeUrl(rawUrl)
+    if (url == null) {
+        // Not https / Telegram (#68): never handed to the system
+        android.util.Log.w("SponsoredCard", "Blocked sponsored link with a disallowed scheme")
+        return
+    }
     if (SponsoredLinkPolicy.opensInTelegramApp(url)) {
         for (pkg in TELEGRAM_PACKAGES) {
             try {
@@ -383,7 +388,12 @@ private fun openSponsoredUrl(context: Context, rawUrl: String, openInBrowser: (S
             }
         }
     }
-    openUriSafely(context) { openInBrowser(url) }
+    val fallback = SponsoredLinkPolicy.browserFallback(url)
+    if (fallback == null) {
+        Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
+        return
+    }
+    openUriSafely(context) { openInBrowser(fallback) }
 }
 
 private fun openUriSafely(context: Context, open: () -> Unit) {

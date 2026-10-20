@@ -14,20 +14,26 @@ class TtsFailuresTest {
     @Test
     fun `Gemini HTTP errors map to specific reasons`() {
         assertEquals(FallbackReason.GEMINI_INVALID_KEY, TtsFailures.geminiHttp(401, "invalid_key"))
-        assertEquals(FallbackReason.GEMINI_INVALID_KEY, TtsFailures.geminiHttp(403, "permission_denied"))
+        assertEquals(FallbackReason.GEMINI_PERMISSION_DENIED, TtsFailures.geminiHttp(403, "permission_denied"))
+        assertEquals(FallbackReason.GEMINI_INVALID_KEY, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/API key not valid. Please pass a valid API key."))
+        assertEquals(FallbackReason.GEMINI_UNSUPPORTED_VOICE, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/Voice name xyz is not supported"))
+        assertEquals(FallbackReason.GEMINI_UNSUPPORTED_VOICE, TtsFailures.geminiHttp(400, "Unsupported language code"))
+        assertEquals(FallbackReason.GEMINI_BAD_REQUEST, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/Input too long"))
+        assertEquals(FallbackReason.GEMINI_ENDPOINT_CHANGED, TtsFailures.geminiHttp(404, "NOT_FOUND"))
+        assertEquals(FallbackReason.GEMINI_SERVER_ERROR, TtsFailures.geminiHttp(503, "UNAVAILABLE"))
         assertEquals(FallbackReason.GEMINI_NO_CREDIT, TtsFailures.geminiHttp(429, "RESOURCE_EXHAUSTED/quota"))
         assertEquals(FallbackReason.GEMINI_RATE_LIMITED, TtsFailures.geminiHttp(429, "rate_limit_exceeded"))
         assertEquals(FallbackReason.GEMINI_RATE_LIMITED, TtsFailures.geminiHttp(429, ""))
         assertEquals(FallbackReason.GEMINI_BAD_REQUEST, TtsFailures.geminiHttp(400, "invalid_request"))
         assertEquals(FallbackReason.GEMINI_SERVER_ERROR, TtsFailures.geminiHttp(500, "internal_error"))
         assertEquals(FallbackReason.GEMINI_SERVER_ERROR, TtsFailures.geminiHttp(503, "service_unavailable"))
-        assertEquals(FallbackReason.GEMINI_FAILED, TtsFailures.geminiHttp(404, "not_found"))
+        assertEquals(FallbackReason.GEMINI_FAILED, TtsFailures.geminiHttp(418, "not_found"))
     }
 
     @Test
     fun `Edge handshake codes`() {
         assertEquals(FallbackReason.EDGE_THROTTLED, TtsFailures.edgeHandshake(429))
-        assertEquals(FallbackReason.EDGE_UNAVAILABLE, TtsFailures.edgeHandshake(403))
+        assertEquals(FallbackReason.EDGE_BLOCKED, TtsFailures.edgeHandshake(403))
         assertEquals(FallbackReason.EDGE_UNAVAILABLE, TtsFailures.edgeHandshake(503))
     }
 
@@ -75,5 +81,15 @@ class TtsFailuresTest {
         assertEquals(2, chunks.size)
         assertEquals(30, chunks[0].length)
         assertEquals(20, chunks[1].length)
+    }
+
+    @Test
+    fun `edge no-audio means an unsupported voice`() {
+        assertEquals(
+            FallbackReason.EDGE_UNSUPPORTED_VOICE,
+            io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer.reasonFor(
+                io.github.yedidyatob.telegramnarrator.data.edge.EdgeTtsClient.NoAudioException()
+            )
+        )
     }
 }

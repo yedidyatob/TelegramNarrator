@@ -36,6 +36,9 @@ class TdLibAuthRepository @Inject constructor(
             "Secure storage is not available right now, so the Telegram database cannot be opened. Please retry."
     }
 
+    /** Set when a legacy database could not be re-keyed: the next WaitTdlibParameters shows the error (#66). */
+    @Volatile private var rekeyFailed = false
+
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initializing)
@@ -58,6 +61,12 @@ class TdLibAuthRepository @Inject constructor(
                 if (apiId == null) {
                     // Without credentials TDLib never leaves this state: show why instead of spinning forever
                     _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE, StartupFailure.MISSING_CREDENTIALS)
+                    return
+                }
+                if (rekeyFailed) {
+                    // TDLib was closed after a failed re-key: wait for the user's retry instead of reopening
+                    rekeyFailed = false
+                    _authState.value = AuthState.Error(SECURE_STORAGE_UNAVAILABLE, StartupFailure.SECURE_STORAGE_UNAVAILABLE)
                     return
                 }
                 val failure = openDatabase(apiId)
@@ -113,7 +122,7 @@ class TdLibAuthRepository @Inject constructor(
         // cannot be read anymore. Start over with an empty encrypted database; the user logs in again.
         Log.w(TAG, "No key opens the TDLib database; resetting it (re-login required)")
         databaseDir.deleteRecursively()
-        val choice = DatabaseEncryptionPolicy.keyAfterReset(keyAvailable)
+        val choice = DatabaseEncryptionPolicy.keyAfterReset(keyAvailable) ?: return SECURE_STORAGE_UNAVAILABLE
         return when (val result = trySetParameters(apiId, databaseDir, keyFor(choice, appKey))) {
             OpenResult.Ok -> {
                 onDatabaseOpened(choice, appKey)
@@ -138,9 +147,14 @@ class TdLibAuthRepository @Inject constructor(
             keyStore.markedEncrypted = true
             Log.i(TAG, "TDLib database re-encrypted with the Keystore-protected key")
         } catch (e: Exception) {
-            // Still usable with the empty key; the migration is retried at the next start.
-            Log.w(TAG, "Could not re-encrypt the TDLib database", e)
+            Log.w(TAG, "Could not re-encrypt the TDLib database (${e.javaClass.simpleName}); closing it")
             keyStore.markedEncrypted = false
+            if (!DatabaseEncryptionPolicy.mayUseAfterFailedRekey()) {
+                // Fail closed (#66): never keep using the unencrypted database. Close TDLib; the next
+                // WaitTdlibParameters shows the secure-storage error and Retry tries the migration again.
+                rekeyFailed = true
+                runCatching { client.send<TdApi.Ok>(TdApi.Close()) }
+            }
         }
     }
 

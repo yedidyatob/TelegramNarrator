@@ -28,7 +28,10 @@ object DatabaseEncryptionPolicy {
      */
     fun openOrder(databaseExists: Boolean, markedEncrypted: Boolean, appKeyAvailable: Boolean): List<KeyChoice> =
         when {
-            !appKeyAvailable -> listOf(KeyChoice.LEGACY_EMPTY)
+            // Fail closed (#66): without the Keystore-wrapped key nothing is opened, so a new database is never
+            // created unencrypted and an existing one is never used without being re-keyed. The caller shows
+            // "Secure storage is not available" and the user retries.
+            !appKeyAvailable -> emptyList()
             !databaseExists -> listOf(KeyChoice.APP_KEY)
             // The re-key may have succeeded right before the app died, without the marker being written,
             // and vice versa: always fall back to the other key before giving up.
@@ -44,8 +47,14 @@ object DatabaseEncryptionPolicy {
      * When every key in [openOrder] was rejected as wrong (e.g. the Keystore key was lost), the only way
      * forward is to delete the local database and log in again; start it encrypted if a key is available.
      */
-    fun keyAfterReset(appKeyAvailable: Boolean): KeyChoice =
-        if (appKeyAvailable) KeyChoice.APP_KEY else KeyChoice.LEGACY_EMPTY
+    fun keyAfterReset(appKeyAvailable: Boolean): KeyChoice? =
+        if (appKeyAvailable) KeyChoice.APP_KEY else null
+
+    /**
+     * A legacy (empty-key) database that could not be re-keyed must not stay in use (#66): TDLib is closed
+     * and the user sees the secure-storage error, with a retry that opens with the empty key only to re-key.
+     */
+    fun mayUseAfterFailedRekey(): Boolean = false
 
     /**
      * Deleting the database is only acceptable when the Keystore works (a key is available) and every key

@@ -100,6 +100,8 @@ fun HomeScreen(
     val playingChatId by viewModel.currentPlayingChatId.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
     var showLogoutConfirm by rememberSaveable { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
+    if (showAbout) io.github.yedidyatob.telegramnarrator.ui.components.AboutDialog(onDismiss = { showAbout = false })
     var menuOpen by remember { mutableStateOf(false) }
     // Official Telegram sponsored messages (Telegram API ToS 3.3)
     val playingAd by sponsoredViewModel.playingAd.collectAsStateWithLifecycle()
@@ -184,6 +186,13 @@ fun HomeScreen(
                                         onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
                                     )
                                 }
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.home_menu_about)) },
+                                    onClick = {
+                                        menuOpen = false
+                                        showAbout = true
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.home_btn_logout)) },
                                     onClick = {
