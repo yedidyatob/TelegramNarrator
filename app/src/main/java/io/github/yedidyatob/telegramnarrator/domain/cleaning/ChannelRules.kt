@@ -10,9 +10,6 @@ enum class NumberedListMode {
     NATURAL
 }
 
-/** After a message matching [pattern] has been found, the next [count] messages are dropped too. */
-data class DropNextRule(val pattern: Regex, val count: Int)
-
 data class ReplaceRule(val pattern: Regex, val replacement: String)
 
 /**
@@ -22,8 +19,6 @@ data class ReplaceRule(val pattern: Regex, val replacement: String)
 data class CleaningPreset(
     /** Messages whose text matches any of these are not read (but marked as read). */
     val dropMessage: List<Regex> = emptyList(),
-    /** Marker messages: the message itself and the next N messages are dropped. */
-    val dropNext: List<DropNextRule> = emptyList(),
     /** Text matching these is removed from the messages that are read. */
     val cut: List<Regex> = emptyList(),
     /** Pattern -> replacement (Java regex replacement syntax, e.g. "$1"). */

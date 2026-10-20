@@ -25,8 +25,8 @@ class ChannelRulesEngineTest {
         return MessageCleaner.clean(engine.applyTextRules(text, preset))
     }
 
-    private fun evaluate(texts: List<String>, moreUnread: Boolean = false, title: String = abuAliTitle) =
-        engine.evaluate(chatId, title, texts.mapIndexed { i, t -> msg(i + 1L, t) }, moreUnread)
+    private fun evaluate(texts: List<String>, title: String = abuAliTitle) =
+        engine.evaluate(chatId, title, texts.mapIndexed { i, t -> msg(i + 1L, t) })
 
     // --- real sample messages ---
 
@@ -76,24 +76,22 @@ class ChannelRulesEngineTest {
     }
 
     @Test
-    fun `sample 3 ad with the marker in the same message is dropped but not the next message`() {
-        val ad = TestResources.sample("sample3_ad_inline.txt")
+    fun `the channel's own ad marker no longer skips anything (#96)`() {
+        val marker = TestResources.sample("sample3_ad_marker.txt")
         val news = TestResources.sample("sample4_react_outro.txt")
-        val result = evaluate(listOf(news, ad, news))
-        assertEquals(listOf(false, true, false), result.map { it.dropped })
-        assertTrue(result.none { it.deferred })
-        assertEquals("", result[1].text)
+        val result = evaluate(listOf(news, marker, news, news))
+        assertEquals(listOf(false, false, false, false), result.map { it.dropped })
+        // The marker is read like any message (degree sign stripped), and the message after it is read too
+        assertEquals("תוכן שיווקי", MessageCleaner.clean(result[1].text))
+        assertEquals(TestResources.sample("sample4_react_outro.expected.txt"), MessageCleaner.clean(result[2].text))
     }
 
     @Test
-    fun `sample 3 marker as its own message drops the marker and the ad after it`() {
-        val marker = TestResources.sample("sample3_ad_marker.txt")
-        val ad = TestResources.sample("sample3_ad_body.txt")
-        val news = TestResources.sample("sample4_react_outro.txt")
-        val result = evaluate(listOf(news, marker, ad, news))
-        assertEquals(listOf(false, true, true, false), result.map { it.dropped })
-        assertTrue(result.none { it.deferred })
-        assertEquals(TestResources.sample("sample4_react_outro.expected.txt"), MessageCleaner.clean(result[3].text))
+    fun `a marked post without a donation link is read aloud`() {
+        val post = "°תוכן שיווקי\n\nמבצע מיוחד לחג בחנות שלנו"
+        val result = evaluate(listOf(post))
+        assertFalse(result[0].dropped)
+        assertEquals("תוכן שיווקי. מבצע מיוחד לחג בחנות שלנו", MessageCleaner.clean(result[0].text))
     }
 
     @Test
@@ -126,65 +124,10 @@ class ChannelRulesEngineTest {
         assertEquals(MessageCleaner.clean(other), spoken("ערוץ אחר", other))
     }
 
-    // --- drop-next semantics ---
-
-    @Test
-    fun `marker followed by the ad in the next batch is deferred, not dropped`() {
-        val marker = TestResources.sample("sample3_ad_marker.txt")
-        val result = evaluate(listOf("חדשות", "עוד חדשות", marker), moreUnread = true)
-        assertEquals(listOf(false, false, false), result.map { it.dropped })
-        assertEquals(listOf(false, false, true), result.map { it.deferred })
-    }
-
-    @Test
-    fun `marker as the very last unread message is dropped and marked`() {
-        val marker = TestResources.sample("sample3_ad_marker.txt")
-        val result = evaluate(listOf("חדשות", marker), moreUnread = false)
-        assertEquals(listOf(false, true), result.map { it.dropped })
-        assertTrue(result.none { it.deferred })
-    }
-
-    @Test
-    fun `a complete marker plus ad at the end of a batch is not deferred even if more unread follow`() {
-        val marker = TestResources.sample("sample3_ad_marker.txt")
-        val ad = TestResources.sample("sample3_ad_body.txt")
-        val result = evaluate(listOf("חדשות", marker, ad), moreUnread = true)
-        assertEquals(listOf(false, true, true), result.map { it.dropped })
-        assertTrue(result.none { it.deferred })
-    }
-
-    @Test
-    fun `count greater than one drops that many following messages and defers a partial group`() {
-        val config = ChannelRulesParser.parse(
-            """{"channels":[{"name":"c","match":{"titleEquals":"C"},
-                "rules":{"dropNext":[{"pattern":"^AD${'$'}","count":2}]}}]}"""
-        )
-        val e = ChannelRulesEngine(config)
-        fun run(texts: List<String>, more: Boolean) =
-            e.evaluate(1, "C", texts.mapIndexed { i, t -> msg(i + 1L, t) }, more)
-
-        assertEquals(listOf(false, true, true, true, false), run(listOf("a", "AD", "x", "y", "b"), false).map { it.dropped })
-        // only one follower in the batch, group continues -> marker and its follower are deferred
-        val partial = run(listOf("a", "AD", "x"), true)
-        assertEquals(listOf(false, true, true), partial.map { it.deferred })
-        assertEquals(listOf(false, false, false), partial.map { it.dropped })
-        // nothing follows -> dropped
-        assertEquals(listOf(false, true, true), run(listOf("a", "AD", "x"), false).map { it.dropped })
-    }
-
-    @Test
-    fun `back to back markers extend the group`() {
-        val config = ChannelRulesParser.parse(
-            """{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":{"dropNext":[{"pattern":"^AD${'$'}"}]}}]}"""
-        )
-        val e = ChannelRulesEngine(config)
-        val result = e.evaluate(1, "C", listOf("a", "AD", "AD", "ad body", "b").mapIndexed { i, t -> msg(i + 1L, t) }, false)
-        assertEquals(listOf(false, true, true, true, false), result.map { it.dropped })
-    }
-
     @Test
     fun `dropped messages keep their position so they can be marked read in order`() {
         val result = evaluate(listOf("a", "°תוכן שיווקי", "ad givechak.co.il", "b"))
+        assertEquals(listOf(false, false, true, false), result.map { it.dropped })
         assertEquals(listOf(1L, 2L, 3L, 4L), result.map { it.message.id })
     }
 
@@ -278,6 +221,6 @@ class ChannelRulesEngineTest {
     fun `empty engine changes nothing`() {
         val text = "°תוכן שיווקי\n3 תגובות"
         assertEquals(text, e.applyTextRules(text, e.presetFor(1, "x")))
-        assertFalse(e.evaluate(1, "x", listOf(msg(1, text)), true)[0].dropped)
+        assertFalse(e.evaluate(1, "x", listOf(msg(1, text)))[0].dropped)
     }
 }

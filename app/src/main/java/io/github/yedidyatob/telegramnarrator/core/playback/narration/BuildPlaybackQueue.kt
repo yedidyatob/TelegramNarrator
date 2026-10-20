@@ -14,8 +14,7 @@ data class RunChat(val title: String, val photoFileId: Int?)
 /**
  * Use case (#12): builds the reading queue for [invoke]'s chats, in order. Per chat: its unread incoming
  * messages (oldest first) through the per-channel cleaning rules, a boundary ding and the spoken title, the
- * messages, the official sponsored slot, a pause; an end cue after the last chat. A "drop the next N" group that
- * continues in the next batch is deferred (not queued, not marked as read) so the next run sees it whole.
+ * messages, the official sponsored slot, a pause; an end cue after the last chat.
  */
 class BuildPlaybackQueue(
     private val chatRepository: ChatRepository,
@@ -30,9 +29,7 @@ class BuildPlaybackQueue(
             val title = chat?.title ?: unknownChatTitle()
             chats[chatId] = RunChat(title, chat?.photoFileId)
             val messages = chatRepository.getChatMessages(chatId)
-            val moreUnreadFollows = (chat?.unreadCount ?: 0) > messages.size
-            val decisions = rules().evaluate(chatId, chat?.title, messages, moreUnreadFollows)
-                .filter { !it.deferred }
+            val decisions = rules().evaluate(chatId, chat?.title, messages)
             if (decisions.isNotEmpty()) {
                 val silent = decisions.all { it.dropped }
                 // Boundary ding, then the chat title spoken on its own (no "New chat" words)

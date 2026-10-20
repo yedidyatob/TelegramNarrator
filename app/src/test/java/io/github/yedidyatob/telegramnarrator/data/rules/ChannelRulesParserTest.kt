@@ -22,9 +22,9 @@ class ChannelRulesParserTest {
         assertFalse(channel.match.matches(1L, "ערוץ אחר"))
         assertEquals(NumberedListMode.NATURAL, channel.preset.numberedLists)
         assertEquals(listOf("°"), channel.preset.stripSymbols)
-        assertEquals(3, channel.preset.dropMessage.size)
-        assertEquals(1, channel.preset.dropNext.size)
-        assertEquals(1, channel.preset.dropNext[0].count)
+        // Only the donation-link drops remain; the channel's own ad marker is not a drop rule (#96)
+        assertEquals(2, channel.preset.dropMessage.size)
+        assertFalse(channel.preset.dropMessage.any { it.containsMatchIn("°תוכן שיווקי") })
         assertEquals(2, channel.preset.cut.size)
         // everything else is the default
         assertTrue(config.default.dropMessage.isEmpty())
@@ -43,7 +43,6 @@ class ChannelRulesParserTest {
                 "match": { "chatIds": [5, 7], "titleContains": "News" },
                 "rules": {
                   "dropMessage": ["ad"],
-                  "dropNext": [{ "pattern": "marker", "count": 2 }, { "pattern": "single" }],
                   "cut": ["tail"],
                   "replace": [{ "pattern": "(a)(b)", "replacement": "${'$'}2${'$'}1" }]
                 },
@@ -55,7 +54,6 @@ class ChannelRulesParserTest {
         val p = config.channels[0].preset
         assertEquals(setOf(5L, 7L), config.channels[0].match.chatIds)
         assertEquals("News", config.channels[0].match.titleContains)
-        assertEquals(listOf(2, 1), p.dropNext.map { it.count })
         assertEquals("${'$'}2${'$'}1", p.replace[0].replacement)
         assertTrue(p.readLinks) // channel overrides the default
         assertEquals("קישור", p.linkLabel) // inherited from the default
@@ -111,7 +109,7 @@ class ChannelRulesParserTest {
         assertRejected("""{"channels":[{"name":"c"}]}""", "missing 'match'")
         assertRejected("""{"channels":[{"name":"c","match":{}}]}""", "needs chatIds")
         assertRejected("""{"channels":[{"name":"c","match":{"titleEquals":"a"},"options":{"numberedLists":"bogus"}}]}""", "numberedLists")
-        assertRejected("""{"channels":[{"name":"c","match":{"titleEquals":"a"},"rules":{"dropNext":[{"count":1}]}}]}""", "missing 'pattern'")
+        assertRejected("""{"channels":[{"name":"c","match":{"titleEquals":"a"},"rules":{"replace":[{"replacement":"x"}]}}]}""", "missing 'pattern'")
     }
 
     @Test
