@@ -29,6 +29,12 @@ import javax.inject.Singleton
 object AppModule {
 
     @Provides
+    fun provideSpeechCacheWiper(@ApplicationContext context: Context): io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper =
+        io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper {
+            io.github.yedidyatob.telegramnarrator.data.speech.SpeechCaches.wipe(context.cacheDir)
+        }
+
+    @Provides
     @Singleton
     fun provideFilesDir(@ApplicationContext context: Context): File {
         return context.filesDir

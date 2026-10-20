@@ -36,6 +36,11 @@ val tnVersionCode: Int = setting("TN_VERSION_CODE")?.toInt() ?: run {
     major * 10_000 + minor * 100 + patch
 }
 
+// CI builds (GitHub Actions sets these; read here, the workflow is unchanged): shown in About (#87), and
+// debug APKs get a unique versionName suffix (1.0.0-debug+<run>.<sha>) so two CI APKs can be told apart.
+val ciRunNumber: String = System.getenv("GITHUB_RUN_NUMBER")?.takeIf { it.isNotBlank() }.orEmpty()
+val ciShortSha: String = System.getenv("GITHUB_SHA")?.takeIf { it.isNotBlank() }?.take(7).orEmpty()
+
 // ---- Release signing ------------------------------------------------------------------------------
 // The upload keystore is NEVER committed. Point the build at it with these four settings, either in
 // local.properties or as environment variables (CI): TN_KEYSTORE_PATH, TN_KEYSTORE_PASSWORD, TN_KEY_ALIAS,
@@ -76,6 +81,8 @@ android {
         // Telegram API credentials come only from local.properties (CI writes them there from repo secrets)
         buildConfigField("String", "TELEGRAM_API_ID", "\"${localProperties.getProperty("TELEGRAM_API_ID") ?: ""}\"")
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${localProperties.getProperty("TELEGRAM_API_HASH") ?: ""}\"")
+        buildConfigField("String", "CI_RUN_NUMBER", "\"$ciRunNumber\"")
+        buildConfigField("String", "GIT_SHA", "\"$ciShortSha\"")
     }
 
     signingConfigs {
@@ -90,6 +97,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (ciRunNumber.isNotEmpty()) {
+                versionNameSuffix = "-debug+$ciRunNumber" + if (ciShortSha.isNotEmpty()) ".$ciShortSha" else ""
+            }
+        }
         release {
             isDebuggable = false
             isMinifyEnabled = true

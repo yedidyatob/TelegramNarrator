@@ -24,8 +24,14 @@ sealed class SpeechSynthesisOutcome {
 enum class FallbackReason {
     // ---- Gemini ---------------------------------------------------------------------------------
     GEMINI_NO_KEY,
-    /** HTTP 401 or 403: the key is wrong, was revoked, or lacks permission. */
+    /** HTTP 401 (or 400 "API key not valid"): the key is wrong or was revoked. */
     GEMINI_INVALID_KEY,
+    /** HTTP 403: the key may not use the API (not enabled, or restricted). */
+    GEMINI_PERMISSION_DENIED,
+    /** HTTP 400 about the voice / language: not supported by the model. */
+    GEMINI_UNSUPPORTED_VOICE,
+    /** HTTP 404: the model or endpoint changed; the app needs an update. */
+    GEMINI_ENDPOINT_CHANGED,
     /** HTTP 429 with "RESOURCE_EXHAUSTED" and quota hint: the account is out of credit. */
     GEMINI_NO_CREDIT,
     /** HTTP 429 rate limit, still limited after the retries. */
@@ -42,8 +48,12 @@ enum class FallbackReason {
     // ---- Edge -----------------------------------------------------------------------------------
     /** Edge WebSocket handshake HTTP 429. */
     EDGE_THROTTLED,
-    /** Edge handshake refused (403 after the clock-skew retry, other HTTP codes, 5xx). */
+    /** Edge handshake refused (other HTTP codes, 5xx). */
     EDGE_UNAVAILABLE,
+    /** Handshake 403 even after the clock-skew retry: the service changed; the app needs an update. */
+    EDGE_BLOCKED,
+    /** Connected, but no audio for this voice (unsupported voice / language). */
+    EDGE_UNSUPPORTED_VOICE,
     EDGE_TIMEOUT,
     EDGE_FAILED,
 

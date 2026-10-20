@@ -69,6 +69,7 @@ class EdgeSpeechSynthesizer @Inject constructor(
         /** Edge failure → what the user is told (#63): throttled, refused, timeout, offline, or generic. */
         fun reasonFor(e: Throwable): FallbackReason = when (e) {
             is EdgeTtsClient.HandshakeException -> TtsFailures.edgeHandshake(e.code)
+            is EdgeTtsClient.NoAudioException -> FallbackReason.EDGE_UNSUPPORTED_VOICE
             else -> TtsFailures.transport(e, FallbackReason.EDGE_TIMEOUT) ?: FallbackReason.EDGE_FAILED
         }
     }

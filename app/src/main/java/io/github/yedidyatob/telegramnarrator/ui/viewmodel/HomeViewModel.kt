@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.withContext
 
 /** Everything the Home body needs besides the chat interactions. */
 data class HomeUiState(
@@ -49,7 +50,8 @@ class HomeViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
     private val playbackManager: PlaybackManager,
-    connectionMonitor: ConnectionMonitor
+    connectionMonitor: ConnectionMonitor,
+    private val speechCaches: io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper
 ) : ViewModel() {
 
     companion object {
@@ -135,6 +137,8 @@ class HomeViewModel @Inject constructor(
             } catch (_: Exception) {
                 // Typical when the client is already closing
             } finally {
+                // Spoken messages must not outlive the session (#69), even if TDLib was already closing
+                withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { speechCaches.wipe() } }
                 _isLoading.value = false
             }
         }

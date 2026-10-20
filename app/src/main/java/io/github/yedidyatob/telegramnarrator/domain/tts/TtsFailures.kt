@@ -14,27 +14,41 @@ object TtsFailures {
      * Gemini HTTP error: [code] and the body's machine-readable summary ([GeminiTts.safeErrorSummary]).
      *
      * Gemini error shapes:
-     *  401 / 403  → invalid or missing key / permission denied
+     *  401, or 400 "API key not valid" → invalid / revoked key
+     *  403        → key not allowed (API not enabled, key restricted to other APIs/apps)
      *  429 with "quota" in summary → out of credit (RESOURCE_EXHAUSTED + quota hint)
      *  429 (else) → rate limited
-     *  400        → bad request (input too long, invalid voice, etc.)
+     *  400 mentioning the voice / language → unsupported voice or language
+     *  400 (else) → bad request (input too long, etc.)
+     *  404        → model or endpoint changed (the app needs an update)
      *  5xx        → server error
      */
     fun geminiHttp(code: Int, errorSummary: String?): FallbackReason {
         val summary = errorSummary.orEmpty().lowercase()
         return when {
-            code == 401 || code == 403 -> FallbackReason.GEMINI_INVALID_KEY
+            code == 401 -> FallbackReason.GEMINI_INVALID_KEY
+            code == 400 && ("api key" in summary || "api_key_invalid" in summary) -> FallbackReason.GEMINI_INVALID_KEY
+            code == 403 -> FallbackReason.GEMINI_PERMISSION_DENIED
+            code == 404 -> FallbackReason.GEMINI_ENDPOINT_CHANGED
             code == 429 && ("quota" in summary || "resource_exhausted" in summary) -> FallbackReason.GEMINI_NO_CREDIT
             code == 429 -> FallbackReason.GEMINI_RATE_LIMITED
+            code == 400 && ("voice" in summary || "language" in summary || "speaker" in summary) ->
+                FallbackReason.GEMINI_UNSUPPORTED_VOICE
             code == 400 -> FallbackReason.GEMINI_BAD_REQUEST
             code in 500..599 -> FallbackReason.GEMINI_SERVER_ERROR
             else -> FallbackReason.GEMINI_FAILED
         }
     }
 
-    /** Edge WebSocket handshake rejected with HTTP [code]. */
-    fun edgeHandshake(code: Int): FallbackReason =
-        if (code == 429) FallbackReason.EDGE_THROTTLED else FallbackReason.EDGE_UNAVAILABLE
+    /**
+     * Edge WebSocket handshake rejected with HTTP [code]. A 403 that survives the clock-skew retry means
+     * Microsoft changed the service's token scheme / endpoint (needs an app update).
+     */
+    fun edgeHandshake(code: Int): FallbackReason = when (code) {
+        429 -> FallbackReason.EDGE_THROTTLED
+        403 -> FallbackReason.EDGE_BLOCKED
+        else -> FallbackReason.EDGE_UNAVAILABLE
+    }
 
     /**
      * Transport failures (no network, timeout) anywhere in [error]'s cause chain, or null when [error] is not
@@ -56,7 +70,8 @@ object TtsFailures {
 
     /** Where the user can fix [reason] (opened from the notification), or null. */
     fun helpUrl(reason: FallbackReason): String? = when (reason) {
-        FallbackReason.GEMINI_INVALID_KEY, FallbackReason.GEMINI_NO_CREDIT -> GeminiTts.API_KEYS_URL
+        FallbackReason.GEMINI_INVALID_KEY, FallbackReason.GEMINI_NO_CREDIT,
+        FallbackReason.GEMINI_PERMISSION_DENIED -> GeminiTts.API_KEYS_URL
         else -> null
     }
 }

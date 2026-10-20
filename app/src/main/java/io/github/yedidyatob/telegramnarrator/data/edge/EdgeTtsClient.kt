@@ -28,6 +28,9 @@ class EdgeTtsClient @Inject constructor() {
     /** Handshake rejected with an HTTP status (403 usually means our clock is off: Sec-MS-GEC mismatch). */
     class HandshakeException(val code: Int, val serverDate: String?) : IOException("Edge TTS handshake HTTP $code")
 
+    /** The service answered but sent no audio (typically a voice / language it does not support). */
+    class NoAudioException : IOException("Edge TTS: no audio received")
+
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS)
@@ -160,7 +163,7 @@ class EdgeTtsClient @Inject constructor() {
         }
         error.get()?.let { throw it }
         val bytes = synchronized(audio) { audio.toByteArray() }
-        if (bytes.isEmpty()) throw IOException("Edge TTS: no audio received")
+        if (bytes.isEmpty()) throw NoAudioException()
         return bytes
     }
 
