@@ -69,7 +69,10 @@ class PlaybackSession(
         .setSessionActivity(
             PendingIntent.getActivity(
                 context, 4,
-                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                // Opens the Player (#20) in the existing activity (singleTop -> onNewIntent), or cold-starts it
+                Intent(context, MainActivity::class.java)
+                    .setAction(io.github.yedidyatob.telegramnarrator.ui.navigation.AppRoute.ACTION_OPEN_PLAYER)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
         )

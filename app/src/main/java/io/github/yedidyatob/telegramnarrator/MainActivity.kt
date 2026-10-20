@@ -40,6 +40,8 @@ import io.github.yedidyatob.telegramnarrator.ui.screens.player.PlayerScreen
 import io.github.yedidyatob.telegramnarrator.ui.theme.TelegramNarratorTheme
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppNavigationViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AuthViewModel
+import android.content.Intent
+import androidx.navigation.compose.currentBackStackEntryAsState
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -51,6 +53,20 @@ class MainActivity : ComponentActivity() {
     lateinit var appearance: AppearancePreferences
 
     private val authViewModel: AuthViewModel by viewModels()
+
+    /** A pending "open the Player" from the playback notification / Auto session activity (#20). */
+    private val openPlayerRequest = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    private fun handleIntent(intent: Intent?) {
+        val fromHistory = (intent?.flags ?: 0) and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
+        if (intent?.action == AppRoute.ACTION_OPEN_PLAYER && !fromHistory) openPlayerRequest.value = true
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // AndroidX SplashScreen (#17): the icon stays while TDLib starts (at most SPLASH_MAX_MS), so the login
@@ -64,6 +80,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Draw behind transparent system bars; screens consume the insets via Scaffold / navigationBarsPadding
         enableEdgeToEdge()
+        // Cold start from the notification; a recreated activity (rotation) already handled its intent
+        if (savedInstanceState == null) handleIntent(intent)
         setContent {
             val dynamicColor by appearance.dynamicColor.collectAsStateWithLifecycle()
             TelegramNarratorTheme(dynamicColor = dynamicColor) {
@@ -71,7 +89,13 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(playbackController, authViewModel)
+                    val openPlayer by openPlayerRequest.collectAsStateWithLifecycle()
+                    AppNavigation(
+                        playbackController,
+                        authViewModel,
+                        openPlayerRequested = openPlayer,
+                        onOpenPlayerHandled = { openPlayerRequest.value = false }
+                    )
                 }
             }
         }
@@ -86,9 +110,12 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation(
     playbackController: PlaybackController,
     authViewModel: AuthViewModel = hiltViewModel(),
-    navigationViewModel: AppNavigationViewModel = hiltViewModel()
+    navigationViewModel: AppNavigationViewModel = hiltViewModel(),
+    openPlayerRequested: Boolean = false,
+    onOpenPlayerHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
+    val currentEntry by navController.currentBackStackEntryAsState()
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val onboardingCompleted by navigationViewModel.onboardingCompleted.collectAsStateWithLifecycle()
 
@@ -99,6 +126,20 @@ fun AppNavigation(
         navController.navigate(target) {
             popUpTo(0) { inclusive = true }
             launchSingleTop = true
+        }
+    }
+
+    // Notification / session activity tap (#20): the Player on top of Home, once Home is shown
+    val authForPlayer by authViewModel.authState.collectAsStateWithLifecycle()
+    LaunchedEffect(openPlayerRequested, authForPlayer, currentEntry?.destination?.route) {
+        if (!openPlayerRequested) return@LaunchedEffect
+        when (AppRoute.openPlayer(authForPlayer, currentEntry?.destination?.route)) {
+            AppRoute.OpenPlayer.NAVIGATE -> {
+                navController.navigate(AppRoute.PLAYER) { launchSingleTop = true }
+                onOpenPlayerHandled()
+            }
+            AppRoute.OpenPlayer.CONSUME -> onOpenPlayerHandled()
+            AppRoute.OpenPlayer.WAIT -> Unit
         }
     }
 

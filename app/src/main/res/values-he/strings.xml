@@ -67,4 +67,14 @@
     <string name="about_version">גרסה %1$s</string>
     <string name="about_build_type">סוג בנייה: %1$s</string>
     <string name="about_close">סגירה</string>
+    <string name="player_up_next">הבא בתור</string>
+    <string name="player_up_next_now">מוקרא עכשיו</string>
+    <string name="player_up_next_jump">הקרא את הצ\'אט הזה עכשיו</string>
+    <string name="player_up_next_item_a11y">%1$s, %2$s</string>
+    <string name="player_up_next_current_a11y">%1$s, %2$s, מוקרא עכשיו</string>
+    <plurals name="player_up_next_a11y">
+        <item quantity="one">הבא בתור: צ\'אט אחד</item>
+        <item quantity="two">הבא בתור: %d צ\'אטים</item>
+        <item quantity="other">הבא בתור: %d צ\'אטים</item>
+    </plurals>
 </resources>
