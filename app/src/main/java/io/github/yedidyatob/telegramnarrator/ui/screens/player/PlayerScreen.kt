@@ -1,5 +1,18 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.player
 
+import io.github.yedidyatob.telegramnarrator.core.service.UpNext
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -127,6 +140,7 @@ fun PlayerScreen(
     sponsoredViewModel: SponsoredViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val upNext by viewModel.upNext.collectAsStateWithLifecycle()
     val reportDialog by sponsoredViewModel.reportDialog.collectAsStateWithLifecycle()
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
@@ -166,6 +180,8 @@ fun PlayerScreen(
             loadFile = sponsoredViewModel::localFile
         ),
         loadPhoto = viewModel::chatPhotoPath,
+        upNext = upNext,
+        onJumpTo = viewModel::jumpTo,
         modifier = Modifier.graphicsLayer {
             // Material predictive back for a full-screen surface: shrink to 90 % and move with the gesture
             val scale = 1f - 0.1f * backProgress
@@ -195,8 +211,19 @@ fun PlayerContent(
     actions: PlayerActions,
     adActions: PlayerAdActions,
     loadPhoto: suspend (Int) -> String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    upNext: List<UpNext.Item> = emptyList(),
+    onJumpTo: (UpNext.Item) -> Unit = {}
 ) {
+    var showUpNext by rememberSaveable { mutableStateOf(false) }
+    if (showUpNext) {
+        UpNextSheet(
+            items = upNext,
+            loadPhoto = loadPhoto,
+            onJumpTo = { onJumpTo(it); showUpNext = false },
+            onDismiss = { showUpNext = false }
+        )
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -266,11 +293,75 @@ fun PlayerContent(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.player_next_chat))
                 }
+                if (upNext.isNotEmpty()) {
+                    val upNextA11y = pluralStringResource(R.plurals.player_up_next_a11y, upNext.size, upNext.size)
+                    FilledTonalIconButton(
+                        onClick = { showUpNext = true },
+                        modifier = Modifier.semantics { contentDescription = upNextA11y }
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
+                    }
+                }
                 OutlinedButton(onClick = actions.onStop, enabled = state.isActive) {
                     Icon(Icons.Rounded.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.home_btn_stop))
                 }
+            }
+        }
+    }
+}
+
+/** "Up next" (#20): the remaining chats of the run; tap one to jump there. Never shows message text. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UpNextSheet(
+    items: List<UpNext.Item>,
+    loadPhoto: suspend (Int) -> String?,
+    onJumpTo: (UpNext.Item) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            stringResource(R.string.player_up_next),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).semantics { heading() }
+        )
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
+            items(items.size, key = { items[it].chatId }) { i ->
+                val item = items[i]
+                val unread = pluralStringResource(R.plurals.home_unread_messages, item.unreadCount, item.unreadCount)
+                val label = if (item.isCurrent) stringResource(R.string.player_up_next_current_a11y, item.title, unread)
+                    else stringResource(R.string.player_up_next_item_a11y, item.title, unread)
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            item.title,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            fontWeight = if (item.isCurrent) androidx.compose.ui.text.font.FontWeight.SemiBold else null
+                        )
+                    },
+                    supportingContent = if (item.isCurrent) {
+                        { Text(stringResource(R.string.player_up_next_now), color = MaterialTheme.colorScheme.primary) }
+                    } else null,
+                    leadingContent = { ChatAvatar(item.chatId, item.title, item.photoFileId, loadPhoto, size = 40.dp) },
+                    trailingContent = if (item.unreadCount > 0) {
+                        { Badge { Text(item.unreadCount.toString()) } }
+                    } else null,
+                    colors = if (item.isCurrent) {
+                        ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    } else {
+                        ListItemDefaults.colors()
+                    },
+                    modifier = Modifier
+                        .clickable(enabled = !item.isCurrent, onClickLabel = stringResource(R.string.player_up_next_jump)) { onJumpTo(item) }
+                        .clearAndSetSemantics {
+                            contentDescription = label
+                            if (item.isCurrent) selected = true
+                            else onClick(label = null) { onJumpTo(item); true }
+                        }
+                )
             }
         }
     }

@@ -25,4 +25,22 @@ object AppRoute {
         }
         return target.takeIf { it != currentRoute }
     }
+
+    /** Intent action of the playback notification / Media3 session activity: open the Player (#20). */
+    const val ACTION_OPEN_PLAYER = "io.github.yedidyatob.telegramnarrator.OPEN_PLAYER"
+
+    /**
+     * What to do with a pending "open the Player" request on [currentRoute] (pure, unit-tested): navigate to the
+     * Player once Home is shown (Player sits on top of Home, so back returns there); drop it when already on the
+     * Player or signed out; otherwise keep waiting (TDLib still starting, redirect to Home pending).
+     */
+    enum class OpenPlayer { NAVIGATE, CONSUME, WAIT }
+
+    fun openPlayer(authState: AuthState, currentRoute: String?): OpenPlayer = when {
+        authState is AuthState.Initializing -> OpenPlayer.WAIT
+        authState !is AuthState.Authenticated -> OpenPlayer.CONSUME
+        currentRoute == PLAYER -> OpenPlayer.CONSUME
+        currentRoute == HOME -> OpenPlayer.NAVIGATE
+        else -> OpenPlayer.WAIT
+    }
 }

@@ -34,6 +34,15 @@ class PlaybackManager @Inject constructor() {
     private val _currentPlayingChatId = MutableStateFlow<Long?>(null)
     val currentPlayingChatId: StateFlow<Long?> = _currentPlayingChatId.asStateFlow()
 
+    private val _runChatIds = MutableStateFlow<List<Long>>(emptyList())
+
+    /** The chats of the current run in reading order (the Auto / Player "Up next" queue); empty when idle. */
+    val runChatIds: StateFlow<List<Long>> = _runChatIds.asStateFlow()
+
+    fun setRunChats(chatIds: List<Long>) {
+        _runChatIds.value = chatIds.distinct()
+    }
+
     private val _selectedChatIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedChatIds: StateFlow<Set<Long>> = _selectedChatIds.asStateFlow()
 

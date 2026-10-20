@@ -36,4 +36,16 @@ class AppRouteTest {
         assertEquals(AppRoute.LOGIN, AppRoute.redirect(AuthState.WaitPhoneNumber, true, AppRoute.HOME))
         assertEquals(AppRoute.LOGIN, AppRoute.redirect(AuthState.WaitPhoneNumber, true, AppRoute.PLAYER))
     }
+
+    @Test
+    fun `notification tap opens the Player over Home once signed in`() {
+        val auth = io.github.yedidyatob.telegramnarrator.domain.model.AuthState.Authenticated
+        assertEquals(AppRoute.OpenPlayer.NAVIGATE, AppRoute.openPlayer(auth, AppRoute.HOME))
+        assertEquals(AppRoute.OpenPlayer.CONSUME, AppRoute.openPlayer(auth, AppRoute.PLAYER))
+        // Cold start: wait for TDLib and the redirect to Home
+        assertEquals(AppRoute.OpenPlayer.WAIT, AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.Initializing, AppRoute.LOGIN))
+        assertEquals(AppRoute.OpenPlayer.WAIT, AppRoute.openPlayer(auth, AppRoute.LOGIN))
+        // Signed out: dropped (never opens a Player over login)
+        assertEquals(AppRoute.OpenPlayer.CONSUME, AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.WaitPhoneNumber, AppRoute.LOGIN))
+    }
 }

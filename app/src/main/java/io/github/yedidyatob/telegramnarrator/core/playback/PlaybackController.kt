@@ -29,6 +29,15 @@ class PlaybackController @Inject constructor(@ApplicationContext private val con
     fun nextChat() = send(PlaybackService.ACTION_SKIP_CHAT)
     fun stop() = send(PlaybackService.ACTION_STOP)
 
+    /** Player "Up next": read the run's queue entry [queueIndex] and the chats after it (as Auto's queue does). */
+    fun jumpToQueueIndex(queueIndex: Int) {
+        try {
+            context.startService(intent(PlaybackService.ACTION_JUMP_TO_CHAT).putExtra(PlaybackService.EXTRA_QUEUE_INDEX, queueIndex))
+        } catch (e: IllegalStateException) {
+            // Service gone and app in background: nothing to jump in
+        }
+    }
+
     private fun intent(action: String) = Intent(context, PlaybackService::class.java).setAction(action)
 
     // Commands only make sense while the service runs (it is in the foreground then), so startService is allowed

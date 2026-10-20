@@ -71,10 +71,13 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         /** Replays the previous message of the current chat (restarts the current one on the chat's first). */
         const val ACTION_PREVIOUS_MSG = "ACTION_PREVIOUS_MSG"
         const val EXTRA_CHAT_IDS = "EXTRA_CHAT_IDS"
+        /** Player "Up next" tap: jump to queue entry [EXTRA_QUEUE_INDEX] (same as Auto's seekToMediaItem). */
+        const val ACTION_JUMP_TO_CHAT = "ACTION_JUMP_TO_CHAT"
+        const val EXTRA_QUEUE_INDEX = "EXTRA_QUEUE_INDEX"
         private const val UNREAD_TIMEOUT_MS = 5_000L
         private val OWN_ACTIONS = setOf(
             ACTION_PLAY_ALL, ACTION_STOP, ACTION_PAUSE, ACTION_RESUME,
-            ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG
+            ACTION_SKIP_MSG, ACTION_SKIP_CHAT, ACTION_PREVIOUS_MSG, ACTION_JUMP_TO_CHAT
         )
     }
 
@@ -103,12 +106,8 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         narration.onBecomingNoisy()
     }
 
-    override fun onCreate() {
-        AutoLog.event("PlaybackService onCreate")
-        super.onCreate()
-        notifications = PlaybackNotifications(this).also { it.createChannel() }
-        wakeLock = PlaybackWakeLock(this)
-        player = NarrationPlayer(object : NarrationPlayer.Commands {
+    /** Transport commands from Media3 controllers (Auto, notification, BT) and the app's queue jumps. */
+    private val commands = object : NarrationPlayer.Commands {
             override fun perform(action: NarrationTransport.Action) {
                 // Who asked: the controller of the Media3 request being handled (onPlayerCommandRequest)
                 if (action != NarrationTransport.Action.RESUME) {
@@ -129,7 +128,14 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
                 AutoLog.event("queue jump index=$index of=${queue.size} from=${session.lastCommandFrom}")
                 startRun(ids, keepQueue = true)
             }
-        }, getString(R.string.app_name))
+    }
+
+    override fun onCreate() {
+        AutoLog.event("PlaybackService onCreate")
+        super.onCreate()
+        notifications = PlaybackNotifications(this).also { it.createChannel() }
+        wakeLock = PlaybackWakeLock(this)
+        player = NarrationPlayer(commands, getString(R.string.app_name))
         player.artworkForChat = { ChatArtworkProvider.uriFor(this, it) }
         narration = NarrationController(
             scope = scope,
@@ -204,6 +210,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             ACTION_SKIP_MSG -> narration.skipMessage()
             ACTION_SKIP_CHAT -> narration.skipChat()
             ACTION_PREVIOUS_MSG -> narration.previousMessage()
+            ACTION_JUMP_TO_CHAT -> commands.jumpToQueueIndex(intent?.getIntExtra(EXTRA_QUEUE_INDEX, -1) ?: -1)
         }
         // Not restarted after the process is killed: playback never resumes by itself. The reading position is
         // kept by Telegram (played messages were marked as read), so the next Play continues where it stopped.
@@ -242,6 +249,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
             val fallback = getString(R.string.playback_unknown_chat)
             queue = NarrationQueue.entries(chatIds, emptyMap(), fallback)
             player.setQueue(queue, chatIds.firstOrNull())
+            playbackManager.setRunChats(chatIds)
             scope.launch {
                 val titles = chatIds.associateWith { id -> runCatching { chatRepository.getChat(id)?.title }.getOrNull().orEmpty() }
                 val resolved = NarrationQueue.entries(chatIds, titles, fallback)
@@ -290,6 +298,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         player.setArtwork(null)
         queue = emptyList()
         player.setQueue(emptyList(), null)
+        playbackManager.setRunChats(emptyList())
         foregroundStarted = false
         setPhase(NarrationPhase.IDLE)
         stopSelf()
