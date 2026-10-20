@@ -95,10 +95,13 @@ class ChannelRulesEngineTest {
     }
 
     @Test
-    fun `an ad with a givechak link is dropped even without the marker`() {
+    fun `donation posts are read with the link stripped`() {
         val ad = TestResources.sample("sample3_ad_body.txt")
         val result = evaluate(listOf("חדשות רגילות", ad, "עוד חדשות"))
-        assertEquals(listOf(false, true, false), result.map { it.dropped })
+        assertEquals(listOf(false, false, false), result.map { it.dropped })
+        val spoken = MessageCleaner.clean(result[1].text)
+        assertTrue(spoken.startsWith("בערב יום הכיפורים"))
+        assertFalse(spoken.contains("givechak") || spoken.contains("http"))
     }
 
     @Test
@@ -125,11 +128,18 @@ class ChannelRulesEngineTest {
     }
 
     @Test
-    fun `dropped messages keep their position so they can be marked read in order`() {
-        val result = evaluate(listOf("a", "°תוכן שיווקי", "ad givechak.co.il", "b"))
-        assertEquals(listOf(false, false, true, false), result.map { it.dropped })
-        assertEquals(listOf(1L, 2L, 3L, 4L), result.map { it.message.id })
+    fun `dropMessage drops matches only and keeps positions so they can be marked read in order`() {
+        val e = ChannelRulesEngine(
+            ChannelRulesParser.parse("""{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":{"dropMessage":["(?i)promo"]}}]}""")
+        )
+        val result = e.evaluate(1, "C", listOf("a", "PROMO code", "b").mapIndexed { i, t -> msg(i + 1L, t) })
+        assertEquals(listOf(false, true, false), result.map { it.dropped })
+        assertEquals("", result[1].text)
+        assertEquals(listOf(1L, 2L, 3L), result.map { it.message.id })
+        // The shipped Abu Ali preset drops nothing
+        assertTrue(evaluate(listOf("a", "°תוכן שיווקי", "ad https://givechak.co.il/1", "b")).none { it.dropped })
     }
+
 
     // --- options ---
 
