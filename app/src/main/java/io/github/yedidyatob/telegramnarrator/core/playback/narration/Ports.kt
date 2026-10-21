@@ -37,6 +37,8 @@ interface SpeechPort {
     fun speak(
         text: String,
         languageSource: String,
+        /** The chat being read: its detected language picks the voice (#89); null for non-chat speech. */
+        chatId: Long?,
         onStart: () -> Unit,
         onRange: (start: Int) -> Unit,
         onDone: (completed: Boolean) -> Unit
@@ -46,7 +48,10 @@ interface SpeechPort {
     fun stop()
 
     /** Network synthesis into the disk cache (blocking; the controller calls it on its I/O dispatcher). */
-    fun synthesize(provider: SpeechProvider, text: String): SpeechSynthesisOutcome
+    fun synthesize(provider: SpeechProvider, text: String, chatId: Long?): SpeechSynthesisOutcome
+
+    /** The chat's language (detected, else the device language), for spoken phrases like the sponsored cue. */
+    fun chatLanguage(chatId: Long): String
 
     /** Drops an unplayable cached file so it is fetched again next time. */
     fun discard(file: File)
@@ -126,6 +131,4 @@ interface PlaybackHost {
     fun registerNoisyReceiver()
     fun unregisterNoisyReceiver()
 
-    /** "Sponsored" / "Recommended" in the ad's own language. */
-    fun sponsoredCue(ad: SponsoredAd): String
 }

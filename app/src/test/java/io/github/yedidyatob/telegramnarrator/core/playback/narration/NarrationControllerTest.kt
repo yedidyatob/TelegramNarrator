@@ -47,11 +47,12 @@ class NarrationControllerTest {
 
         override fun settingsKey(): Any = settings
         override suspend fun awaitReady() = Unit
-        override fun speak(text: String, languageSource: String, onStart: () -> Unit, onRange: (Int) -> Unit, onDone: (Boolean) -> Unit) {
+        override fun speak(text: String, languageSource: String, chatId: Long?, onStart: () -> Unit, onRange: (Int) -> Unit, onDone: (Boolean) -> Unit) {
             utterances += Utterance(text, languageSource, onStart, onRange, onDone)
         }
         override fun stop() { stops++ }
-        override fun synthesize(provider: SpeechProvider, text: String): SpeechSynthesisOutcome {
+        override fun chatLanguage(chatId: Long) = "en"
+        override fun synthesize(provider: SpeechProvider, text: String, chatId: Long?): SpeechSynthesisOutcome {
             synthesized += text
             return outcome(text)
         }
@@ -92,7 +93,6 @@ class NarrationControllerTest {
         override fun abandonAudioFocus() = Unit
         override fun registerNoisyReceiver() = Unit
         override fun unregisterNoisyReceiver() = Unit
-        override fun sponsoredCue(ad: SponsoredAd) = "Sponsored"
     }
 
     private class FakeSponsored(var ad: SponsoredAd? = null) : SponsoredPort {

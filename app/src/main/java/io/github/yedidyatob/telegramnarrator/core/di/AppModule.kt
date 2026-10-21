@@ -29,10 +29,25 @@ import javax.inject.Singleton
 object AppModule {
 
     @Provides
-    fun provideSpeechCacheWiper(@ApplicationContext context: Context): io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper =
+    fun provideSpeechCacheWiper(
+        @ApplicationContext context: Context,
+        languages: io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver
+    ): io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper =
         io.github.yedidyatob.telegramnarrator.data.speech.SpeechCacheWiper {
             io.github.yedidyatob.telegramnarrator.data.speech.SpeechCaches.wipe(context.cacheDir)
+            // Detected chat languages are per-account data too (#89)
+            languages.resetAll()
         }
+
+    @Provides
+    @Singleton
+    fun provideChatLanguageResolver(@ApplicationContext context: Context): io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver =
+        io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver(
+            store = io.github.yedidyatob.telegramnarrator.data.language.EncryptedChatLanguageStore(context),
+            identifier = io.github.yedidyatob.telegramnarrator.data.language.MlKitLanguageIdentifier(),
+            deviceLanguage = { java.util.Locale.getDefault().language },
+            log = { io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog.event(it) }
+        )
 
     @Provides
     @Singleton

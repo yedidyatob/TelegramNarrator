@@ -1,6 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.domain.sponsored
 
-import io.github.yedidyatob.telegramnarrator.domain.audio.LanguageDetector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -51,23 +50,14 @@ class SponsoredSpeechTest {
     }
 
     @Test
-    fun `cue language follows the ad`() {
-        assertEquals(LanguageDetector.HEBREW, SponsoredSpeech.cueLocale(ad(title = "ערוץ החדשות", text = "הצטרפו עכשיו")))
-        assertEquals(LanguageDetector.ENGLISH, SponsoredSpeech.cueLocale(ad(title = "News", text = "Join now")))
-        // Scripts without their own cue strings use the English (default) strings
-        assertEquals(LanguageDetector.ENGLISH, SponsoredSpeech.cueLocale(ad(title = "Новости", text = "Подпишитесь")))
-        // Mostly-Hebrew with a Latin brand name stays Hebrew
-        assertEquals(LanguageDetector.HEBREW, SponsoredSpeech.cueLocale(ad(title = "חדשות CNN", text = "הצטרפו לערוץ שלנו היום")))
-    }
-
-    @Test
-    fun `cue is Sponsored or Recommended in the ad's language`() {
-        val hebrew = ad(title = "ערוץ החדשות", text = "הצטרפו עכשיו")
-        val english = ad(title = "News", text = "Join now")
-        assertEquals(SponsoredSpeech.Cue.SPONSORED_HE, SponsoredSpeech.cue(hebrew))
-        assertEquals(SponsoredSpeech.Cue.SPONSORED_EN, SponsoredSpeech.cue(english))
-        assertEquals(SponsoredSpeech.Cue.RECOMMENDED_HE, SponsoredSpeech.cue(hebrew.copy(isRecommended = true)))
-        assertEquals(SponsoredSpeech.Cue.RECOMMENDED_EN, SponsoredSpeech.cue(english.copy(isRecommended = true)))
+    fun `cue is spoken in the chat language, English without a translation (#89)`() {
+        val p = io.github.yedidyatob.telegramnarrator.domain.language.SpokenPhrases
+        assertEquals("ממומן", p.sponsoredCue("he", recommended = false))
+        assertEquals("מומלץ", p.sponsoredCue("iw", recommended = true))
+        assertEquals("Реклама", p.sponsoredCue("ru", recommended = false))
+        assertEquals("Patrocinado", p.sponsoredCue("pt", recommended = false))
+        assertEquals("Sponsored", p.sponsoredCue("ja", recommended = false))
+        assertEquals("Recommended", p.sponsoredCue("xx", recommended = true))
     }
 
     @Test

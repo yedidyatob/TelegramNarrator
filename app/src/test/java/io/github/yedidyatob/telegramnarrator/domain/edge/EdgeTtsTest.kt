@@ -90,13 +90,13 @@ class EdgeTtsTest {
     }
 
     @Test
-    fun `gender picks avri or hila for hebrew and andrew or ava for every other language`() {
+    fun `gender picks avri or hila for hebrew and andrew or ava for english and unknown languages`() {
         val male = EdgeTtsOptions(gender = EdgeVoiceGender.MALE)
         val female = EdgeTtsOptions(gender = EdgeVoiceGender.FEMALE)
         assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(male, "he"))
         assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(male, "iw"))
         assertEquals(EdgeTts.VOICE_HILA, EdgeTts.voiceFor(female, "he"))
-        for (language in listOf("en", "ru", "ar", "fr", "")) {
+        for (language in listOf("en", "xx", "")) {
             assertEquals(EdgeTts.VOICE_ANDREW_MULTILINGUAL, EdgeTts.voiceFor(male, language))
             assertEquals(EdgeTts.VOICE_AVA_MULTILINGUAL, EdgeTts.voiceFor(female, language))
         }

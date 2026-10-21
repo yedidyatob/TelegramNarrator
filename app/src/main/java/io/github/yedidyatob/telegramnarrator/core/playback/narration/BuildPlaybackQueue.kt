@@ -19,7 +19,9 @@ data class RunChat(val title: String, val photoFileId: Int?)
 class BuildPlaybackQueue(
     private val chatRepository: ChatRepository,
     private val rules: () -> ChannelRulesEngine,
-    private val unknownChatTitle: () -> String
+    private val unknownChatTitle: () -> String,
+    /** Detects / updates each chat's language from its spoken texts before reading (#89). */
+    private val resolveLanguage: suspend (chatId: Long, isPrivate: Boolean, texts: List<String>) -> Unit = { _, _, _ -> }
 ) {
     suspend operator fun invoke(chatIds: LongArray): PlaybackRun {
         val runItems = mutableListOf<PlaybackItem>()
@@ -32,6 +34,11 @@ class BuildPlaybackQueue(
             val decisions = rules().evaluate(chatId, chat?.title, messages)
             if (decisions.isNotEmpty()) {
                 val silent = decisions.all { it.dropped }
+                val spoken = decisions.filter { !it.dropped && it.text.isNotBlank() }.map { it.text }
+                if (spoken.isNotEmpty()) {
+                    runCatching { resolveLanguage(chatId, chat?.isPrivate == true, spoken) }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                }
                 // Boundary ding, then the chat title spoken on its own (no "New chat" words)
                 val chatItems = ChatTitleSpeech.chatOpening(
                     chatId,

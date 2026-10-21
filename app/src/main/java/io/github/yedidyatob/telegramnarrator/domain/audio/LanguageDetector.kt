@@ -3,11 +3,12 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
 import java.util.Locale
 
 /**
- * Tiny offline language guesser based on the Unicode script of the letters in a text.
+ * Tiny offline language guesser based on the Unicode script of the letters in a text (#89: a fallback helper
+ * of the per-chat detection, see [io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguagePolicy]).
  *
- * It can only tell scripts apart, not languages that share a script: all Latin text is
- * reported as English. Hebrew is the app's default, so it wins for empty text, text without
- * letters, unsupported scripts and mixed text, unless another script clearly dominates.
+ * It can only tell scripts apart, not languages that share a script: all Latin text is reported as English.
+ * There is no privileged language: the script with the most letters wins, and text without letters of a known
+ * script falls back to the device language.
  */
 object LanguageDetector {
     val HEBREW: Locale = Locale("he")
@@ -15,12 +16,8 @@ object LanguageDetector {
     val RUSSIAN: Locale = Locale("ru")
     val ARABIC: Locale = Locale("ar")
 
-    val DEFAULT: Locale = HEBREW
-
-    // A non-Hebrew script has to have at least this many times more letters than Hebrew to win
-    private const val DOMINANCE_FACTOR = 3
-
-    fun detect(text: String): Locale = detectOrNull(text) ?: DEFAULT
+    /** The script language of [text], or the device language when it has no letters of a known script. */
+    fun detect(text: String, deviceLocale: Locale = Locale.getDefault()): Locale = detectOrNull(text) ?: deviceLocale
 
     /** Like [detect], but null when the text has no letters of a script we know (so nothing to go on). */
     fun detectOrNull(text: String?): Locale? {
@@ -43,10 +40,10 @@ object LanguageDetector {
                 else -> {}
             }
         }
-
-        if (hebrew + latin + cyrillic + arabic == 0) return null
-        val candidates = listOf(ENGLISH to latin, RUSSIAN to cyrillic, ARABIC to arabic)
-        val (locale, count) = candidates.maxByOrNull { it.second } ?: return DEFAULT
-        return if (count > 0 && count >= hebrew * DOMINANCE_FACTOR) locale else DEFAULT
+        // Ties go to the first in this order (a stable, documented choice; no language is the "default")
+        return listOf(HEBREW to hebrew, ARABIC to arabic, RUSSIAN to cyrillic, ENGLISH to latin)
+            .filter { it.second > 0 }
+            .maxByOrNull { it.second }
+            ?.first
     }
 }

@@ -299,10 +299,6 @@
     <!-- Official Telegram sponsored messages (Telegram API ToS 3.3). -->
     <!-- Spoken cue before the ad, in the ad's own language (not the device language). Kept here, not in values-he,
          because App Bundle language splits would leave out the Hebrew strings on non-Hebrew devices. -->
-    <string name="sponsored_cue_en" translatable="false">Sponsored</string>
-    <string name="sponsored_cue_he" translatable="false">ממומן</string>
-    <string name="sponsored_cue_recommended_en" translatable="false">Recommended</string>
-    <string name="sponsored_cue_recommended_he" translatable="false">מומלץ</string>
     <!-- Card label (device language) -->
     <string name="sponsored_label">Sponsored</string>
     <string name="sponsored_label_recommended">Recommended</string>
@@ -353,4 +349,8 @@
         <item quantity="one">Up next: %d chat</item>
         <item quantity="other">Up next: %d chats</item>
     </plurals>
+    <string name="tts_voice_missing_hint">No %1$s voice is installed for the system voice, so it is read in the device language. Install one in the device\'s text-to-speech settings.</string>
+    <string name="language_reset_all">Reset detected chat languages</string>
+    <string name="language_reset_all_summary">Each chat\'s language is detected on this device from its messages and picks the voice. Reset to detect again.</string>
+    <string name="language_reset_done">Chat languages reset</string>
 </resources>

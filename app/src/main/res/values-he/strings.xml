@@ -77,4 +77,8 @@
         <item quantity="two">הבא בתור: %d צ\'אטים</item>
         <item quantity="other">הבא בתור: %d צ\'אטים</item>
     </plurals>
+    <string name="tts_voice_missing_hint">אין קול %1$s מותקן בקול המערכת, ולכן ההקראה בשפת המכשיר. אפשר להתקין קול בהגדרות המרת הטקסט לדיבור של המכשיר.</string>
+    <string name="language_reset_all">איפוס שפות הצ\'אטים שזוהו</string>
+    <string name="language_reset_all_summary">השפה של כל צ\'אט מזוהה במכשיר לפי ההודעות שלו וקובעת את הקול. אפשר לאפס כדי לזהות מחדש.</string>
+    <string name="language_reset_done">שפות הצ\'אטים אופסו</string>
 </resources>
