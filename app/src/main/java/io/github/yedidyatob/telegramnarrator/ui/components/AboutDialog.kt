@@ -32,6 +32,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Text(stringResource(R.string.settings_about_unofficial), style = MaterialTheme.typography.bodySmall)
                 PrivacyPolicyLink()
                 ShareDebugLogButton()
+                SendFeedbackButton()
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.about_close)) } }

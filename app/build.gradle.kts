@@ -60,6 +60,11 @@ if (!hasReleaseKeystore && releaseSigningValues.values.any { it != null }) {
 val useDebugSigningForRelease = !hasReleaseKeystore && setting("TN_RELEASE_DEBUG_SIGNING") == "true"
 
 android {
+    // Per-app language (Android 13+ Settings): locales_config generated from values-* folders (#89)
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     namespace = "io.github.yedidyatob.telegramnarrator"
     compileSdk = 37 // current AndroidX (core 1.19, hilt-navigation-compose 1.4, ...) requires 37; targetSdk stays 36
 

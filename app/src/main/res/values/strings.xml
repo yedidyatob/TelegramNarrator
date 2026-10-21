@@ -122,7 +122,7 @@
     <string name="onboarding_welcome_body">Catch up on Telegram while you drive, walk or cook. The app reads your unread messages chat by chat, even with the screen off.</string>
     <string name="onboarding_welcome_point_listen">Pick the chats, press Play, and listen</string>
     <string name="onboarding_welcome_point_control">Pause, replay or skip a message or a whole chat</string>
-    <string name="onboarding_welcome_point_languages">Hebrew and English messages each get the right voice</string>
+    <string name="onboarding_welcome_point_languages">Each chat is read in its own language, with a matching voice</string>
     <string name="onboarding_privacy_title">Unofficial app and your privacy</string>
     <string name="onboarding_privacy_point_device">Your login, messages and settings are stored only on this device</string>
     <string name="onboarding_privacy_point_voice">By default the Edge voice reads your messages: their text and chat names are sent to Microsoft. You can pick the offline system voice in the next step.</string>
@@ -353,4 +353,9 @@
     <string name="language_reset_all">Reset detected chat languages</string>
     <string name="language_reset_all_summary">Each chat\'s language is detected on this device from its messages and picks the voice. Reset to detect again.</string>
     <string name="language_reset_done">Chat languages reset</string>
+    <!-- Feedback (About) -->
+    <string name="feedback_send">Send feedback</string>
+    <string name="feedback_subject">Telegram Narrator feedback</string>
+    <string name="feedback_body_prompt">Write your feedback here:</string>
+    <string name="feedback_no_email_app">No email app found</string>
 </resources>
