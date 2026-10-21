@@ -60,6 +60,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     @Inject lateinit var edgeSpeech: EdgeSpeechSynthesizer
     @Inject lateinit var ttsPreferences: TtsPreferences
     @Inject lateinit var sponsoredMessages: SponsoredMessagesRepository
+    @Inject lateinit var chatLanguages: io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver
 
     companion object {
         const val ACTION_PLAY_ALL = "ACTION_PLAY_ALL"
@@ -140,8 +141,13 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
         narration = NarrationController(
             scope = scope,
             io = Dispatchers.IO,
-            buildQueue = BuildPlaybackQueue(chatRepository, { channelRules.engine }, { getString(R.string.playback_unknown_chat) })::invoke,
-            speech = EngineSpeechPort(ttsManager, ttsPreferences, geminiSpeech, edgeSpeech),
+            buildQueue = BuildPlaybackQueue(
+                chatRepository,
+                { channelRules.engine },
+                { getString(R.string.playback_unknown_chat) },
+                { chatId, isPrivate, texts -> chatLanguages.resolve(chatId, isPrivate, texts) }
+            )::invoke,
+            speech = EngineSpeechPort(ttsManager, ttsPreferences, geminiSpeech, edgeSpeech, chatLanguages),
             audio = MediaPlayerAudioPort(this),
             voiceNotes = { chatRepository.getVoiceFilePath(it) },
             readMarker = MarkMessagesRead(chatRepository, backgroundScope),
@@ -321,7 +327,6 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
 
     override fun unregisterNoisyReceiver() = noisyReceiver.unregister()
 
-    override fun sponsoredCue(ad: SponsoredAd): String = notifications.sponsoredCue(ad)
 
     private fun setStatusText(text: String) {
         playbackManager.setStatus(text)

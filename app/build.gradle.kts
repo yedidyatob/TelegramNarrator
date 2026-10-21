@@ -175,6 +175,7 @@ dependencies {
     
     // Security
     implementation(libs.androidx.security.crypto)
+    implementation(libs.mlkit.language.id)
     
     // TDLib
     implementation(libs.tdlib)

@@ -48,6 +48,13 @@ that messages were read.
 
 Your use of Telegram is also subject to [Telegram's Privacy Policy](https://telegram.org/privacy).
 
+### 2b. Language detection
+
+To pick a voice, the app detects the language of each chat **on your device** (Google ML Kit Language ID with
+the model bundled in the app; no message text is sent to Google or anyone else for this). Only the result
+(chat id, language code and confidence) is stored, encrypted, on your device. It is deleted when you log out,
+and can be reset in Voice settings.
+
 ### 2a. Telegram sponsored messages
 
 Telegram requires every app that shows channel content to show its official sponsored messages

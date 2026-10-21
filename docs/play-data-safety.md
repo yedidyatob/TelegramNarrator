@@ -17,7 +17,7 @@ consistent with [privacy-policy.md](privacy-policy.md). Build and signing steps 
 
 Nothing is sent to the developer: there is no backend, no analytics, no ad SDK, no crash reporting or other SDK that
 phones home (dependencies: AndroidX, Compose, Hilt, TDLib, OkHttp, security-crypto). The only ads are Telegram's
-own sponsored messages, served by Telegram through TDLib; the developer earns nothing from them. Stored on the device only:
+own sponsored messages, served by Telegram through TDLib; the developer earns nothing from them. Chat language detection (ML Kit Language ID, bundled model) runs entirely on the device and sends nothing. Stored on the device only:
 the TDLib database (encrypted), settings, the encrypted Gemini key and the cloud-TTS audio cache; Android backup
 and device transfer are disabled. The app cannot create Telegram accounts (it only logs in to existing ones).
 

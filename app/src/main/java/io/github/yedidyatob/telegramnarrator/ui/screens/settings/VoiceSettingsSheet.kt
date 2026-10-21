@@ -137,7 +137,8 @@ fun VoiceSettingsSheet(
             onTestGemini = viewModel::testGeminiVoice,
             onSpeechRate = viewModel::setSpeechRate,
             onMarkAsRead = viewModel::setMarkAsRead,
-            onSelectTestLanguage = viewModel::setTestLanguage
+            onSelectTestLanguage = viewModel::setTestLanguage,
+            onResetLanguages = viewModel::resetChatLanguages
         )
     }
 
@@ -165,7 +166,8 @@ class VoiceSettingsActions(
     val onTestGemini: () -> Unit = {},
     val onSpeechRate: (Float) -> Unit = {},
     val onMarkAsRead: (Boolean) -> Unit = {},
-    val onSelectTestLanguage: (TestLanguage) -> Unit = {}
+    val onSelectTestLanguage: (TestLanguage) -> Unit = {},
+    val onResetLanguages: () -> Unit = {}
 )
 
 /** Stateless sheet content (also used by the previews). */
@@ -211,6 +213,12 @@ fun VoiceSettingsContent(
                 )
             }
         }
+        Text(
+            stringResource(R.string.language_reset_all_summary),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+        TextButton(onClick = actions.onResetLanguages) { Text(stringResource(R.string.language_reset_all)) }
         AboutSection()
     }
 }

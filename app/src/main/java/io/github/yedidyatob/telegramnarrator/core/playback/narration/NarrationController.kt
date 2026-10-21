@@ -4,6 +4,7 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioQueue
 import io.github.yedidyatob.telegramnarrator.domain.audio.ChatPlaybackHistory
 import io.github.yedidyatob.telegramnarrator.domain.audio.CloudTtsPrefetch
+import io.github.yedidyatob.telegramnarrator.domain.language.SpokenPhrases
 import io.github.yedidyatob.telegramnarrator.domain.audio.MessageCleaner
 import io.github.yedidyatob.telegramnarrator.domain.audio.MessageSpeechBody
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
@@ -307,7 +308,10 @@ class NarrationController(
             ui.showSponsoredAd(ad)
             publish(item.chatId, item.chatName, NowPlaying.Content.Sponsored, engine = speech.provider)
             host.onSponsoredStarted(ad, item.chatName)
-            val text = SponsoredSpeech.speechText(ad, host.sponsoredCue(ad))
+            val text = SponsoredSpeech.speechText(
+                ad,
+                SpokenPhrases.sponsoredCue(speech.chatLanguage(item.chatId), ad.isRecommended)
+            )
             if (text == null) {
                 // Nothing speakable (e.g. emoji-only): the card still shows the ad
                 if (currentItem === item) currentItem = null
@@ -349,7 +353,7 @@ class NarrationController(
         val loading = ui.beginAudioLoading()
         scope.launch {
             val outcome = try {
-                withContext(io) { speech.synthesize(provider, text) }
+                withContext(io) { speech.synthesize(provider, text, CloudTtsPrefetch.chatIdOf(item)) }
             } finally {
                 ui.endAudioLoading(loading)
             }
@@ -392,6 +396,7 @@ class NarrationController(
         speech.speak(
             text.substring(start),
             languageSource = text,
+            chatId = CloudTtsPrefetch.chatIdOf(item),
             onStart = {
                 onController {
                     if (token != speechToken) return@onController
@@ -436,14 +441,14 @@ class NarrationController(
         cancelPrefetch()
         val provider = speech.provider
         if (provider == SpeechProvider.SYSTEM) return
-        val texts = CloudTtsPrefetch.upcomingSpeechTexts(audioQueue.snapshot(), CloudTtsPrefetch.COUNT)
+        val texts = CloudTtsPrefetch.upcomingSpeech(audioQueue.snapshot(), CloudTtsPrefetch.COUNT)
         if (texts.isEmpty()) return
         prefetchJob = scope.launch {
-            for (text in texts) {
+            for ((chatId, text) in texts) {
                 if (generation != itemGeneration || !isPlaying || isPaused) return@launch
                 if (speech.provider != provider) return@launch
                 try {
-                    when (val outcome = withContext(io) { speech.synthesize(provider, text) }) {
+                    when (val outcome = withContext(io) { speech.synthesize(provider, text, chatId) }) {
                         is SpeechSynthesisOutcome.Ready -> if (!outcome.fromCache) failures.onNetworkSuccess()
                         is SpeechSynthesisOutcome.Fallback -> failures.onPrefetchFailure(outcome.reason)
                         SpeechSynthesisOutcome.UseSystem -> Unit

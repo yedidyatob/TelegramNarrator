@@ -6,6 +6,7 @@ import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.nameRes
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.sentenceRes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -58,8 +59,9 @@ class TestLanguageTest {
         assertEquals(EdgeTts.VOICE_AVRI, EdgeTts.voiceFor(male, TestLanguage.HEBREW.code))
         assertEquals(EdgeTts.VOICE_HILA, EdgeTts.voiceFor(female, TestLanguage.HEBREW.code))
         for (language in TestLanguage.values().filter { it != TestLanguage.HEBREW }) {
-            assertEquals(EdgeTts.VOICE_ANDREW_MULTILINGUAL, EdgeTts.voiceFor(male, language.code))
-            assertEquals(EdgeTts.VOICE_AVA_MULTILINGUAL, EdgeTts.voiceFor(female, language.code))
+            // Native voice of the language (#89); English keeps the multilingual voices
+            assertTrue(EdgeTts.voiceFor(male, language.code).startsWith(language.code + "-") || language.code == "en")
+            assertTrue(EdgeTts.voiceFor(female, language.code).startsWith(language.code + "-") || language.code == "en")
         }
         val custom = EdgeTtsOptions(EdgeVoiceGender.FEMALE, customVoice = "fr-FR-DeniseNeural")
         assertEquals("fr-FR-DeniseNeural", EdgeTts.voiceFor(custom, TestLanguage.ENGLISH.code))

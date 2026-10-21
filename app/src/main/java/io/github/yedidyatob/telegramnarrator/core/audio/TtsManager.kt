@@ -101,8 +101,8 @@ class TtsManager @Inject constructor(
             )
             voices = loadVoices()
             tts?.setSpeechRate(preferences.settings.value.speechRate)
-            // Hebrew is the default; the language is switched per utterance in speak()
-            applyLanguage(LanguageDetector.DEFAULT)
+            // The device language until the first utterance; it is switched per utterance in speak()
+            applyLanguage(Locale.getDefault())
             _isInitialized.value = true
         } else if (enginePackage != null && fallbackToDefault) {
             // The chosen engine is gone / broken: use the system default engine (the choice stays saved)
@@ -235,7 +235,7 @@ class TtsManager @Inject constructor(
         val engine = tts ?: return
         if (currentLocale == target) return
 
-        val fallbacks = listOf(target, LanguageDetector.DEFAULT, Locale.getDefault()).distinct()
+        val fallbacks = listOf(target, Locale.getDefault()).distinct()
         for (candidate in fallbacks) {
             val result = try {
                 engine.setLanguage(candidate)
@@ -248,8 +248,30 @@ class TtsManager @Inject constructor(
                 return
             }
             android.util.Log.w("TtsManager", "TTS language not available: $candidate")
+            if (candidate == target) hintMissingVoice(target)
         }
         currentLocale = null
+    }
+
+    /**
+     * Once per language (#89): tells the user the system engine has no voice for [language], so it is read in
+     * the device language until they install one in the engine's settings.
+     */
+    private fun hintMissingVoice(language: Locale) {
+        if (language.language == Locale.getDefault().language) return
+        val prefs = context.getSharedPreferences(HINT_PREFS, Context.MODE_PRIVATE)
+        val hinted = prefs.getStringSet(KEY_HINTED, emptySet()).orEmpty()
+        if (language.language in hinted) return
+        prefs.edit().putStringSet(KEY_HINTED, hinted + language.language).apply()
+        val name = language.getDisplayLanguage(Locale.getDefault())
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            android.widget.Toast.makeText(
+                context,
+                context.getString(io.github.yedidyatob.telegramnarrator.R.string.tts_voice_missing_hint, name),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+        io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog.event("tts voice missing lang=${language.language}")
     }
 
     /**
@@ -282,5 +304,10 @@ class TtsManager @Inject constructor(
 
     fun shutdown() {
         tts?.shutdown()
+    }
+
+    private companion object {
+        const val HINT_PREFS = "tts_voice_hints"
+        const val KEY_HINTED = "hinted_languages"
     }
 }

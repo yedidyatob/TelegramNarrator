@@ -21,7 +21,9 @@ data class ChatSnapshot(
     val photoFileId: Int?,
     val muteFor: Int?,
     /** Order in each chat list it is in, by list (see [listKey]); a list with order 0 is left out. */
-    val orders: Map<String, Long>
+    val orders: Map<String, Long>,
+    /** A one-to-one chat (user or bot): language detection uses fewer samples (#89). */
+    val isPrivate: Boolean = false
 ) {
     /** Position in the main list (0 = not in it, e.g. archived or left). */
     val mainOrder: Long get() = orders[MAIN] ?: 0L
@@ -43,7 +45,8 @@ data class ChatSnapshot(
         unreadCount = unreadCount,
         lastMessage = null,
         order = mainOrder,
-        photoFileId = photoFileId
+        photoFileId = photoFileId,
+        isPrivate = isPrivate
     )
 
     companion object {
@@ -68,7 +71,8 @@ data class ChatSnapshot(
             unreadMentionCount = chat.unreadMentionCount,
             photoFileId = chat.photo?.small?.id,
             muteFor = chat.notificationSettings?.muteFor,
-            orders = ordersOf(chat.positions)
+            orders = ordersOf(chat.positions),
+            isPrivate = chat.type is TdApi.ChatTypePrivate || chat.type is TdApi.ChatTypeSecret
         )
     }
 }

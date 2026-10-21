@@ -48,8 +48,15 @@ class TtsSettingsViewModel @Inject constructor(
     private val edgeSpeech: EdgeSpeechSynthesizer,
     private val geminiSpeech: GeminiSpeechSynthesizer,
     playbackManager: PlaybackManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val chatLanguages: io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver
 ) : ViewModel() {
+
+    /** Forgets every detected chat language (#89); each chat is detected again when next read. */
+    fun resetChatLanguages() {
+        chatLanguages.resetAll()
+        android.widget.Toast.makeText(context, io.github.yedidyatob.telegramnarrator.R.string.language_reset_done, android.widget.Toast.LENGTH_SHORT).show()
+    }
 
     private val _state = MutableStateFlow(
         stateFrom(preferences.settings.value).copy(testLanguage = TestLanguage.defaultFor(deviceUiLanguage()))

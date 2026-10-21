@@ -75,15 +75,18 @@ object EdgeTts {
     }
 
     /**
-     * Voice actually used for one message. A custom (Advanced) voice is used as-is for every message.
-     * Otherwise the Hebrew voices cannot read other scripts, so a message the
-     * [io.github.yedidyatob.telegramnarrator.domain.audio.LanguageDetector] classifies as non-Hebrew ([language] is an
-     * ISO code like "en") is read by the multilingual voice of the selected gender.
+     * Voice actually used for one message (#89): a custom (Advanced) voice as-is; otherwise the native voice of
+     * the selected gender for [language] (ISO code, from [EdgeVoiceMap], generated from Edge's voice list),
+     * the other gender's native voice when that language has only one, else the multilingual voice.
      */
     fun voiceFor(options: EdgeTtsOptions, language: String): String {
         options.customVoice?.let { if (isValidVoiceName(it)) return it.trim() }
-        val hebrew = language.equals("he", ignoreCase = true) || language.equals("iw", ignoreCase = true)
-        return if (hebrew) hebrewVoice(options.gender) else multilingualVoice(options.gender)
+        val code = io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguagePolicy.normalize(language)
+        val (male, female) = EdgeVoiceMap.VOICES[code] ?: return multilingualVoice(options.gender)
+        return when (options.gender) {
+            EdgeVoiceGender.MALE -> male ?: female
+            EdgeVoiceGender.FEMALE -> female ?: male
+        } ?: multilingualVoice(options.gender)
     }
 
     /**

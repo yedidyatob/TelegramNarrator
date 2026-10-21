@@ -25,33 +25,25 @@ class LanguageDetectorTest {
     }
 
     @Test
-    fun `empty, numeric and unknown script text defaults to hebrew`() {
-        assertEquals(LanguageDetector.DEFAULT, LanguageDetector.detect(""))
-        assertEquals(LanguageDetector.DEFAULT, LanguageDetector.detect("12345 !?"))
-        assertEquals(LanguageDetector.DEFAULT, LanguageDetector.detect("你好世界"))
+    fun `no known script falls back to the device language, never a hard-coded hebrew (#89)`() {
+        val device = java.util.Locale.FRENCH
+        assertEquals(device, LanguageDetector.detect("", device))
+        assertEquals(device, LanguageDetector.detect("12345 !?", device))
+        assertEquals(device, LanguageDetector.detect("你好世界", device))
     }
 
     @Test
-    fun `mixed text keeps hebrew unless another script dominates`() {
-        // Hebrew sentence with an English word
+    fun `mixed text goes to the script with the most letters`() {
         assertEquals(LanguageDetector.HEBREW, LanguageDetector.detect("נפגשים ב-Zoom מחר בבוקר"))
-        // Roughly balanced
-        assertEquals(LanguageDetector.HEBREW, LanguageDetector.detect("Hello שלום"))
-        // Mostly English with a Hebrew name
         assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detect("The meeting with דני is at five in the afternoon"))
+        assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detect("Hello there שלום"))
     }
 
     @Test
-    fun `default is hebrew`() {
-        assertEquals("he", LanguageDetector.DEFAULT.language)
-    }
-
-    @Test
-    fun `detectOrNull returns null without letters and agrees with detect otherwise`() {
+    fun `detectOrNull returns null without letters`() {
         assertNull(LanguageDetector.detectOrNull(null))
         assertNull(LanguageDetector.detectOrNull(""))
         assertNull(LanguageDetector.detectOrNull("123 😀 !!"))
-        assertEquals(LanguageDetector.DEFAULT, LanguageDetector.detect("123 😀"))
         assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detectOrNull("hello"))
         assertEquals(LanguageDetector.HEBREW, LanguageDetector.detectOrNull("שלום"))
     }
