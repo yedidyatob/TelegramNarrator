@@ -142,4 +142,4 @@ Significant changes will also be mentioned in the app's release notes.
 
 ## Contact
 
-Yedidya Toberman, yedidyat@gmail.com
+Yedidya Toberman, telegram.narrator.app@gmail.com

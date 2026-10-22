@@ -24,6 +24,6 @@ class FeedbackEmailTest {
 
     @Test
     fun `mailto goes to the feedback address`() {
-        assertEquals("mailto:yedidyat@gmail.com?subject=S&body=B", FeedbackEmail.mailto("S", "B") { it })
+        assertEquals("mailto:telegram.narrator.app@gmail.com?subject=S&body=B", FeedbackEmail.mailto("S", "B") { it })
     }
 }
