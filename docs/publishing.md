@@ -275,7 +275,7 @@ repo (or a raw link) is **not** public. Options:
   enabled. Then update `privacy_policy_url` in `app/src/main/res/values/strings.xml` to the new URL.
 - Any other static host (Google Sites, a gist rendered through a Pages site, …): same, update the string.
 
-The policy is published with GitHub Pages at https://yedidyatob.github.io/TelegramNarrator/privacy-policy (contact: yedidyat@gmail.com). Use that URL in Play Console.
+The policy is published with GitHub Pages at https://yedidyatob.github.io/TelegramNarrator/privacy-policy (contact: telegram.narrator.app@gmail.com). Use that URL in Play Console.
 
 ## 8. Notes
 

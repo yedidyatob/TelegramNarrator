@@ -5,7 +5,7 @@ package io.github.yedidyatob.telegramnarrator.domain.feedback
  * message. Never message text, chat data or the phone number.
  */
 object FeedbackEmail {
-    const val ADDRESS = "yedidyat@gmail.com"
+    const val ADDRESS = "telegram.narrator.app@gmail.com"
 
     data class Info(
         val versionName: String,

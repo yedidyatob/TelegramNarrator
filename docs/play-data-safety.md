@@ -123,7 +123,7 @@ terms allow "Telegram" in a title only when preceded by "Unofficial", which does
 **Category:** Communication (alternative: Productivity). **Tags:** text to speech, messaging, accessibility.
 **Contains ads:** **Yes**: the app shows Telegram's official sponsored messages in channels and bot chats, which
 Telegram requires of every app that shows channel content (Telegram API ToS 3.3); Play counts any ads shown in the
-app, including ones served by a third party. **In-app purchases:** No. **Contact email:** yedidyat@gmail.com. **Privacy policy:** the
+app, including ones served by a third party. **In-app purchases:** No. **Contact email:** telegram.narrator.app@gmail.com. **Privacy policy:** the
 hosted URL of [privacy-policy.md](privacy-policy.md).
 
 ### English
