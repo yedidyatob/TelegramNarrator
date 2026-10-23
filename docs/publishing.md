@@ -133,17 +133,21 @@ Play usually picks it up from the AAB automatically.
 1. Create a developer account (personal) and verify your identity.
 2. **Create app**: name `Unofficial Telegram Narrator`, default language English (en-US), App, Free.
 3. **App content** (Policy → App content):
-   - *Privacy policy*: the public URL of [privacy-policy.md](privacy-policy.md) (see §7). It must be the same
-     URL as the in-app link (`privacy_policy_url` in `app/src/main/res/values/strings.xml`).
-   - *Ads*: No ads.
+   - *Privacy policy*: `https://yedidyatob.github.io/TelegramNarrator/privacy-policy.html`, the hosted
+     [privacy-policy.md](privacy-policy.md) (see §7). It must be the same URL as the in-app link
+     (`privacy_policy_url` in `app/src/main/res/values/strings.xml`).
+   - *Contact email*: telegram.narrator.app@gmail.com.
+   - *Ads*: **Yes**: Telegram's official sponsored messages in channels and bot chats (required by Telegram API
+     ToS 3.3; see [play-data-safety.md](play-data-safety.md#store-listing-draft)).
    - *App access*: login is required; see the reviewer note in [play-data-safety.md](play-data-safety.md#app-access-instructions-for-reviewers).
    - *Content rating*, *Target audience*, *Data safety*: copy from [play-data-safety.md](play-data-safety.md).
    - *Foreground service permissions*: declare **Media playback** (text in
      [play-data-safety.md](play-data-safety.md#foreground-service-declaration)). You need a short video showing
      the feature (start "Play all", turn the screen off, controls on the lock screen).
    - *Government apps*, *Financial features*, *Health*: No / none.
-4. **Store listing**: texts in [play-data-safety.md](play-data-safety.md#store-listing-draft). Graphics you have
-   to make: 512×512 icon, 1024×500 feature graphic, at least 2 phone screenshots. Do not use the Telegram logo.
+4. **Store listing**: texts in [play-data-safety.md](play-data-safety.md#store-listing-draft). Graphics are in
+   [play-assets/](play-assets/README.md) (en/ and he/): 512×512 icon, 1024×500 feature graphic, phone screenshots
+   rendered from the real Compose screens. Do not use the Telegram logo.
 5. **Testing**: personal developer accounts created after Nov 13, 2023 must run a **closed test with at least
    12 testers opted in for 14 continuous days** before they can apply for production access (internal testing
    does not count). Recruit a few extra testers and start the closed test early.
@@ -275,7 +279,7 @@ repo (or a raw link) is **not** public. Options:
   enabled. Then update `privacy_policy_url` in `app/src/main/res/values/strings.xml` to the new URL.
 - Any other static host (Google Sites, a gist rendered through a Pages site, …): same, update the string.
 
-The policy is published with GitHub Pages at https://yedidyatob.github.io/TelegramNarrator/privacy-policy (contact: telegram.narrator.app@gmail.com). Use that URL in Play Console.
+The policy is published with GitHub Pages at https://yedidyatob.github.io/TelegramNarrator/privacy-policy.html (contact: telegram.narrator.app@gmail.com). Use that URL in Play Console.
 
 ## 8. Notes
 

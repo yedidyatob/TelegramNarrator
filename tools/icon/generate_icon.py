@@ -87,50 +87,55 @@ BG = ['    <path android:pathData="M0,0h108v108h-108z">\n        <aapt:attr name
 NOTIF = f'    <group android:scaleX="0.36" android:scaleY="0.36" android:translateX="-7.3" android:translateY="-7.44">\n' \
         f'        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="{GLYPH}" />\n    </group>'
 
-def write(name, text):
-    with open(os.path.join(RES, name), "w") as f: f.write(text)
+def main():
+    def write(name, text):
+        with open(os.path.join(RES, name), "w") as f: f.write(text)
 
-write("ic_launcher_foreground.xml", vector(FG))
-write("ic_launcher_monochrome.xml", vector(FG))
-write("ic_launcher_background.xml", vector(BG, extra_ns=True))
-# Splash (AndroidX SplashScreen): the blue disc with the speaker, no ribbon
-SPLASH = [p("M22,54 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0 Z", "#FF2A9FDA"), group(p(GLYPH, even_odd=True), 0)]
-write("ic_splash.xml", vector(SPLASH))
-write("ic_notification.xml", vector([NOTIF], size=24, viewport=24))
+    write("ic_launcher_foreground.xml", vector(FG))
+    write("ic_launcher_monochrome.xml", vector(FG))
+    write("ic_launcher_background.xml", vector(BG, extra_ns=True))
+    # Splash (AndroidX SplashScreen): the blue disc with the speaker, no ribbon
+    SPLASH = [p("M22,54 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0 Z", "#FF2A9FDA"), group(p(GLYPH, even_odd=True), 0)]
+    write("ic_splash.xml", vector(SPLASH))
+    write("ic_notification.xml", vector([NOTIF], size=24, viewport=24))
 
-# --- Previews ---------------------------------------------------------------------------------------------
-out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build/icon-preview")
-os.makedirs(out, exist_ok=True)
-def svg_icon(mask, mono=False, px=432):
-    bg = ('<rect width="108" height="108" fill="#E8EEF3"/>' if mono else
-          f'<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BLUE_TOP}"/>'
-          f'<stop offset="1" stop-color="{BLUE_BOTTOM}"/></linearGradient></defs><rect width="108" height="108" fill="url(#g)"/>')
-    fg = "#2E5A73" if mono else "#FFFFFF"
-    clip = {"round": '<circle cx="54" cy="54" r="36"/>',
-            "squircle": '<path d="M54,18 C83,18 90,25 90,54 C90,83 83,90 54,90 C25,90 18,83 18,54 C18,25 25,18 54,18 Z"/>'}[mask]
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" viewBox="18 18 72 72">'
-            f'<clipPath id="m">{clip}</clipPath><g clip-path="url(#m)">{bg}'
-            f'<path transform="translate(0,{GLYPH_DY}) translate(54,54) scale({GLYPH_SCALE}) translate(-54,-54)" fill="{fg}" fill-rule="evenodd" d="{GLYPH}"/>'
-            f'<path fill="{fg}" fill-rule="evenodd" d="{RIBBON} {TEXT}"/></g></svg>')
-def notification_svg():
-    small = f'<svg x="22" y="30" width="28" height="28" viewBox="27 27 54 54"><path transform="translate(0,0)" fill="#5f6368" fill-rule="evenodd" d="{GLYPH}"/></svg>'
-    large = f'<svg x="560" y="56" width="120" height="120" viewBox="18 18 72 72"><clipPath id="c"><circle cx="54" cy="54" r="36"/></clipPath><g clip-path="url(#c)"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BLUE_TOP}"/><stop offset="1" stop-color="{BLUE_BOTTOM}"/></linearGradient></defs><rect width="108" height="108" fill="url(#g2)"/><path transform="translate(0,{GLYPH_DY}) translate(54,54) scale({GLYPH_SCALE}) translate(-54,-54)" fill="#fff" fill-rule="evenodd" d="{GLYPH}"/><path fill="#fff" fill-rule="evenodd" d="{RIBBON} {TEXT}"/></g></svg>'
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260"><rect width="720" height="260" rx="28" fill="#F1F3F4"/>{small}'
-            f'<text x="60" y="50" font-family="sans-serif" font-size="20" fill="#5f6368">Telegram Narrator · Reading</text>'
-            f'<text x="24" y="104" font-family="sans-serif" font-size="30" font-weight="bold" fill="#202124">News chat</text>'
-            f'<text x="24" y="140" font-family="sans-serif" font-size="24" fill="#5f6368">From Dana</text>{large}'
-            f'<g fill="#202124"><rect x="40" y="196" width="22" height="22" rx="3"/><polygon points="170,190 196,207 170,224"/>'
-            f'<rect x="300" y="190" width="9" height="34"/><rect x="318" y="190" width="9" height="34"/>'
-            f'<polygon points="430,190 452,207 430,224"/><rect x="454" y="190" width="6" height="34"/></g></svg>')
-files = {"launcher_round": svg_icon("round"), "launcher_squircle": svg_icon("squircle"),
-         "launcher_themed_monochrome": svg_icon("round", mono=True), "notification": notification_svg()}
-for name, svg in files.items():
-    html = os.path.join(out, name + ".html")
-    w, h = (720, 260) if name == "notification" else (432, 432)
-    with open(html, "w") as f: f.write(f"<html><body style='margin:0;background:transparent'>{svg}</body></html>")
-    subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-                    "--default-background-color=00000000", f"--window-size={w},{h}",
-                    f"--screenshot={os.path.join(out, name + '.png')}", "file://" + html],
-                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    os.remove(html)
-print("ok", out)
+    # --- Previews ---------------------------------------------------------------------------------------------
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build/icon-preview")
+    os.makedirs(out, exist_ok=True)
+    def svg_icon(mask, mono=False, px=432):
+        bg = ('<rect width="108" height="108" fill="#E8EEF3"/>' if mono else
+              f'<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BLUE_TOP}"/>'
+              f'<stop offset="1" stop-color="{BLUE_BOTTOM}"/></linearGradient></defs><rect width="108" height="108" fill="url(#g)"/>')
+        fg = "#2E5A73" if mono else "#FFFFFF"
+        clip = {"round": '<circle cx="54" cy="54" r="36"/>',
+                "squircle": '<path d="M54,18 C83,18 90,25 90,54 C90,83 83,90 54,90 C25,90 18,83 18,54 C18,25 25,18 54,18 Z"/>'}[mask]
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{px}" height="{px}" viewBox="18 18 72 72">'
+                f'<clipPath id="m">{clip}</clipPath><g clip-path="url(#m)">{bg}'
+                f'<path transform="translate(0,{GLYPH_DY}) translate(54,54) scale({GLYPH_SCALE}) translate(-54,-54)" fill="{fg}" fill-rule="evenodd" d="{GLYPH}"/>'
+                f'<path fill="{fg}" fill-rule="evenodd" d="{RIBBON} {TEXT}"/></g></svg>')
+    def notification_svg():
+        small = f'<svg x="22" y="30" width="28" height="28" viewBox="27 27 54 54"><path transform="translate(0,0)" fill="#5f6368" fill-rule="evenodd" d="{GLYPH}"/></svg>'
+        large = f'<svg x="560" y="56" width="120" height="120" viewBox="18 18 72 72"><clipPath id="c"><circle cx="54" cy="54" r="36"/></clipPath><g clip-path="url(#c)"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BLUE_TOP}"/><stop offset="1" stop-color="{BLUE_BOTTOM}"/></linearGradient></defs><rect width="108" height="108" fill="url(#g2)"/><path transform="translate(0,{GLYPH_DY}) translate(54,54) scale({GLYPH_SCALE}) translate(-54,-54)" fill="#fff" fill-rule="evenodd" d="{GLYPH}"/><path fill="#fff" fill-rule="evenodd" d="{RIBBON} {TEXT}"/></g></svg>'
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260"><rect width="720" height="260" rx="28" fill="#F1F3F4"/>{small}'
+                f'<text x="60" y="50" font-family="sans-serif" font-size="20" fill="#5f6368">Telegram Narrator · Reading</text>'
+                f'<text x="24" y="104" font-family="sans-serif" font-size="30" font-weight="bold" fill="#202124">News chat</text>'
+                f'<text x="24" y="140" font-family="sans-serif" font-size="24" fill="#5f6368">From Dana</text>{large}'
+                f'<g fill="#202124"><rect x="40" y="196" width="22" height="22" rx="3"/><polygon points="170,190 196,207 170,224"/>'
+                f'<rect x="300" y="190" width="9" height="34"/><rect x="318" y="190" width="9" height="34"/>'
+                f'<polygon points="430,190 452,207 430,224"/><rect x="454" y="190" width="6" height="34"/></g></svg>')
+    files = {"launcher_round": svg_icon("round"), "launcher_squircle": svg_icon("squircle"),
+             "launcher_themed_monochrome": svg_icon("round", mono=True), "notification": notification_svg()}
+    for name, svg in files.items():
+        html = os.path.join(out, name + ".html")
+        w, h = (720, 260) if name == "notification" else (432, 432)
+        with open(html, "w") as f: f.write(f"<html><body style='margin:0;background:transparent'>{svg}</body></html>")
+        subprocess.run(["google-chrome", "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
+                        "--default-background-color=00000000", f"--window-size={w},{h}",
+                        f"--screenshot={os.path.join(out, name + '.png')}", "file://" + html],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.remove(html)
+    print("ok", out)
+
+
+if __name__ == "__main__":
+    main()

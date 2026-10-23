@@ -13,14 +13,16 @@ import io.github.yedidyatob.telegramnarrator.domain.about.AppVersionInfo
 
 /** Main menu → About (#87): which build is installed, the privacy policy, and Share debug log. */
 @Composable
-fun AboutDialog(onDismiss: () -> Unit) {
-    val info = AppVersionInfo(
+fun AboutDialog(
+    onDismiss: () -> Unit,
+    info: AppVersionInfo = AppVersionInfo(
         versionName = BuildConfig.VERSION_NAME,
         versionCode = BuildConfig.VERSION_CODE,
         buildType = BuildConfig.BUILD_TYPE,
         ciRunNumber = BuildConfig.CI_RUN_NUMBER,
         gitSha = BuildConfig.GIT_SHA
     )
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.app_name)) },
