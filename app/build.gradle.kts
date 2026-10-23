@@ -133,6 +133,18 @@ android {
     testOptions {
         // JVM unit tests of the TDLib repositories (#13): android.util.Log & co. return defaults instead of throwing
         unitTests.isReturnDefaultValues = true
+        // Robolectric screenshot tests (Play Store screenshots, docs/play-assets) need the merged resources
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { test ->
+            // Only with -Pscreenshots (see docs/play-assets/README.md); excluded from the normal unit tests
+            if (project.hasProperty("screenshots")) {
+                test.filter.includeTestsMatching("*.screenshots.*")
+                test.systemProperty("roborazzi.test.record", "true")
+                test.systemProperty("screenshots.out", rootProject.file("build/play-screenshots").absolutePath)
+            } else {
+                test.exclude("**/screenshots/**")
+            }
+        }
     }
     buildFeatures {
         compose = true
@@ -196,6 +208,12 @@ dependencies {
     testImplementation(libs.json)
     // ViewModel tests (runTest, virtual time, Dispatchers.setMain)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Play Store screenshots of the real Compose screens on the JVM (-Pscreenshots only)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -209,5 +227,18 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         // Media3 marks most session / SimpleBasePlayer APIs as UnstableApi; the whole playback stack opts in
         freeCompilerArgs.add("-opt-in=androidx.media3.common.util.UnstableApi")
+    }
+}
+
+// Play screenshots (-Pscreenshots): Robolectric only matches Hebrew resources under the legacy "iw" code,
+// so that run gets a generated values-iw copy of values-he (debug only, never in a shipped build)
+if (project.hasProperty("screenshots")) {
+    val iwRes = layout.buildDirectory.dir("generated/screenshots-res").get().asFile
+    copy {
+        from("src/main/res/values-he")
+        into(File(iwRes, "values-iw"))
+    }
+    androidComponents.onVariants(androidComponents.selector().withBuildType("debug")) { variant ->
+        variant.sources.res?.addStaticSourceDirectory(iwRes.absolutePath)
     }
 }

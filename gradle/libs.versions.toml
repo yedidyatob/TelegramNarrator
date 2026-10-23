@@ -21,6 +21,8 @@ okhttp = "4.12.0" # WebSocket client for the experimental Edge TTS engine
 libphonenumber = "9.0.41" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
 
 ksp = "2.3.12"
+robolectric = "4.17" # JVM Android runtime for the Play screenshot tests (tools/play-assets)
+roborazzi = "1.77.0" # Roborazzi: captures the Robolectric screenshots
 json = "20260814" # org.json for JVM unit tests (Android's org.json is a stub there)
 
 [libraries]
@@ -54,6 +56,9 @@ libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumb
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # JVM unit tests
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 json = { group = "org.json", name = "json", version.ref = "json" }
 
 # Hilt

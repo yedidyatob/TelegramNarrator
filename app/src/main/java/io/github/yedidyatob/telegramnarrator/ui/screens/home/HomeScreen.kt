@@ -17,6 +17,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -154,56 +155,43 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.home_title)) },
-                    actions = {
-                        IconButton(onClick = { showVoiceSettings = true }) {
-                            Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.settings_voice_open))
-                        }
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.home_more_options))
-                            }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                val privacyUrl = stringResource(R.string.privacy_policy_url)
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.login_privacy_policy)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        try {
-                                            uriHandler.openUri(privacyUrl)
-                                        } catch (e: ActivityNotFoundException) {
-                                            Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
-                                        } catch (e: IllegalArgumentException) {
-                                            Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                )
-                                if (appearanceViewModel.dynamicColorAvailable) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.home_menu_system_colors)) },
-                                        trailingIcon = { Checkbox(checked = dynamicColor, onCheckedChange = null) },
-                                        onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_menu_about)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        showAbout = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.home_btn_logout)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        showLogoutConfirm = true
-                                    }
-                                )
+                HomeTopBar(onOpenVoiceSettings = { showVoiceSettings = true }, menuOpen = menuOpen, onMenuOpenChange = { menuOpen = it }) {
+                    val privacyUrl = stringResource(R.string.privacy_policy_url)
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.login_privacy_policy)) },
+                        onClick = {
+                            menuOpen = false
+                            try {
+                                uriHandler.openUri(privacyUrl)
+                            } catch (e: ActivityNotFoundException) {
+                                Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
+                            } catch (e: IllegalArgumentException) {
+                                Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
                             }
                         }
+                    )
+                    if (appearanceViewModel.dynamicColorAvailable) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.home_menu_system_colors)) },
+                            trailingIcon = { Checkbox(checked = dynamicColor, onCheckedChange = null) },
+                            onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
+                        )
                     }
-                )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_menu_about)) },
+                        onClick = {
+                            menuOpen = false
+                            showAbout = true
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_btn_logout)) },
+                        onClick = {
+                            menuOpen = false
+                            showLogoutConfirm = true
+                        }
+                    )
+                }
                 // A background refresh with chats on screen: a thin bar rather than replacing the list
                 val backgroundRefresh = uiState.isRefreshing && content is HomeContent.Chats && !userRefreshing
                 Box(Modifier.fillMaxWidth().height(2.dp)) {
@@ -404,4 +392,29 @@ internal fun ChatList(
             )
         }
     }
+}
+
+/** Home's top app bar: title, Voice settings and the ⋮ menu with [menuItems]. Stateless (also used by screenshot tests). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun HomeTopBar(
+    onOpenVoiceSettings: () -> Unit,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+    menuItems: @Composable ColumnScope.() -> Unit = {}
+) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.home_title)) },
+        actions = {
+            IconButton(onClick = onOpenVoiceSettings) {
+                Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.settings_voice_open))
+            }
+            Box {
+                IconButton(onClick = { onMenuOpenChange(true) }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.home_more_options))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }, content = menuItems)
+            }
+        }
+    )
 }

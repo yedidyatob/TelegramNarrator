@@ -213,9 +213,11 @@ fun PlayerContent(
     loadPhoto: suspend (Int) -> String?,
     modifier: Modifier = Modifier,
     upNext: List<UpNext.Item> = emptyList(),
-    onJumpTo: (UpNext.Item) -> Unit = {}
+    onJumpTo: (UpNext.Item) -> Unit = {},
+    /** Opens with the Up next sheet showing (screenshot tests). */
+    initiallyShowUpNext: Boolean = false
 ) {
-    var showUpNext by rememberSaveable { mutableStateOf(false) }
+    var showUpNext by rememberSaveable { mutableStateOf(initiallyShowUpNext) }
     if (showUpNext) {
         UpNextSheet(
             items = upNext,
