@@ -18,7 +18,7 @@ mlkitLanguageId = "17.0.6" # com.google.mlkit:language-id (bundled model, on-dev
 tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
 media3 = "1.11.1"
 okhttp = "4.12.0" # WebSocket client for the experimental Edge TTS engine
-libphonenumber = "9.0.41" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
+libphonenumber = "9.0.42" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
 
 ksp = "2.3.12"
 robolectric = "4.17" # JVM Android runtime for the Play screenshot tests (tools/play-assets)
