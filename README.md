@@ -1,4 +1,4 @@
-# Narri (Unofficial Telegram Reader)
+# Narri (Unofficial Telegram TTS)
 
 **Narri** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
 Hebrew and mixed Hebrew/English channels. It logs in with your own Telegram account through
