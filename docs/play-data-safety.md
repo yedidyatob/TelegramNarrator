@@ -117,7 +117,7 @@ Suggested text (option 2):
 
 ## Store listing draft
 
-**App name** (30 max): `Narri: Unofficial Telegram Reader` (33: **over Play's 30-character limit**; if Play Console rejects it, shorten to e.g. `Narri - Unofficial Telegram` (27)). The launcher name (`app_name`) is just `Narri`. Use the same title in every language: Telegram's
+**App name** (30 max): `Narri: Unofficial Telegram TTS` (30). The launcher name (`app_name`) is just `Narri`. Use the same title in every language: Telegram's
 terms allow "Telegram" in a title only when preceded by "Unofficial", which does not work with Hebrew word order.
 
 **Category:** Communication (alternative: Productivity). **Tags:** text to speech, messaging, accessibility.
@@ -233,7 +233,7 @@ Source: <https://core.telegram.org/api/terms>. Status of this commit:
 | 1.5 No use of Telegram data for AI training | OK | Nothing is used for training. The Edge (default) and OpenAI engines only synthesize speech (inference) for the messages being read; the OpenAI API does not train on API data by default |
 | 2.1 Own `api_id` | **Action** | Use an `api_id` registered at my.telegram.org for this app (title/description there should describe this app), only in `local.properties` / CI secrets |
 | 2.2 Say prominently that the app uses the Telegram API (store description + in-app intro) | OK | Second paragraph of the store descriptions above; notice in the first-run introduction, on the login screen and in *Voice settings → About* |
-| 2.3 Title must not contain "Telegram" unless preceded by "Unofficial" | OK (fixed) | Launcher name is "Narri" (no "Telegram"); Play title "Narri: Unofficial Telegram Reader" has "Telegram" preceded by "Unofficial". Formerly "Unofficial Telegram Narrator" |
+| 2.3 Title must not contain "Telegram" unless preceded by "Unofficial" | OK (fixed) | Launcher name is "Narri" (no "Telegram"); Play title "Narri: Unofficial Telegram TTS" has "Telegram" preceded by "Unofficial". Formerly "Unofficial Telegram Narrator" |
 | 2.4 No official Telegram logo | OK | Own icon (white ring on purple). Do not use the paper plane in store graphics or screenshots' frames |
 | 3.1 / 3.2 Monetization disclosed in store descriptions | OK | No monetization by the developer. Telegram's sponsored messages (3.3) are Telegram's, not the app's; the store descriptions still mention them. If you ever add your own monetization, list every method in the store descriptions |
 | 3.3 Apps that show channel content must support official sponsored messages | OK | Channels and bot chats: `getChatSponsoredMessages` (5-minute cache) when the chat is played or its preview opened. After the chat's last unread message the ad is read aloud ("Sponsored" / "ממומן", or "Recommended" / "מומלץ", then title and text) and shown as a card (label, accent color, sponsor photo, title, text, media, button; confirmation before non-Telegram links; ⋮ Sponsor info / About these ads / Report with Telegram's option flow); it is also at the bottom of the chat's preview sheet. Views through `viewMessages` (TDLib 1.8.56 has no `viewSponsoredMessage`), at most once per ad per fetch, when read aloud in full or fully on screen; clicks via `clickChatSponsoredMessage`; reports via `reportChatSponsoredMessage`. Channel cleaning rules never touch it. See [architecture.md](architecture.md#sponsored-messages) |

@@ -62,7 +62,7 @@ h1{{margin:0;font-size:84px;font-weight:700;line-height:1.08;letter-spacing:-.5p
 </style></head><body><svg class="bg" width="1024" height="500">{waves}</svg>
 <div class="row"><div class="icon">{icon_svg(300, rounded=64)}</div>
 <div><h1 dir="ltr" style="text-align:{'right' if rtl else 'left'}">Narri</h1>
-<div class="kicker" dir="ltr" style="text-align:{'right' if rtl else 'left'}">Unofficial Telegram Reader</div>
+<div class="kicker" dir="ltr" style="text-align:{'right' if rtl else 'left'}">Unofficial Telegram TTS</div>
 <div class="tag">{tag}</div><div class="sub">{sub}</div></div></div></body></html>"""
 
 
