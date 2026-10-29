@@ -5,7 +5,7 @@ import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 /**
  * The Android Auto browse tree (#41), as pure ids (unit-tested): root -> "Play all unread" (first row, with
  * an icon) + one playable node per unread chat, exactly the Home list (same filter, same order, no cap).
- * Auto's own Play control (playback resumption) and voice ("play Telegram Narrator") also play all. Playing a node reads the same narration as
+ * Auto's own Play control (playback resumption) and voice ("play Narri") also play all. Playing a node reads the same narration as
  * the app (titles, dings, sponsored messages), so nothing here plays audio itself.
  */
 object AutoBrowseTree {
@@ -81,7 +81,7 @@ object AutoBrowseTree {
     }
 
     /**
-     * Voice search ("play News on Telegram Narrator"): the unread chat whose title best matches [query]
+     * Voice search ("play News on Narri"): the unread chat whose title best matches [query]
      * (exact, then prefix, then contains, case-insensitive); all unread for a blank query or no match.
      */
     fun chatsForSearch(query: String?, unread: List<Chat>): List<Long> {

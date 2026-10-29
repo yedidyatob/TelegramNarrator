@@ -12,7 +12,7 @@ How to build, sign, version and publish the app on Google Play. Companion docs:
 |---|---|---|
 | `applicationId` | `io.github.yedidyatob.telegramnarrator` | **Permanent.** Play never allows it to change after the first upload. |
 | Kotlin `namespace` / package | `io.github.yedidyatob.telegramnarrator` | Can be refactored later without affecting users; kept equal to the ID. |
-| Display name | `Unofficial Telegram Narrator` (`app_name`) | Telegram API ToS 2.3: the title may only contain "Telegram" when preceded by "Unofficial". See [play-data-safety.md](play-data-safety.md#telegram-api-terms-of-service-checklist). |
+| Display name | `Narri` (`app_name`, launcher label); Play title `Narri: Unofficial Telegram Reader` | Telegram API ToS 2.3: the title may only contain "Telegram" when preceded by "Unofficial". See [play-data-safety.md](play-data-safety.md#telegram-api-terms-of-service-checklist). |
 | `minSdk` / `targetSdk` / `compileSdk` | 26 / 36 / 36 | Play requires `targetSdk` 36 for new apps and updates since Aug 31, 2026. |
 
 > The `applicationId` replaced the old placeholder ID used by earlier builds, so the new build is a **different app**:
@@ -131,7 +131,7 @@ Play usually picks it up from the AAB automatically.
 ## 5. Play Console: first release
 
 1. Create a developer account (personal) and verify your identity.
-2. **Create app**: name `Unofficial Telegram Narrator`, default language English (en-US), App, Free.
+2. **Create app**: name `Narri: Unofficial Telegram Reader` (see the 30-character note in [play-data-safety.md](play-data-safety.md#store-listing-draft)), default language English (en-US), App, Free.
 3. **App content** (Policy → App content):
    - *Privacy policy*: `https://yedidyatob.github.io/TelegramNarrator/privacy-policy.html`, the hosted
      [privacy-policy.md](privacy-policy.md) (see §7). It must be the same URL as the in-app link

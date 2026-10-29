@@ -1,6 +1,6 @@
-# Telegram Narrator
+# Narri (Unofficial Telegram Reader)
 
-**Unofficial Telegram Narrator** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
+**Narri** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
 Hebrew and mixed Hebrew/English channels. It logs in with your own Telegram account through
 [TDLib](https://core.telegram.org/tdlib), lists the chats with unread messages, and plays them one after
 another; messages are marked as read in Telegram only after they were actually spoken.

@@ -233,7 +233,7 @@ internal fun LoginStepFrame(
     input: @Composable () -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // Centered: the app name ("Unofficial Telegram Narrator") can wrap to two lines
+        // Centered: the app name ("Narri") can wrap to two lines
         Text(
             title,
             style = MaterialTheme.typography.headlineLarge,

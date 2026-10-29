@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Telegram API Terms of Service 2.3: an app title may only contain "Telegram" when it is preceded by
          "Unofficial". See docs/play-data-safety.md before changing it. -->
-    <string name="app_name">Unofficial Telegram Narrator</string>
+    <string name="app_name">Narri</string>
     <string name="privacy_policy_url" translatable="false">https://yedidyatob.github.io/TelegramNarrator/privacy-policy.html</string>
 
     <!-- Login Screen -->
@@ -257,8 +257,8 @@
     <!-- Network voice failures (#63): one message per failure episode, then the system voice reads -->
     <string name="tts_fallback_gemini_permission_denied">Your Gemini key isn\'t allowed to use text-to-speech (API not enabled or key restricted). Check it in Google AI Studio. Using the system voice.</string>
     <string name="tts_fallback_gemini_unsupported_voice">This Gemini voice or language isn\'t supported. Pick another voice in Voice settings. Using the system voice.</string>
-    <string name="tts_fallback_gemini_endpoint_changed">Gemini changed its service. Update Telegram Narrator. Using the system voice.</string>
-    <string name="tts_fallback_edge_blocked">Microsoft changed the Edge voice service. Update Telegram Narrator. Using the system voice for a minute.</string>
+    <string name="tts_fallback_gemini_endpoint_changed">Gemini changed its service. Update Narri. Using the system voice.</string>
+    <string name="tts_fallback_edge_blocked">Microsoft changed the Edge voice service. Update Narri. Using the system voice for a minute.</string>
     <string name="tts_fallback_edge_unsupported_voice">This Edge voice returned no audio (voice or language not supported). Pick another voice. Using the system voice for a minute.</string>
     <string name="gemini_key_secure_storage_unavailable">Secure storage isn\'t available on this device right now, so the key was not saved. Try again later.</string>
     <string name="tts_fallback_unplayable">Couldn\'t play the downloaded audio. Using the system voice.</string>
@@ -327,14 +327,14 @@
     <string name="home_open_chat_preview">show messages</string>
     <string name="auto_play_all">Play all unread</string>
     <string name="auto_sign_in_on_phone">Sign in on your phone</string>
-    <string name="auto_sign_in_on_phone_detail">Open Telegram Narrator on your phone and sign in to Telegram</string>
+    <string name="auto_sign_in_on_phone_detail">Open Narri on your phone and sign in to Telegram</string>
     <plurals name="auto_unread_count">
         <item quantity="one">%d unread message</item>
         <item quantity="other">%d unread messages</item>
     </plurals>
     <string name="settings_share_debug_log">Share debug log</string>
     <string name="settings_debug_log_empty">No debug log yet</string>
-    <string name="settings_debug_log_subject">Telegram Narrator debug log</string>
+    <string name="settings_debug_log_subject">Narri debug log</string>
     <string name="home_menu_about">About</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_build_type">Build: %1$s</string>
@@ -355,7 +355,7 @@
     <string name="language_reset_done">Chat languages reset</string>
     <!-- Feedback (About) -->
     <string name="feedback_send">Send feedback</string>
-    <string name="feedback_subject">Telegram Narrator feedback</string>
+    <string name="feedback_subject">Narri feedback</string>
     <string name="feedback_body_prompt">Write your feedback here:</string>
     <string name="feedback_no_email_app">No email app found</string>
 </resources>

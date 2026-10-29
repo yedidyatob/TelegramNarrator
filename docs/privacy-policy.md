@@ -1,8 +1,8 @@
-# Privacy Policy: Unofficial Telegram Narrator
+# Privacy Policy: Narri
 
 _Last updated: October 6, 2026_
 
-Unofficial Telegram Narrator ("the app") is an Android app, developed by Yedidya Toberman ("I", "me"), that reads
+Narri ("the app") is an Android app, developed by Yedidya Toberman ("I", "me"), that reads
 your unread Telegram messages aloud. This policy explains what data the app handles, where it goes, and how you
 can delete it.
 
@@ -122,7 +122,7 @@ Telegram database and the Gemini key are encrypted as described above.
 - **Log out** (in the ⋮ menu of the main screen) ends the app's Telegram session and deletes the Telegram database
   (session, chats and cached messages) from your device. It also deletes the cached Edge and Gemini audio.
 - **Remove key** in the voice settings deletes your Gemini API key.
-- **Clear storage** (Android Settings → Apps → Unofficial Telegram Narrator → Storage) or **uninstalling** the
+- **Clear storage** (Android Settings → Apps → Narri → Storage) or **uninstalling** the
   app deletes everything the app stored on your device, including settings and the audio cache.
 - Data held by Telegram (your account and messages) is managed in Telegram; see Telegram's Privacy Policy. You
   can also end this app's session from another Telegram app under *Settings → Devices*.

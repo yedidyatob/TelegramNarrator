@@ -51,7 +51,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Android Auto voice ("play <chat> on Telegram Narrator"); the search itself is handled by the
+            <!-- Android Auto voice ("play <chat> on Narri"); the search itself is handled by the
                  media session (PlaybackSession.onSetMediaItems), the activity only opens the app -->
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />

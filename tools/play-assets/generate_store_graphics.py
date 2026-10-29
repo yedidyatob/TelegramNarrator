@@ -55,12 +55,14 @@ body{{margin:0;width:1024px;height:500px;overflow:hidden;font-family:'Rubik','No
 svg.bg{{position:absolute;left:0;top:0}}
 .row{{position:absolute;inset:0;display:flex;align-items:center;gap:56px;padding:0 72px}}
 .icon{{flex:none;filter:drop-shadow(0 18px 30px rgba(0,40,80,.35));border-radius:64px;line-height:0}}
-h1{{margin:0;font-size:58px;font-weight:700;line-height:1.08;letter-spacing:-.5px}}
+h1{{margin:0;font-size:84px;font-weight:700;line-height:1.08;letter-spacing:-.5px}}
+.kicker{{margin-top:8px;font-size:28px;font-weight:500;opacity:.85}}
 .tag{{margin-top:22px;white-space:nowrap;font-size:{38 if rtl else 32}px;font-weight:500;opacity:.97}}
 .sub{{margin-top:10px;font-size:26px;font-weight:400;opacity:.8}}
 </style></head><body><svg class="bg" width="1024" height="500">{waves}</svg>
 <div class="row"><div class="icon">{icon_svg(300, rounded=64)}</div>
-<div><h1 dir="ltr" style="text-align:{'right' if rtl else 'left'}">Unofficial<br>Telegram Narrator</h1>
+<div><h1 dir="ltr" style="text-align:{'right' if rtl else 'left'}">Narri</h1>
+<div class="kicker" dir="ltr" style="text-align:{'right' if rtl else 'left'}">Unofficial Telegram Reader</div>
 <div class="tag">{tag}</div><div class="sub">{sub}</div></div></div></body></html>"""
 
 

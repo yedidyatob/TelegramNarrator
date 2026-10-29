@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes how Telegram Narrator is **actually built today** and the **target architecture** it
+This document describes how Narri is **actually built today** and the **target architecture** it
 is moving towards. It replaces the original design spec (`TelegramReader_TDLib_Architecture.md`), which
 described components that were never built (`TtsRepository`, DataStore-backed preferences, "Encrypted File
 Storage", a use-case layer; the Onboarding and Player screens came later with #20) and claimed an encrypted TDLib database long before #15 added one.
