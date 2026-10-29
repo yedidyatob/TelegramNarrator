@@ -32,7 +32,7 @@
     <string name="playback_paused">מושהה</string>
     <string name="auto_play_all">השמע את כל הלא-נקראות</string>
     <string name="auto_sign_in_on_phone">יש להתחבר בטלפון</string>
-    <string name="auto_sign_in_on_phone_detail">יש לפתוח את Telegram Narrator בטלפון ולהתחבר לטלגרם</string>
+    <string name="auto_sign_in_on_phone_detail">יש לפתוח את Narri בטלפון ולהתחבר לטלגרם</string>
     <plurals name="auto_unread_count">
         <item quantity="one">הודעה %d שלא נקראה</item>
         <item quantity="two">%d הודעות שלא נקראו</item>
@@ -40,12 +40,12 @@
     </plurals>
     <string name="settings_share_debug_log">שיתוף יומן ניפוי באגים</string>
     <string name="settings_debug_log_empty">עדיין אין יומן ניפוי באגים</string>
-    <string name="settings_debug_log_subject">יומן ניפוי באגים של Telegram Narrator</string>
+    <string name="settings_debug_log_subject">יומן ניפוי באגים של Narri</string>
     <!-- TTS failures (#63) -->
     <string name="tts_fallback_gemini_permission_denied">למפתח Gemini שלך אין הרשאה להמרת טקסט לדיבור (ה-API לא מופעל או שהמפתח מוגבל). בדקו אותו ב-Google AI Studio. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_unsupported_voice">הקול או השפה של Gemini אינם נתמכים. בחרו קול אחר בהגדרות הקול. משתמשים בקול המערכת.</string>
-    <string name="tts_fallback_gemini_endpoint_changed">Gemini שינה את השירות שלו. עדכנו את Telegram Narrator. משתמשים בקול המערכת.</string>
-    <string name="tts_fallback_edge_blocked">Microsoft שינתה את שירות הקולות של Edge. עדכנו את Telegram Narrator. משתמשים בקול המערכת לדקה.</string>
+    <string name="tts_fallback_gemini_endpoint_changed">Gemini שינה את השירות שלו. עדכנו את Narri. משתמשים בקול המערכת.</string>
+    <string name="tts_fallback_edge_blocked">Microsoft שינתה את שירות הקולות של Edge. עדכנו את Narri. משתמשים בקול המערכת לדקה.</string>
     <string name="tts_fallback_edge_unsupported_voice">קול Edge הזה לא החזיר שמע (הקול או השפה אינם נתמכים). בחרו קול אחר. משתמשים בקול המערכת לדקה.</string>
     <string name="gemini_key_secure_storage_unavailable">האחסון המאובטח אינו זמין במכשיר כרגע, ולכן המפתח לא נשמר. נסו שוב מאוחר יותר.</string>
     <string name="tts_fallback_unplayable">לא ניתן להשמיע את השמע שהורד. משתמשים בקול המערכת.</string>
@@ -82,7 +82,7 @@
     <string name="language_reset_all_summary">השפה של כל צ\'אט מזוהה במכשיר לפי ההודעות שלו וקובעת את הקול. אפשר לאפס כדי לזהות מחדש.</string>
     <string name="language_reset_done">שפות הצ\'אטים אופסו</string>
     <!-- Full Hebrew UI (#89) -->
-    <string name="app_name">Telegram Narrator (לא רשמי)</string>
+    <string name="app_name">Narri</string>
     <string name="login_title_phone">הזינו את מספר הטלפון</string>
     <string name="login_label_phone">מספר טלפון</string>
     <string name="login_country_choose">מדינה</string>
@@ -313,7 +313,7 @@
     <string name="home_open_chat_preview">הצגת ההודעות</string>
     <!-- Feedback (About) -->
     <string name="feedback_send">שליחת משוב</string>
-    <string name="feedback_subject">משוב על Telegram Narrator</string>
+    <string name="feedback_subject">משוב על Narri</string>
     <string name="feedback_body_prompt">כתבו כאן את המשוב שלכם:</string>
     <string name="feedback_no_email_app">לא נמצאה אפליקציית דוא״ל</string>
 </resources>

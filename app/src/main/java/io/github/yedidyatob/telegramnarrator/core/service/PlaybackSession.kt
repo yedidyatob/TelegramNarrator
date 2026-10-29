@@ -127,7 +127,7 @@ class PlaybackSession(
 
         /**
          * Android Auto's own Play control (media card / mini player / steering wheel) with nothing loaded, and
-         * "Hey Google, play Telegram Narrator": read all unread chats, the app's Play all. Only for this app and
+         * "Hey Google, play Narri": read all unread chats, the app's Play all. Only for this app and
          * Auto, and only for an actual playback request: a car's Bluetooth auto-play on connect (a platform
          * controller) or System UI's resumption card never starts reading on its own.
          */

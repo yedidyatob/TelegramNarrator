@@ -117,7 +117,7 @@ def main():
         small = f'<svg x="22" y="30" width="28" height="28" viewBox="27 27 54 54"><path transform="translate(0,0)" fill="#5f6368" fill-rule="evenodd" d="{GLYPH}"/></svg>'
         large = f'<svg x="560" y="56" width="120" height="120" viewBox="18 18 72 72"><clipPath id="c"><circle cx="54" cy="54" r="36"/></clipPath><g clip-path="url(#c)"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{BLUE_TOP}"/><stop offset="1" stop-color="{BLUE_BOTTOM}"/></linearGradient></defs><rect width="108" height="108" fill="url(#g2)"/><path transform="translate(0,{GLYPH_DY}) translate(54,54) scale({GLYPH_SCALE}) translate(-54,-54)" fill="#fff" fill-rule="evenodd" d="{GLYPH}"/><path fill="#fff" fill-rule="evenodd" d="{RIBBON} {TEXT}"/></g></svg>'
         return (f'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260"><rect width="720" height="260" rx="28" fill="#F1F3F4"/>{small}'
-                f'<text x="60" y="50" font-family="sans-serif" font-size="20" fill="#5f6368">Telegram Narrator · Reading</text>'
+                f'<text x="60" y="50" font-family="sans-serif" font-size="20" fill="#5f6368">Narri · Reading</text>'
                 f'<text x="24" y="104" font-family="sans-serif" font-size="30" font-weight="bold" fill="#202124">News chat</text>'
                 f'<text x="24" y="140" font-family="sans-serif" font-size="24" fill="#5f6368">From Dana</text>{large}'
                 f'<g fill="#202124"><rect x="40" y="196" width="22" height="22" rx="3"/><polygon points="170,190 196,207 170,224"/>'
