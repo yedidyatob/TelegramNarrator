@@ -7,9 +7,15 @@ package io.github.yedidyatob.telegramnarrator.domain.security
 object WrappedKeyCodec {
     private const val VERSION: Byte = 1
 
-    class Wrapped(val iv: ByteArray, val ciphertext: ByteArray)
+    class Wrapped(
+        val iv: ByteArray,
+        val ciphertext: ByteArray,
+    )
 
-    fun encode(iv: ByteArray, ciphertext: ByteArray): ByteArray {
+    fun encode(
+        iv: ByteArray,
+        ciphertext: ByteArray,
+    ): ByteArray {
         require(iv.isNotEmpty() && iv.size <= 255) { "bad IV length" }
         require(ciphertext.isNotEmpty()) { "empty ciphertext" }
         return byteArrayOf(VERSION, iv.size.toByte()) + iv + ciphertext
@@ -22,7 +28,7 @@ object WrappedKeyCodec {
         if (ivLength == 0 || blob.size <= 2 + ivLength) return null
         return Wrapped(
             iv = blob.copyOfRange(2, 2 + ivLength),
-            ciphertext = blob.copyOfRange(2 + ivLength, blob.size)
+            ciphertext = blob.copyOfRange(2 + ivLength, blob.size),
         )
     }
 }

@@ -11,6 +11,7 @@ interface ChatRepository {
     }
 
     fun getUnreadChats(): Flow<List<Chat>>
+
     suspend fun getChat(chatId: Long): Chat?
 
     /**
@@ -19,13 +20,20 @@ interface ChatRepository {
      * has more unread messages than that, these are the **oldest** unread ones (starting right after
      * the last read message); the newer ones stay unread for the next run.
      */
-    suspend fun getChatMessages(chatId: Long, limit: Int = MAX_UNREAD_MESSAGES): List<Message>
+    suspend fun getChatMessages(
+        chatId: Long,
+        limit: Int = MAX_UNREAD_MESSAGES,
+    ): List<Message>
 
     /**
      * Marks the given (played) messages of the chat as read; messages newer than the newest of
      * [messageIds] stay unread. No-op if [markAsReadEnabled] is false (possible in debug builds only).
      */
-    suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>)
+    suspend fun markChatAsRead(
+        chatId: Long,
+        messageIds: List<Long>,
+    )
+
     suspend fun getVoiceFilePath(fileId: Int): String?
 
     /** Downloads a small TDLib file (e.g. a chat photo) and returns its local path, or null. */
@@ -36,7 +44,7 @@ interface ChatRepository {
      * the list is loaded (or was already complete); throws when TDLib reports an error.
      */
     suspend fun loadChats()
-    
+
     /** Always true in release builds; debug builds can turn it off in Voice settings. */
     val markAsReadEnabled: Boolean
 }

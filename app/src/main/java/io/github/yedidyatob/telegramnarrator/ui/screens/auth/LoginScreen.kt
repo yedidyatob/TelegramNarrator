@@ -1,39 +1,56 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.auth
 
-import androidx.compose.ui.semantics.heading
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.res.stringResource
-import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AuthViewModel
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
-import androidx.compose.ui.text.style.TextAlign
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -48,22 +65,24 @@ fun LoginScreen(
     val authErrorText = authError?.let { stringResource(it.messageRes()) }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-                // Edge-to-edge: keep the field and button above the keyboard, and scroll on small screens
-                .imePadding()
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
+                    // Edge-to-edge: keep the field and button above the keyboard, and scroll on small screens
+                    .imePadding()
+                    .fillMaxSize(),
+            contentAlignment = Alignment.Center,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                modifier =
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
             ) {
                 when (val state = authState) {
                     is AuthState.Initializing -> {
@@ -71,6 +90,7 @@ fun LoginScreen(
                         Spacer(Modifier.height(16.dp))
                         Text(stringResource(R.string.login_status_initializing), style = MaterialTheme.typography.bodyMedium)
                     }
+
                     is AuthState.Unauthenticated, is AuthState.WaitPhoneNumber -> {
                         PhoneNumberInput(
                             isLoading = isLoading,
@@ -78,35 +98,39 @@ fun LoginScreen(
                             normalizer = viewModel.phoneNumbers,
                             countries = { viewModel.phoneCountries },
                             defaultRegion = viewModel.defaultPhoneRegion,
-                            onEnter = viewModel::onPhoneNumberEntered
+                            onEnter = viewModel::onPhoneNumberEntered,
                         )
                     }
+
                     is AuthState.WaitCode -> {
                         CodeInput(
                             isLoading = isLoading,
                             error = authErrorText,
-                            onEnter = viewModel::onCodeEntered
+                            onEnter = viewModel::onCodeEntered,
                         )
                     }
+
                     is AuthState.WaitPassword -> {
                         PasswordInput(
                             isLoading = isLoading,
                             error = authErrorText,
-                            onEnter = viewModel::onPasswordEntered
+                            onEnter = viewModel::onPasswordEntered,
                         )
                     }
+
                     is AuthState.Authenticated -> {
                         CircularProgressIndicator()
                         Spacer(Modifier.height(16.dp))
                         Text(stringResource(R.string.login_status_redirecting), style = MaterialTheme.typography.bodyMedium)
                     }
+
                     is AuthState.Error -> {
                         Text(stringResource(R.string.login_error_title), style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             stringResource(state.reason.messageRes()),
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         )
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = viewModel::onRetry) {
@@ -128,20 +152,24 @@ fun LoginScreen(
 internal fun UnofficialAppNotice() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth(0.8f).padding(top = 24.dp)
+        modifier = Modifier.fillMaxWidth(0.8f).padding(top = 24.dp),
     ) {
         Text(
             stringResource(R.string.login_unofficial_notice),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
         PrivacyPolicyLink()
     }
 }
 
 @Composable
-fun CodeInput(isLoading: Boolean, error: String?, onEnter: (String) -> Unit) {
+fun CodeInput(
+    isLoading: Boolean,
+    error: String?,
+    onEnter: (String) -> Unit,
+) {
     var text by rememberSaveable { mutableStateOf("") }
     LoginStep(
         title = stringResource(R.string.login_title_code),
@@ -153,12 +181,16 @@ fun CodeInput(isLoading: Boolean, error: String?, onEnter: (String) -> Unit) {
         keyboardType = KeyboardType.Number,
         isLoading = isLoading,
         error = error,
-        onEnter = onEnter
+        onEnter = onEnter,
     )
 }
 
 @Composable
-fun PasswordInput(isLoading: Boolean, error: String?, onEnter: (String) -> Unit) {
+fun PasswordInput(
+    isLoading: Boolean,
+    error: String?,
+    onEnter: (String) -> Unit,
+) {
     // Not rememberSaveable on purpose: the password must not end up in the saved instance state
     var text by remember { mutableStateOf("") }
     LoginStep(
@@ -172,7 +204,7 @@ fun PasswordInput(isLoading: Boolean, error: String?, onEnter: (String) -> Unit)
         isPassword = true,
         isLoading = isLoading,
         error = error,
-        onEnter = onEnter
+        onEnter = onEnter,
     )
 }
 
@@ -189,7 +221,7 @@ private fun LoginStep(
     isLoading: Boolean,
     error: String?,
     onEnter: (String) -> Unit,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
 ) {
     val submit = { if (!isLoading && text.isNotBlank()) onEnter(text) }
     LoginStepFrame(
@@ -199,7 +231,7 @@ private fun LoginStep(
         canSubmit = text.isNotBlank(),
         isLoading = isLoading,
         error = error,
-        onSubmit = submit
+        onSubmit = submit,
     ) {
         OutlinedTextField(
             value = text,
@@ -211,7 +243,7 @@ private fun LoginStep(
             singleLine = true,
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { submit() })
+            keyboardActions = KeyboardActions(onDone = { submit() }),
         )
     }
 }
@@ -230,7 +262,7 @@ internal fun LoginStepFrame(
     error: String?,
     onSubmit: () -> Unit,
     footer: @Composable () -> Unit = {},
-    input: @Composable () -> Unit
+    input: @Composable () -> Unit,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Centered: the app name ("Narri") can wrap to two lines
@@ -238,7 +270,7 @@ internal fun LoginStepFrame(
             title,
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() }
+            modifier = Modifier.semantics { heading() },
         )
         Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
@@ -249,22 +281,23 @@ internal fun LoginStepFrame(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 // TalkBack announces the error when it appears
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
+                modifier =
+                    Modifier
+                        .padding(top = 8.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onSubmit,
             enabled = !isLoading && canSubmit,
-            modifier = Modifier.fillMaxWidth(0.8f).height(50.dp)
+            modifier = Modifier.fillMaxWidth(0.8f).height(50.dp),
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
+                    strokeWidth = 2.dp,
                 )
             } else {
                 Text(buttonText)

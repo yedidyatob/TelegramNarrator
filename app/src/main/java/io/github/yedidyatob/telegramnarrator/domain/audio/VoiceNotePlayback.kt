@@ -9,10 +9,12 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
  */
 object VoiceNotePlayback {
     sealed class Outcome {
-        data class Play(val path: String) : Outcome()
+        data class Play(
+            val path: String,
+        ) : Outcome()
+
         data object SkipSilently : Outcome()
     }
 
-    fun afterDownload(path: String?): Outcome =
-        if (path != null) Outcome.Play(path) else Outcome.SkipSilently
+    fun afterDownload(path: String?): Outcome = if (path != null) Outcome.Play(path) else Outcome.SkipSilently
 }

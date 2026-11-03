@@ -84,6 +84,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
@@ -93,14 +94,13 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceQuality
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsLogic
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection
+import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.nameRes
-import io.github.yedidyatob.telegramnarrator.BuildConfig
-import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
  * Voice settings bottom sheet: **Engine** (System | Gemini), then only the selected engine's own section,
@@ -110,7 +110,7 @@ import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 @Composable
 fun VoiceSettingsSheet(
     onDismiss: () -> Unit,
-    viewModel: TtsSettingsViewModel = hiltViewModel()
+    viewModel: TtsSettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -120,26 +120,27 @@ fun VoiceSettingsSheet(
     LaunchedEffect(ttsReady) { viewModel.reload() }
     DisposableEffect(Unit) { onDispose { viewModel.stopTest() } }
 
-    val actions = remember(viewModel) {
-        VoiceSettingsActions(
-            onSelectProvider = viewModel::setProvider,
-            onSelectSystemEngine = viewModel::selectEngine,
-            onSelectSystemVoice = viewModel::selectVoice,
-            onTestSystem = viewModel::testSystemVoice,
-            onSaveGeminiKey = viewModel::saveGeminiApiKey,
-            onRemoveGeminiKey = viewModel::removeGeminiApiKey,
-            onSelectGeminiVoice = viewModel::setGeminiVoice,
-            onTestGemini = viewModel::testGeminiVoice,
-            onSpeechRate = viewModel::setSpeechRate,
-            onMarkAsRead = viewModel::setMarkAsRead,
-            onSelectTestLanguage = viewModel::setTestLanguage,
-            onResetLanguages = viewModel::resetChatLanguages
-        )
-    }
+    val actions =
+        remember(viewModel) {
+            VoiceSettingsActions(
+                onSelectProvider = viewModel::setProvider,
+                onSelectSystemEngine = viewModel::selectEngine,
+                onSelectSystemVoice = viewModel::selectVoice,
+                onTestSystem = viewModel::testSystemVoice,
+                onSaveGeminiKey = viewModel::saveGeminiApiKey,
+                onRemoveGeminiKey = viewModel::removeGeminiApiKey,
+                onSelectGeminiVoice = viewModel::setGeminiVoice,
+                onTestGemini = viewModel::testGeminiVoice,
+                onSpeechRate = viewModel::setSpeechRate,
+                onMarkAsRead = viewModel::setMarkAsRead,
+                onSelectTestLanguage = viewModel::setTestLanguage,
+                onResetLanguages = viewModel::resetChatLanguages,
+            )
+        }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         VoiceSettingsContent(state = state, isPlaying = isPlaying, actions = actions)
     }
@@ -158,7 +159,7 @@ class VoiceSettingsActions(
     val onSpeechRate: (Float) -> Unit = {},
     val onMarkAsRead: (Boolean) -> Unit = {},
     val onSelectTestLanguage: (TestLanguage) -> Unit = {},
-    val onResetLanguages: () -> Unit = {}
+    val onResetLanguages: () -> Unit = {},
 )
 
 /** Stateless sheet content (also used by the previews). */
@@ -167,46 +168,59 @@ fun VoiceSettingsContent(
     state: TtsSettingsUiState,
     isPlaying: Boolean,
     actions: VoiceSettingsActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
     ) {
         Text(
             stringResource(R.string.settings_voice_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() }
+            modifier = Modifier.semantics { heading() },
         )
         if (isPlaying) {
             Text(
                 stringResource(R.string.settings_voice_playing_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
+                modifier =
+                    Modifier
+                        .padding(top = 4.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         state.sections.forEach { section ->
             when (section) {
-                VoiceSettingsSection.ENGINE -> EngineSection(state.provider, isPlaying, actions.onSelectProvider)
-                VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, state.testLanguage, isPlaying, actions)
-                VoiceSettingsSection.GEMINI_VOICE -> GeminiSection(state.gemini, state.testLanguage, isPlaying, actions)
-                VoiceSettingsSection.PLAYBACK -> PlaybackSection(
-                    speechRate = state.speechRate,
-                    markAsRead = state.markAsRead,
-                    showMarkAsReadSwitch = state.markAsReadSwitchVisible,
-                    actions = actions
-                )
+                VoiceSettingsSection.ENGINE -> {
+                    EngineSection(state.provider, isPlaying, actions.onSelectProvider)
+                }
+
+                VoiceSettingsSection.SYSTEM_VOICES -> {
+                    SystemSection(state.system, state.testLanguage, isPlaying, actions)
+                }
+
+                VoiceSettingsSection.GEMINI_VOICE -> {
+                    GeminiSection(state.gemini, state.testLanguage, isPlaying, actions)
+                }
+
+                VoiceSettingsSection.PLAYBACK -> {
+                    PlaybackSection(
+                        speechRate = state.speechRate,
+                        markAsRead = state.markAsRead,
+                        showMarkAsReadSwitch = state.markAsReadSwitchVisible,
+                        actions = actions,
+                    )
+                }
             }
         }
         Text(
             stringResource(R.string.language_reset_all_summary),
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 16.dp),
         )
         TextButton(onClick = actions.onResetLanguages) { Text(stringResource(R.string.language_reset_all)) }
         AboutSection()
@@ -216,7 +230,11 @@ fun VoiceSettingsContent(
 // ---- Sections -------------------------------------------------------------------------------------
 
 @Composable
-private fun EngineSection(provider: SpeechProvider, isPlaying: Boolean, onSelect: (SpeechProvider) -> Unit) {
+private fun EngineSection(
+    provider: SpeechProvider,
+    isPlaying: Boolean,
+    onSelect: (SpeechProvider) -> Unit,
+) {
     SettingsSection(R.string.settings_section_engine) {
         Column(Modifier.selectableGroup()) {
             ENGINE_ROWS.forEach { (engine, title, subtitle) ->
@@ -225,7 +243,7 @@ private fun EngineSection(provider: SpeechProvider, isPlaying: Boolean, onSelect
                     supporting = stringResource(subtitle),
                     selected = provider == engine,
                     enabled = !isPlaying,
-                    onClick = { onSelect(engine) }
+                    onClick = { onSelect(engine) },
                 )
             }
         }
@@ -237,7 +255,7 @@ private fun SystemSection(
     system: SystemVoiceUiState,
     testLanguage: TestLanguage,
     isPlaying: Boolean,
-    actions: VoiceSettingsActions
+    actions: VoiceSettingsActions,
 ) {
     val context = LocalContext.current
     SettingsSection(R.string.settings_section_system) {
@@ -252,10 +270,11 @@ private fun SystemSection(
                 label = stringResource(R.string.settings_system_engine),
                 value = system.engines.firstOrNull { it.packageName == system.selectedEngine }?.label ?: defaultLabel,
                 enabled = enabled,
-                options = listOf(DropdownOption<String?>(null, defaultLabel)) +
-                    system.engines.map { DropdownOption(it.packageName, it.label) },
+                options =
+                    listOf(DropdownOption<String?>(null, defaultLabel)) +
+                        system.engines.map { DropdownOption(it.packageName, it.label) },
                 selected = system.selectedEngine,
-                onSelect = actions.onSelectSystemEngine
+                onSelect = actions.onSelectSystemEngine,
             )
         }
         system.groups.forEach { group -> SystemVoicePicker(group, enabled, actions.onSelectSystemVoice) }
@@ -268,7 +287,7 @@ private fun SystemSection(
                 } catch (e: ActivityNotFoundException) {
                     Toast.makeText(context, ttsUnavailable, Toast.LENGTH_SHORT).show()
                 }
-            }
+            },
         ) { Text(stringResource(R.string.settings_system_open_tts)) }
         TestVoiceRow(
             language = testLanguage,
@@ -276,13 +295,17 @@ private fun SystemSection(
             isPlaying = isPlaying,
             enabled = VoiceSettingsLogic.canTestSystem(isPlaying, systemTtsReady = !system.loading, testing = system.testing),
             testing = system.testing,
-            onTest = actions.onTestSystem
+            onTest = actions.onTestSystem,
         )
     }
 }
 
 @Composable
-private fun SystemVoicePicker(group: VoiceGroup, enabled: Boolean, onSelect: (String, String?) -> Unit) {
+private fun SystemVoicePicker(
+    group: VoiceGroup,
+    enabled: Boolean,
+    onSelect: (String, String?) -> Unit,
+) {
     val label = stringResource(R.string.settings_system_voice_for, group.displayName)
     if (group.voices.isEmpty()) {
         Dropdown(
@@ -291,7 +314,7 @@ private fun SystemVoicePicker(group: VoiceGroup, enabled: Boolean, onSelect: (St
             enabled = false,
             options = emptyList<DropdownOption<String?>>(),
             selected = null,
-            onSelect = {}
+            onSelect = {},
         )
         return
     }
@@ -300,10 +323,11 @@ private fun SystemVoicePicker(group: VoiceGroup, enabled: Boolean, onSelect: (St
         label = label,
         value = group.selectedVoice ?: defaultLabel,
         enabled = enabled,
-        options = listOf(DropdownOption<String?>(null, defaultLabel)) +
-            group.voices.map { DropdownOption(it.name, it.name, qualityText(it)) },
+        options =
+            listOf(DropdownOption<String?>(null, defaultLabel)) +
+                group.voices.map { DropdownOption(it.name, it.name, qualityText(it)) },
         selected = group.selectedVoice,
-        onSelect = { onSelect(group.language, it) }
+        onSelect = { onSelect(group.language, it) },
     )
 }
 
@@ -320,15 +344,16 @@ private fun GetGeminiKeyLink() {
         onClick = {
             try {
                 context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(GeminiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    Intent(Intent.ACTION_VIEW, Uri.parse(GeminiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
             } catch (e: ActivityNotFoundException) {
                 Toast.makeText(context, noBrowser, Toast.LENGTH_SHORT).show()
             }
         },
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .semantics { contentDescription = opensInBrowser }
+        modifier =
+            Modifier
+                .heightIn(min = 48.dp)
+                .semantics { contentDescription = opensInBrowser },
     ) {
         Text(stringResource(R.string.settings_gemini_get_key))
         Spacer(Modifier.size(4.dp))
@@ -337,13 +362,14 @@ private fun GetGeminiKeyLink() {
     }
 }
 
-private class ApiKeyVisualTransformation(private val mask: Char = '•') : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        return TransformedText(
+private class ApiKeyVisualTransformation(
+    private val mask: Char = '•',
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText =
+        TransformedText(
             AnnotatedString(mask.toString().repeat(text.text.length)),
-            OffsetMapping.Identity
+            OffsetMapping.Identity,
         )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -352,7 +378,7 @@ private fun GeminiSection(
     gemini: GeminiVoiceUiState,
     testLanguage: TestLanguage,
     isPlaying: Boolean,
-    actions: VoiceSettingsActions
+    actions: VoiceSettingsActions,
 ) {
     SettingsSection(R.string.settings_section_gemini) {
         val enabled = !isPlaying
@@ -378,32 +404,37 @@ private fun GeminiSection(
                         }) {
                             Icon(
                                 Icons.Filled.ContentPaste,
-                                contentDescription = stringResource(R.string.settings_gemini_paste_key)
+                                contentDescription = stringResource(R.string.settings_gemini_paste_key),
                             )
                         }
                     }
                     IconButton(onClick = { showKey = !showKey }) {
                         Icon(
                             if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = stringResource(
-                                if (showKey) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key
-                            )
+                            contentDescription =
+                                stringResource(
+                                    if (showKey) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key,
+                                ),
                         )
                     }
                 }
             },
             singleLine = true,
-            enabled = enabled
+            enabled = enabled,
         )
         GetGeminiKeyLink()
         Text(
-            if (gemini.keyHint != null) stringResource(R.string.settings_gemini_key_saved, gemini.keyHint)
-            else stringResource(R.string.settings_gemini_key_none),
+            if (gemini.keyHint != null) {
+                stringResource(R.string.settings_gemini_key_saved, gemini.keyHint)
+            } else {
+                stringResource(R.string.settings_gemini_key_none)
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = if (gemini.hasKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .semantics { liveRegion = LiveRegionMode.Polite }
+            modifier =
+                Modifier
+                    .padding(top = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
             Button(
@@ -412,11 +443,11 @@ private fun GeminiSection(
                     keyDraft = ""
                     showKey = false
                 },
-                enabled = enabled && keyDraft.isNotBlank()
+                enabled = enabled && keyDraft.isNotBlank(),
             ) { Text(stringResource(R.string.settings_gemini_save_key)) }
             OutlinedButton(
                 onClick = actions.onRemoveGeminiKey,
-                enabled = enabled && gemini.hasKey
+                enabled = enabled && gemini.hasKey,
             ) { Text(stringResource(R.string.settings_gemini_remove_key)) }
         }
         Spacer(Modifier.height(8.dp))
@@ -426,7 +457,7 @@ private fun GeminiSection(
             enabled = enabled,
             options = GeminiTts.VOICES.map { DropdownOption(it, it) },
             selected = gemini.voice,
-            onSelect = actions.onSelectGeminiVoice
+            onSelect = actions.onSelectGeminiVoice,
         )
         TestVoiceRow(
             language = testLanguage,
@@ -435,7 +466,7 @@ private fun GeminiSection(
             enabled = VoiceSettingsLogic.canTestGemini(isPlaying, gemini.testing, gemini.hasKey),
             testing = gemini.testing,
             onTest = actions.onTestGemini,
-            hint = if (!gemini.hasKey) stringResource(R.string.settings_gemini_test_needs_key) else null
+            hint = if (!gemini.hasKey) stringResource(R.string.settings_gemini_test_needs_key) else null,
         )
         HelperText(stringResource(R.string.settings_gemini_cost_privacy))
     }
@@ -446,7 +477,7 @@ private fun PlaybackSection(
     speechRate: Float,
     markAsRead: Boolean,
     showMarkAsReadSwitch: Boolean,
-    actions: VoiceSettingsActions
+    actions: VoiceSettingsActions,
 ) {
     SettingsSection(R.string.settings_section_playback) {
         val rateLabel = stringResource(R.string.settings_rate)
@@ -460,30 +491,34 @@ private fun PlaybackSection(
             onValueChange = actions.onSpeechRate,
             valueRange = TtsVoiceLogic.MIN_RATE..TtsVoiceLogic.MAX_RATE,
             steps = Math.round((TtsVoiceLogic.MAX_RATE - TtsVoiceLogic.MIN_RATE) / TtsVoiceLogic.RATE_STEP) - 1,
-            modifier = Modifier.semantics {
-                contentDescription = rateLabel
-                stateDescription = rateValue
-            }
+            modifier =
+                Modifier.semantics {
+                    contentDescription = rateLabel
+                    stateDescription = rateValue
+                },
         )
         // Debug builds only: release builds always mark played messages as read (Telegram API ToS 1.4, no
         // "ghost mode"), so the switch is not offered there.
-        if (showMarkAsReadSwitch) Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = MIN_TOUCH)
-                .toggleable(value = markAsRead, role = Role.Switch, onValueChange = actions.onMarkAsRead)
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(stringResource(R.string.settings_mark_read), style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.settings_mark_read_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        if (showMarkAsReadSwitch) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = MIN_TOUCH)
+                        .toggleable(value = markAsRead, role = Role.Switch, onValueChange = actions.onMarkAsRead)
+                        .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(stringResource(R.string.settings_mark_read), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.settings_mark_read_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = markAsRead, onCheckedChange = null)
             }
-            Switch(checked = markAsRead, onCheckedChange = null)
         }
     }
 }
@@ -503,27 +538,38 @@ private fun AboutSection() {
 
 /** Divider + title (a heading for accessibility) + content. */
 @Composable
-private fun SettingsSection(@StringRes title: Int, content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsSection(
+    @StringRes title: Int,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     HorizontalDivider(Modifier.padding(top = 16.dp))
     Text(
         stringResource(title),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .padding(top = 12.dp, bottom = 4.dp)
-            .semantics { heading() }
+        modifier =
+            Modifier
+                .padding(top = 12.dp, bottom = 4.dp)
+                .semantics { heading() },
     )
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
 }
 
 @Composable
-private fun RadioRow(label: String, supporting: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun RadioRow(
+    label: String,
+    supporting: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null, enabled = enabled)
         Column(Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)) {
@@ -533,7 +579,11 @@ private fun RadioRow(label: String, supporting: String, selected: Boolean, enabl
     }
 }
 
-private data class DropdownOption<T>(val value: T, val label: String, val supporting: String? = null)
+private data class DropdownOption<T>(
+    val value: T,
+    val label: String,
+    val supporting: String? = null,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -543,7 +593,7 @@ private fun <T> Dropdown(
     enabled: Boolean,
     options: List<DropdownOption<T>>,
     selected: T,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val canOpen = enabled && options.isNotEmpty()
@@ -556,7 +606,7 @@ private fun <T> Dropdown(
             singleLine = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && canOpen) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded && canOpen, onDismissRequest = { expanded = false }) {
             val selectedText = stringResource(R.string.settings_voice_selected)
@@ -571,15 +621,18 @@ private fun <T> Dropdown(
                             }
                         }
                     },
-                    trailingIcon = if (isSelected) {
-                        { Icon(Icons.Filled.Check, contentDescription = selectedText) }
-                    } else null,
+                    trailingIcon =
+                        if (isSelected) {
+                            { Icon(Icons.Filled.Check, contentDescription = selectedText) }
+                        } else {
+                            null
+                        },
                     onClick = {
                         expanded = false
                         if (!isSelected) onSelect(option.value)
                     },
                     modifier = Modifier.heightIn(min = MIN_TOUCH),
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                 )
             }
         }
@@ -598,7 +651,7 @@ private fun TestVoiceRow(
     enabled: Boolean,
     testing: Boolean,
     onTest: () -> Unit,
-    hint: String? = null
+    hint: String? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TestLanguagePicker(language, enabled = !isPlaying, onSelect = onSelectLanguage)
@@ -606,12 +659,12 @@ private fun TestVoiceRow(
         OutlinedButton(
             onClick = onTest,
             enabled = enabled && !testing,
-            modifier = if (testing) Modifier.semantics { stateDescription = loading } else Modifier
+            modifier = if (testing) Modifier.semantics { stateDescription = loading } else Modifier,
         ) {
             if (testing) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp).semantics { contentDescription = loading },
-                    strokeWidth = 2.dp
+                    strokeWidth = 2.dp,
                 )
                 Spacer(Modifier.size(8.dp))
             }
@@ -622,7 +675,11 @@ private fun TestVoiceRow(
 }
 
 @Composable
-private fun TestLanguagePicker(language: TestLanguage, enabled: Boolean, onSelect: (TestLanguage) -> Unit) {
+private fun TestLanguagePicker(
+    language: TestLanguage,
+    enabled: Boolean,
+    onSelect: (TestLanguage) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     val name = stringResource(language.nameRes)
     val description = stringResource(R.string.settings_test_language, name)
@@ -630,7 +687,7 @@ private fun TestLanguagePicker(language: TestLanguage, enabled: Boolean, onSelec
         TextButton(
             onClick = { expanded = true },
             enabled = enabled,
-            modifier = Modifier.semantics { contentDescription = description }
+            modifier = Modifier.semantics { contentDescription = description },
         ) {
             Text(name)
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
@@ -640,14 +697,17 @@ private fun TestLanguagePicker(language: TestLanguage, enabled: Boolean, onSelec
             TestLanguage.values().forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.nameRes)) },
-                    trailingIcon = if (option == language) {
-                        { Icon(Icons.Filled.Check, contentDescription = selectedText) }
-                    } else null,
+                    trailingIcon =
+                        if (option == language) {
+                            { Icon(Icons.Filled.Check, contentDescription = selectedText) }
+                        } else {
+                            null
+                        },
                     onClick = {
                         expanded = false
                         onSelect(option)
                     },
-                    modifier = Modifier.heightIn(min = MIN_TOUCH)
+                    modifier = Modifier.heightIn(min = MIN_TOUCH),
                 )
             }
         }
@@ -659,7 +719,7 @@ private fun LoadingRow(text: String) {
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = MIN_TOUCH).semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         Text(text, style = MaterialTheme.typography.bodyMedium)
@@ -672,18 +732,20 @@ private fun HelperText(text: String) {
 }
 
 @Composable
-private fun qualityText(voice: VoiceOption): String = when (TtsVoiceLogic.qualityOf(voice)) {
-    VoiceQuality.HIGH -> stringResource(R.string.settings_system_quality_high, voice.localeTag)
-    VoiceQuality.NORMAL -> stringResource(R.string.settings_system_quality_normal, voice.localeTag)
-    VoiceQuality.BASIC -> stringResource(R.string.settings_system_quality_basic, voice.localeTag)
-}
+private fun qualityText(voice: VoiceOption): String =
+    when (TtsVoiceLogic.qualityOf(voice)) {
+        VoiceQuality.HIGH -> stringResource(R.string.settings_system_quality_high, voice.localeTag)
+        VoiceQuality.NORMAL -> stringResource(R.string.settings_system_quality_normal, voice.localeTag)
+        VoiceQuality.BASIC -> stringResource(R.string.settings_system_quality_basic, voice.localeTag)
+    }
 
 private val MIN_TOUCH = 48.dp
 
-private val ENGINE_ROWS = listOf(
-    Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
-    Triple(SpeechProvider.GEMINI, R.string.settings_engine_gemini, R.string.settings_engine_gemini_desc)
-)
+private val ENGINE_ROWS =
+    listOf(
+        Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
+        Triple(SpeechProvider.GEMINI, R.string.settings_engine_gemini, R.string.settings_engine_gemini_desc),
+    )
 
 // There is no Settings.ACTION_* constant for the system text-to-speech settings; this is the action string
 // the platform Settings app handles.

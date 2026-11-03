@@ -8,7 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MessageSpeechBodyTest {
-
     @Test
     fun `caption or text is spoken regardless of content type`() {
         assertEquals("hello", MessageSpeechBody.resolve("hello", MessageContentType.PHOTO))
@@ -28,7 +27,7 @@ class MessageSpeechBodyTest {
             MessageContentType.DOCUMENT,
             MessageContentType.UNSUPPORTED,
             MessageContentType.TEXT,
-            MessageContentType.VOICE_NOTE
+            MessageContentType.VOICE_NOTE,
         )) {
             assertNull("expected skip for $type", MessageSpeechBody.resolve("", type))
             assertNull(MessageSpeechBody.resolve("   ", type))
@@ -42,7 +41,7 @@ class MessageSpeechBodyTest {
             assertNull(symbols, MessageSpeechBody.resolve(symbols, MessageContentType.TEXT))
             assertTrue(
                 symbols,
-                MessageSpeechBody.shouldSkipSilently(symbols, MessageContentType.TEXT, voiceNoteFileId = null)
+                MessageSpeechBody.shouldSkipSilently(symbols, MessageContentType.TEXT, voiceNoteFileId = null),
             )
         }
     }

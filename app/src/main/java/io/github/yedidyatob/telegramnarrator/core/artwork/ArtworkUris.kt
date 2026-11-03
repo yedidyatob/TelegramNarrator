@@ -9,11 +9,13 @@ object ArtworkUris {
 
     fun authority(packageName: String) = packageName + AUTHORITY_SUFFIX
 
-    fun forChat(packageName: String, chatId: Long): String = "content://${authority(packageName)}/$CHAT_SEGMENT/$chatId"
+    fun forChat(
+        packageName: String,
+        chatId: Long,
+    ): String = "content://${authority(packageName)}/$CHAT_SEGMENT/$chatId"
 
     /** The chat id of a provider path such as "/chat/-1001234", or null for anything else. */
-    fun chatIdOf(pathSegments: List<String>): Long? =
-        pathSegments.takeIf { it.size == 2 && it[0] == CHAT_SEGMENT }?.get(1)?.toLongOrNull()
+    fun chatIdOf(pathSegments: List<String>): Long? = pathSegments.takeIf { it.size == 2 && it[0] == CHAT_SEGMENT }?.get(1)?.toLongOrNull()
 
     fun playAllIcon(packageName: String): String = "content://${authority(packageName)}/$ICON_SEGMENT/$PLAY_ALL_ICON"
 

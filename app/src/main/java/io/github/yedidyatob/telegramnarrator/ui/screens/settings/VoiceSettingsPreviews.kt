@@ -14,28 +14,33 @@ import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 
-private val previewSystem = SystemVoiceUiState(
-    loading = false,
-    engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
-    selectedEngine = null,
-    groups = listOf(
-        VoiceGroup(
-            language = "he",
-            displayName = "Hebrew",
-            voices = listOf(VoiceOption("he-il-x-heb-local", "he-IL", "he", 400, requiresNetwork = false, installed = true)),
-            selectedVoice = "he-il-x-heb-local"
-        ),
-        VoiceGroup(
-            language = "en",
-            displayName = "English",
-            voices = listOf(VoiceOption("en-us-x-iol-local", "en-US", "en", 400, requiresNetwork = false, installed = true)),
-            selectedVoice = null
-        )
+private val previewSystem =
+    SystemVoiceUiState(
+        loading = false,
+        engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
+        selectedEngine = null,
+        groups =
+            listOf(
+                VoiceGroup(
+                    language = "he",
+                    displayName = "Hebrew",
+                    voices = listOf(VoiceOption("he-il-x-heb-local", "he-IL", "he", 400, requiresNetwork = false, installed = true)),
+                    selectedVoice = "he-il-x-heb-local",
+                ),
+                VoiceGroup(
+                    language = "en",
+                    displayName = "English",
+                    voices = listOf(VoiceOption("en-us-x-iol-local", "en-US", "en", 400, requiresNetwork = false, installed = true)),
+                    selectedVoice = null,
+                ),
+            ),
     )
-)
 
 @Composable
-private fun PreviewSheet(state: TtsSettingsUiState, darkTheme: Boolean = false) {
+private fun PreviewSheet(
+    state: TtsSettingsUiState,
+    darkTheme: Boolean = false,
+) {
     TelegramNarratorTheme(darkTheme = darkTheme) {
         Surface {
             VoiceSettingsContent(state = state, isPlaying = false, actions = VoiceSettingsActions())
@@ -57,8 +62,8 @@ private fun VoiceSettingsDebugMarkAsReadPreview() {
             provider = SpeechProvider.SYSTEM,
             system = previewSystem,
             markAsRead = false,
-            markAsReadSwitchVisible = true
-        )
+            markAsReadSwitchVisible = true,
+        ),
     )
 }
 
@@ -74,8 +79,8 @@ private fun VoiceSettingsGeminiPreview() {
     PreviewSheet(
         TtsSettingsUiState(
             provider = SpeechProvider.GEMINI,
-            gemini = GeminiVoiceUiState(voice = GeminiTts.DEFAULT_VOICE, hasKey = true, keyHint = "AIza…abcd")
-        )
+            gemini = GeminiVoiceUiState(voice = GeminiTts.DEFAULT_VOICE, hasKey = true, keyHint = "AIza…abcd"),
+        ),
     )
 }
 
@@ -83,12 +88,12 @@ private fun VoiceSettingsGeminiPreview() {
     name = "Gemini dark (no key)",
     showBackground = true,
     heightDp = 1000,
-    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
 )
 @Composable
 private fun VoiceSettingsGeminiDarkPreview() {
     PreviewSheet(
         TtsSettingsUiState(provider = SpeechProvider.GEMINI, gemini = GeminiVoiceUiState(voice = GeminiTts.DEFAULT_VOICE)),
-        darkTheme = true
+        darkTheme = true,
     )
 }

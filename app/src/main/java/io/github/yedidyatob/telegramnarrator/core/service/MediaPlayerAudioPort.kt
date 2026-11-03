@@ -12,26 +12,43 @@ import io.github.yedidyatob.telegramnarrator.core.playback.narration.Ding
  * The single [MediaPlayer] slot of the player: voice notes and synthesized speech (USAGE_MEDIA / SPEECH) and the
  * raw WAV dings (SONIFICATION). Used on the controller's thread (main); local files prepare synchronously.
  */
-class MediaPlayerAudioPort(private val context: Context) : AudioPort {
+class MediaPlayerAudioPort(
+    private val context: Context,
+) : AudioPort {
     private var player: MediaPlayer? = null
 
     override val hasPlayer: Boolean get() = player != null
 
-    override fun play(source: AudioSource, speed: Float, onComplete: () -> Unit, onError: () -> Unit): Boolean {
+    override fun play(
+        source: AudioSource,
+        speed: Float,
+        onComplete: () -> Unit,
+        onError: () -> Unit,
+    ): Boolean {
         release()
         val mp = MediaPlayer()
         return try {
-            val contentType = when (source) {
-                is AudioSource.FilePath -> AudioAttributes.CONTENT_TYPE_SPEECH
-                is AudioSource.Tone -> AudioAttributes.CONTENT_TYPE_SONIFICATION
-            }
+            val contentType =
+                when (source) {
+                    is AudioSource.FilePath -> AudioAttributes.CONTENT_TYPE_SPEECH
+                    is AudioSource.Tone -> AudioAttributes.CONTENT_TYPE_SONIFICATION
+                }
             mp.setAudioAttributes(
-                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(contentType).build()
+                AudioAttributes
+                    .Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(contentType)
+                    .build(),
             )
             when (source) {
-                is AudioSource.FilePath -> mp.setDataSource(source.path)
-                is AudioSource.Tone -> context.resources.openRawResourceFd(rawRes(source.ding)).use { afd ->
-                    mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                is AudioSource.FilePath -> {
+                    mp.setDataSource(source.path)
+                }
+
+                is AudioSource.Tone -> {
+                    context.resources.openRawResourceFd(rawRes(source.ding)).use { afd ->
+                        mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                    }
                 }
             }
             mp.setOnCompletionListener {
@@ -64,19 +81,21 @@ class MediaPlayerAudioPort(private val context: Context) : AudioPort {
         }
     }
 
-    override fun pause(): Boolean = try {
-        player?.pause()
-        player != null
-    } catch (e: IllegalStateException) {
-        false
-    }
+    override fun pause(): Boolean =
+        try {
+            player?.pause()
+            player != null
+        } catch (e: IllegalStateException) {
+            false
+        }
 
-    override fun resume(): Boolean = try {
-        player?.start()
-        player != null
-    } catch (e: IllegalStateException) {
-        false
-    }
+    override fun resume(): Boolean =
+        try {
+            player?.start()
+            player != null
+        } catch (e: IllegalStateException) {
+            false
+        }
 
     override fun release() {
         val mp = player ?: return
@@ -89,8 +108,9 @@ class MediaPlayerAudioPort(private val context: Context) : AudioPort {
         mp.release()
     }
 
-    private fun rawRes(ding: Ding): Int = when (ding) {
-        Ding.CHAT_BOUNDARY -> R.raw.chat_boundary_ding
-        Ding.END_OF_MESSAGES -> R.raw.end_of_messages_ding
-    }
+    private fun rawRes(ding: Ding): Int =
+        when (ding) {
+            Ding.CHAT_BOUNDARY -> R.raw.chat_boundary_ding
+            Ding.END_OF_MESSAGES -> R.raw.end_of_messages_ding
+        }
 }

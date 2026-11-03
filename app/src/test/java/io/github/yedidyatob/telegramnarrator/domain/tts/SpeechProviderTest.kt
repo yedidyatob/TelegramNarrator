@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SpeechProviderTest {
-
     @Test
     fun providers_areSystemAndGemini() {
         assertEquals(listOf(SpeechProvider.SYSTEM, SpeechProvider.GEMINI), SpeechProvider.entries)

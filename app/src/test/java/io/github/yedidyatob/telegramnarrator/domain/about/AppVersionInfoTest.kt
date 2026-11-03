@@ -15,7 +15,10 @@ class AppVersionInfoTest {
     @Test
     fun `local builds show the git sha`() {
         assertEquals("Local build · abc1234", AppVersionInfo("1.2.3", 10203, "release", "", "abc1234").buildLine)
-        assertEquals("Local build · abc1234-dirty", AppVersionInfo("1.0.0-debug+local.abc1234-dirty", 10000, "debug", "", "abc1234-dirty").buildLine)
+        assertEquals(
+            "Local build · abc1234-dirty",
+            AppVersionInfo("1.0.0-debug+local.abc1234-dirty", 10000, "debug", "", "abc1234-dirty").buildLine,
+        )
     }
 
     @Test

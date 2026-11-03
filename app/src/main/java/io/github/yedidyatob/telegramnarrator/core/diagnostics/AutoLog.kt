@@ -20,6 +20,7 @@ object AutoLog {
     const val FILE_NAME = "tn-auto.log"
 
     private val writer = Executors.newSingleThreadExecutor { Thread(it, "TN-Auto-log").apply { isDaemon = true } }
+
     @Volatile private var log: RollingLogFile? = null
 
     fun init(context: Context) {
@@ -33,7 +34,10 @@ object AutoLog {
         write("I", message)
     }
 
-    fun error(message: String, error: Throwable? = null) {
+    fun error(
+        message: String,
+        error: Throwable? = null,
+    ) {
         Log.e(TAG, message, error)
         write("E", if (error == null) message else message + "\n" + stackTrace(error))
     }
@@ -49,27 +53,34 @@ object AutoLog {
         }
     }
 
-    private fun write(level: String, message: String) {
+    private fun write(
+        level: String,
+        message: String,
+    ) {
         val target = log ?: return
         val line = line(level, message)
         writer.execute { runCatching { synchronized(this) { target.append(line) } } }
     }
 
-    private fun line(level: String, message: String): String {
+    private fun line(
+        level: String,
+        message: String,
+    ): String {
         val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", Locale.US).format(Date())
         return "$time $level $message"
     }
 
     /** Class names and frames only: exception messages can carry user data. */
-    fun stackTrace(error: Throwable): String = buildString {
-        var current: Throwable? = error
-        var depth = 0
-        while (current != null && depth < 5) {
-            if (depth > 0) append("Caused by: ")
-            append(current.javaClass.name).append('\n')
-            current.stackTrace.take(25).forEach { append("    at ").append(it).append('\n') }
-            current = current.cause.takeIf { it !== current }
-            depth++
-        }
-    }.trimEnd()
+    fun stackTrace(error: Throwable): String =
+        buildString {
+            var current: Throwable? = error
+            var depth = 0
+            while (current != null && depth < 5) {
+                if (depth > 0) append("Caused by: ")
+                append(current.javaClass.name).append('\n')
+                current.stackTrace.take(25).forEach { append("    at ").append(it).append('\n') }
+                current = current.cause.takeIf { it !== current }
+                depth++
+            }
+        }.trimEnd()
 }

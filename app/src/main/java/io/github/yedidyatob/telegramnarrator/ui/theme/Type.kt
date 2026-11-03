@@ -11,20 +11,21 @@ private val Base = Typography()
 private fun TextStyle.untracked() = copy(letterSpacing = 0.sp)
 
 /** All 15 Material 3 type styles with the default sizes and weights, Hebrew-friendly (no letter-spacing). */
-val Typography = Typography(
-    displayLarge = Base.displayLarge.untracked(),
-    displayMedium = Base.displayMedium.untracked(),
-    displaySmall = Base.displaySmall.untracked(),
-    headlineLarge = Base.headlineLarge.untracked(),
-    headlineMedium = Base.headlineMedium.untracked(),
-    headlineSmall = Base.headlineSmall.untracked(),
-    titleLarge = Base.titleLarge.untracked(),
-    titleMedium = Base.titleMedium.untracked(),
-    titleSmall = Base.titleSmall.untracked(),
-    bodyLarge = Base.bodyLarge.untracked(),
-    bodyMedium = Base.bodyMedium.untracked(),
-    bodySmall = Base.bodySmall.untracked(),
-    labelLarge = Base.labelLarge.untracked(),
-    labelMedium = Base.labelMedium.untracked(),
-    labelSmall = Base.labelSmall.untracked()
-)
+val Typography =
+    Typography(
+        displayLarge = Base.displayLarge.untracked(),
+        displayMedium = Base.displayMedium.untracked(),
+        displaySmall = Base.displaySmall.untracked(),
+        headlineLarge = Base.headlineLarge.untracked(),
+        headlineMedium = Base.headlineMedium.untracked(),
+        headlineSmall = Base.headlineSmall.untracked(),
+        titleLarge = Base.titleLarge.untracked(),
+        titleMedium = Base.titleMedium.untracked(),
+        titleSmall = Base.titleSmall.untracked(),
+        bodyLarge = Base.bodyLarge.untracked(),
+        bodyMedium = Base.bodyMedium.untracked(),
+        bodySmall = Base.bodySmall.untracked(),
+        labelLarge = Base.labelLarge.untracked(),
+        labelMedium = Base.labelMedium.untracked(),
+        labelSmall = Base.labelSmall.untracked(),
+    )

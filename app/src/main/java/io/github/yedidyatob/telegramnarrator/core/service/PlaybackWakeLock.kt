@@ -18,7 +18,9 @@ import android.os.PowerManager
  *
  * The lock has a timeout so a missed release can never drain the battery; it is renewed on every item.
  */
-class PlaybackWakeLock(context: Context) {
+class PlaybackWakeLock(
+    context: Context,
+) {
     private val lock: PowerManager.WakeLock =
         (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TelegramNarrator:playback")
@@ -26,7 +28,11 @@ class PlaybackWakeLock(context: Context) {
 
     /** Holds the lock while [active], renewing its timeout; releases it otherwise. */
     fun update(active: Boolean) {
-        if (active) lock.acquire(TIMEOUT_MS) else if (lock.isHeld) lock.release()
+        if (active) {
+            lock.acquire(TIMEOUT_MS)
+        } else if (lock.isHeld) {
+            lock.release()
+        }
     }
 
     companion object {

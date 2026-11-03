@@ -6,9 +6,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TtsVoiceLogicTest {
-
     private fun voice(
-        name: String, tag: String, quality: Int = 400, network: Boolean = false, installed: Boolean = true
+        name: String,
+        tag: String,
+        quality: Int = 400,
+        network: Boolean = false,
+        installed: Boolean = true,
     ) = VoiceOption(name, tag, TtsVoiceLogic.normalizeLanguage(tag), quality, network, installed)
 
     private val heLocal = voice("he-il-local", "he-IL", 400)

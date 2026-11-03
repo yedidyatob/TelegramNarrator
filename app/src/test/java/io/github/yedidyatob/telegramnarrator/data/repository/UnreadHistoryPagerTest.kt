@@ -5,8 +5,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class UnreadHistoryPagerTest {
-
-    private data class Msg(val id: Long, val outgoing: Boolean = false)
+    private data class Msg(
+        val id: Long,
+        val outgoing: Boolean = false,
+    )
 
     /**
      * Fake GetChatHistory(chatId, fromMessageId, offset = 0, limit): newest-first, starts at the newest
@@ -16,12 +18,15 @@ class UnreadHistoryPagerTest {
     private class FakeHistory(
         ids: List<Msg>,
         private val maxPerPage: Int = 100,
-        private val firstPageSize: Int = maxPerPage
+        private val firstPageSize: Int = maxPerPage,
     ) {
         private val newestFirst = ids.sortedByDescending { it.id }
         var requests = 0
 
-        fun page(fromMessageId: Long, limit: Int): List<Msg> {
+        fun page(
+            fromMessageId: Long,
+            limit: Int,
+        ): List<Msg> {
             val size = if (requests == 0) firstPageSize else maxPerPage
             requests++
             val start = if (fromMessageId == 0L) 0 else newestFirst.indexOfFirst { it.id <= fromMessageId }
@@ -34,21 +39,26 @@ class UnreadHistoryPagerTest {
         history: FakeHistory,
         unreadCount: Int,
         lastReadId: Long,
-        maxResults: Int = 100
-    ): List<Long> = runBlocking {
-        UnreadHistoryPager.collectOldestUnread(
-            unreadCount = unreadCount,
-            lastReadId = lastReadId,
-            maxResults = maxResults,
-            idOf = { it: Msg -> it.id },
-            isOutgoing = { it: Msg -> it.outgoing },
-            retryDelayMs = 0
-        ) { from, limit -> history.page(from, limit) }.map { it.id }
-    }
+        maxResults: Int = 100,
+    ): List<Long> =
+        runBlocking {
+            UnreadHistoryPager
+                .collectOldestUnread(
+                    unreadCount = unreadCount,
+                    lastReadId = lastReadId,
+                    maxResults = maxResults,
+                    idOf = { it: Msg -> it.id },
+                    isOutgoing = { it: Msg -> it.outgoing },
+                    retryDelayMs = 0,
+                ) { from, limit -> history.page(from, limit) }
+                .map { it.id }
+        }
 
     // 50 read messages (ids 1..50) followed by unread ones
-    private fun chat(unread: Int, outgoingIds: Set<Long> = emptySet()): List<Msg> =
-        (1L..50L + unread).map { Msg(it, outgoing = it in outgoingIds) }
+    private fun chat(
+        unread: Int,
+        outgoingIds: Set<Long> = emptySet(),
+    ): List<Msg> = (1L..50L + unread).map { Msg(it, outgoing = it in outgoingIds) }
 
     @Test
     fun `few unread messages are all returned oldest first`() {

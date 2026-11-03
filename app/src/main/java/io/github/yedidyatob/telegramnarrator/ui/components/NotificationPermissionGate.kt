@@ -32,10 +32,11 @@ fun <T> rememberNotificationPermissionGate(onPlay: (T) -> Unit): (T) -> Unit {
     var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showRationale by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        pending?.invoke()
-        pending = null
-    }
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            pending?.invoke()
+            pending = null
+        }
 
     if (showRationale) {
         AlertDialog(
@@ -59,14 +60,15 @@ fun <T> rememberNotificationPermissionGate(onPlay: (T) -> Unit): (T) -> Unit {
                     pending?.invoke()
                     pending = null
                 }) { Text(stringResource(R.string.permission_notifications_skip)) }
-            }
+            },
         )
     }
 
     return { value ->
-        val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
+        val needsPermission =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
         if (needsPermission && !asked) {
             asked = true
             pending = { onPlay(value) }

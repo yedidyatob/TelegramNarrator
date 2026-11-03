@@ -38,12 +38,12 @@ import io.github.yedidyatob.telegramnarrator.ui.screens.player.PlayerContent
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsActions
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsContent
 import io.github.yedidyatob.telegramnarrator.ui.theme.TelegramNarratorTheme
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineIndicator
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineLabel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,42 +57,48 @@ data class SampleData(
     val chats: List<Chat>,
     val sender: String?,
     val message: String,
-    val testLanguage: TestLanguage
+    val testLanguage: TestLanguage,
 )
 
-private val EN = SampleData(
-    chats = listOf(
-        Chat(1, "Tech News Daily", 12),
-        Chat(2, "Morning Briefing", 5),
-        Chat(3, "Recipes & Cooking", 8),
-        Chat(4, "Weekend Hiking Group", 3),
-        Chat(5, "חדשות הבוקר", 6),
-        Chat(6, "Book Club", 2),
-        Chat(7, "Daily Fitness Tips", 4),
-        Chat(8, "Neighborhood Updates", 7)
-    ),
-    sender = null,
-    message = "A new open-source speech engine was released today. It runs fully offline, supports more than " +
-        "thirty languages and gives each of them a natural-sounding voice.",
-    testLanguage = TestLanguage.ENGLISH
-)
+private val EN =
+    SampleData(
+        chats =
+            listOf(
+                Chat(1, "Tech News Daily", 12),
+                Chat(2, "Morning Briefing", 5),
+                Chat(3, "Recipes & Cooking", 8),
+                Chat(4, "Weekend Hiking Group", 3),
+                Chat(5, "חדשות הבוקר", 6),
+                Chat(6, "Book Club", 2),
+                Chat(7, "Daily Fitness Tips", 4),
+                Chat(8, "Neighborhood Updates", 7),
+            ),
+        sender = null,
+        message =
+            "A new open-source speech engine was released today. It runs fully offline, supports more than " +
+                "thirty languages and gives each of them a natural-sounding voice.",
+        testLanguage = TestLanguage.ENGLISH,
+    )
 
-private val HE = SampleData(
-    chats = listOf(
-        Chat(1, "חדשות הבוקר", 12),
-        Chat(2, "טכנולוגיה היום", 5),
-        Chat(3, "מתכונים טעימים", 8),
-        Chat(4, "קבוצת הריצה", 3),
-        Chat(5, "Tech News Daily", 4),
-        Chat(6, "מועדון הספר", 2),
-        Chat(7, "טיפים לכושר", 4),
-        Chat(8, "עדכוני השכונה", 7)
-    ),
-    sender = null,
-    message = "הבוקר נפתחה עונת הרחצה בחופי הארץ. מצילים יהיו בתפקיד משבע בבוקר ועד שבע בערב, " +
-        "ומומלץ לרחוץ רק בחופים מוכרזים ולשמור על הילדים.",
-    testLanguage = TestLanguage.HEBREW
-)
+private val HE =
+    SampleData(
+        chats =
+            listOf(
+                Chat(1, "חדשות הבוקר", 12),
+                Chat(2, "טכנולוגיה היום", 5),
+                Chat(3, "מתכונים טעימים", 8),
+                Chat(4, "קבוצת הריצה", 3),
+                Chat(5, "Tech News Daily", 4),
+                Chat(6, "מועדון הספר", 2),
+                Chat(7, "טיפים לכושר", 4),
+                Chat(8, "עדכוני השכונה", 7),
+            ),
+        sender = null,
+        message =
+            "הבוקר נפתחה עונת הרחצה בחופי הארץ. מצילים יהיו בתפקיד משבע בבוקר ועד שבע בערב, " +
+                "ומומלץ לרחוץ רק בחופים מוכרזים ולשמור על הילדים.",
+        testLanguage = TestLanguage.HEBREW,
+    )
 
 /**
  * Play Store phone screenshots of the real Compose screens with fake data (1080x1920: 360x640 dp at xxhdpi).
@@ -100,7 +106,10 @@ private val HE = SampleData(
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-abstract class PlayStoreScreenshots(private val lang: String, private val data: SampleData) {
+abstract class PlayStoreScreenshots(
+    private val lang: String,
+    private val data: SampleData,
+) {
     @get:Rule val compose = createComposeRule()
 
     private fun capture(name: String) {
@@ -109,21 +118,23 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
         captureScreenRoboImage(File(root, "$lang/$name.png").path)
     }
 
-    private val nowPlaying get() = NowPlaying(
-        chatId = data.chats[0].id,
-        chatTitle = data.chats[0].title,
-        content = NowPlaying.Content.Message(101, data.sender, data.message, MessageContentType.TEXT, isVoiceNote = false),
-        chatPosition = PlaybackPosition(1, 5),
-        messagePosition = PlaybackPosition(3, data.chats[0].unreadCount),
-        messageCount = data.chats[0].unreadCount,
-        engine = SpeechProvider.SYSTEM
-    )
+    private val nowPlaying get() =
+        NowPlaying(
+            chatId = data.chats[0].id,
+            chatTitle = data.chats[0].title,
+            content = NowPlaying.Content.Message(101, data.sender, data.message, MessageContentType.TEXT, isVoiceNote = false),
+            chatPosition = PlaybackPosition(1, 5),
+            messagePosition = PlaybackPosition(3, data.chats[0].unreadCount),
+            messageCount = data.chats[0].unreadCount,
+            engine = SpeechProvider.SYSTEM,
+        )
 
-    private val playerState get() = PlayerUiState(
-        isActive = true,
-        nowPlaying = nowPlaying,
-        engine = EngineIndicator(EngineLabel.SYSTEM)
-    )
+    private val playerState get() =
+        PlayerUiState(
+            isActive = true,
+            nowPlaying = nowPlaying,
+            engine = EngineIndicator(EngineLabel.SYSTEM),
+        )
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -136,21 +147,24 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
                     ExtendedFloatingActionButton(
                         text = { Text(stringResource(R.string.home_btn_play_all)) },
                         icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = null) },
-                        onClick = {}
+                        onClick = {},
                     )
                 }
             },
             bottomBar = {
                 if (playing) MiniPlayer(playerState, onOpen = {}, onTogglePause = {}, onNextMessage = {}, onStop = {}, loadPhoto = { null })
-            }
+            },
         ) { padding ->
             Column(Modifier.padding(padding).fillMaxSize()) {
                 ChatList(
                     chats = chats,
                     selectedIds = chats.map { it.id }.toSet(),
                     playingChatId = if (playing) chats[0].id else null,
-                    onToggle = {}, onToggleAll = {}, onOpen = {}, onPlay = {},
-                    loadPhoto = { null }
+                    onToggle = {},
+                    onToggleAll = {},
+                    onOpen = {},
+                    onPlay = {},
+                    loadPhoto = { null },
                 )
             }
         }
@@ -176,8 +190,12 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
         val upNext = data.chats.take(5).mapIndexed { i, c -> UpNext.Item(i * 10, c.id, c.title, null, c.unreadCount, isCurrent = i == 0) }
         show {
             PlayerContent(
-                state = playerState, actions = PlayerActions(), adActions = PlayerAdActions(), loadPhoto = { null },
-                upNext = upNext, initiallyShowUpNext = true
+                state = playerState,
+                actions = PlayerActions(),
+                adActions = PlayerAdActions(),
+                loadPhoto = { null },
+                upNext = upNext,
+                initiallyShowUpNext = true,
             )
         }
         capture("03-up-next")
@@ -191,21 +209,64 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
     @Test fun s5_voice_settings() {
         show {
             VoiceSettingsContent(
-                state = TtsSettingsUiState(
-                    provider = SpeechProvider.SYSTEM,
-                    system = SystemVoiceUiState(
-                        loading = false,
-                        engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
-                        groups = listOf(
-                            VoiceGroup("he", if (lang == "he") "עברית" else "Hebrew", listOf(VoiceOption("he-il-x-heb-local", "he-IL", "he", 400, requiresNetwork = false, installed = true)), "he-il-x-heb-local"),
-                            VoiceGroup("en", if (lang == "he") "אנגלית" else "English", listOf(VoiceOption("en-us-x-iol-local", "en-US", "en", 400, requiresNetwork = false, installed = true)), null)
-                        )
+                state =
+                    TtsSettingsUiState(
+                        provider = SpeechProvider.SYSTEM,
+                        system =
+                            SystemVoiceUiState(
+                                loading = false,
+                                engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
+                                groups =
+                                    listOf(
+                                        VoiceGroup(
+                                            "he",
+                                            if (lang ==
+                                                "he"
+                                            ) {
+                                                "עברית"
+                                            } else {
+                                                "Hebrew"
+                                            },
+                                            listOf(
+                                                VoiceOption(
+                                                    "he-il-x-heb-local",
+                                                    "he-IL",
+                                                    "he",
+                                                    400,
+                                                    requiresNetwork = false,
+                                                    installed = true,
+                                                ),
+                                            ),
+                                            "he-il-x-heb-local",
+                                        ),
+                                        VoiceGroup(
+                                            "en",
+                                            if (lang ==
+                                                "he"
+                                            ) {
+                                                "אנגלית"
+                                            } else {
+                                                "English"
+                                            },
+                                            listOf(
+                                                VoiceOption(
+                                                    "en-us-x-iol-local",
+                                                    "en-US",
+                                                    "en",
+                                                    400,
+                                                    requiresNetwork = false,
+                                                    installed = true,
+                                                ),
+                                            ),
+                                            null,
+                                        ),
+                                    ),
+                            ),
+                        testLanguage = data.testLanguage,
                     ),
-                    testLanguage = data.testLanguage
-                ),
                 isPlaying = false,
                 actions = VoiceSettingsActions(),
-                modifier = Modifier.padding(top = 24.dp)
+                modifier = Modifier.padding(top = 24.dp),
             )
         }
         capture("05-voice-settings")
@@ -220,7 +281,9 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
     }
 }
 
-private val Int.dp get() = androidx.compose.ui.unit.Dp(this.toFloat())
+private val Int.dp get() =
+    androidx.compose.ui.unit
+        .Dp(this.toFloat())
 
 @Config(sdk = [34], application = Application::class, qualifiers = "en-rUS-w360dp-h640dp-normal-long-notround-port-xxhdpi")
 class EnglishPlayStoreScreenshots : PlayStoreScreenshots("en", EN)

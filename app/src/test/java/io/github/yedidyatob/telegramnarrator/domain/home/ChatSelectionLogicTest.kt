@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatSelectionLogicTest {
-
     @Test
     fun `first sync selects every unread chat`() {
         val next = ChatSelectionLogic.sync(ChatSelectionLogic.State(), listOf(1L, 2L, 3L))

@@ -14,12 +14,13 @@ package io.github.yedidyatob.telegramnarrator.core.service
  */
 object SessionControllerPolicy {
     /** Android Auto hosts (#41), accepted while [ANDROID_AUTO_ENABLED]. */
-    val ANDROID_AUTO_PACKAGES = setOf(
-        "com.google.android.projection.gearhead",
-        "com.google.android.carassistant",
-        // Android Automotive OS media host
-        "com.google.android.apps.automotive.templates.host"
-    )
+    val ANDROID_AUTO_PACKAGES =
+        setOf(
+            "com.google.android.projection.gearhead",
+            "com.google.android.carassistant",
+            // Android Automotive OS media host
+            "com.google.android.apps.automotive.templates.host",
+        )
     const val ANDROID_AUTO_ENABLED = true
     private val SYSTEM_PACKAGES = setOf("android", "com.android.systemui")
 
@@ -27,8 +28,10 @@ object SessionControllerPolicy {
         packageName: String,
         ownPackage: String,
         isPlatformController: Boolean,
-        autoEnabled: Boolean = ANDROID_AUTO_ENABLED
-    ): Boolean = isPlatformController || packageName == ownPackage || packageName in SYSTEM_PACKAGES || (autoEnabled && packageName in ANDROID_AUTO_PACKAGES)
+        autoEnabled: Boolean = ANDROID_AUTO_ENABLED,
+    ): Boolean =
+        isPlatformController || packageName == ownPackage || packageName in SYSTEM_PACKAGES ||
+            (autoEnabled && packageName in ANDROID_AUTO_PACKAGES)
 
     /**
      * May list chats and start reading (browse tree, setMediaItems): only this app and Android Auto. Platform
@@ -37,16 +40,18 @@ object SessionControllerPolicy {
     fun canBrowse(
         packageName: String,
         ownPackage: String,
-        autoEnabled: Boolean = ANDROID_AUTO_ENABLED
+        autoEnabled: Boolean = ANDROID_AUTO_ENABLED,
     ): Boolean = packageName == ownPackage || (autoEnabled && packageName in ANDROID_AUTO_PACKAGES)
 
     /** What a connecting controller gets. */
     enum class Access {
         REJECT,
+
         /** Transport (play / pause / skip / stop / next chat) on the running session, no library commands. */
         TRANSPORT,
+
         /** Transport plus the library (root, children, items, setMediaItems): this app and Android Auto. */
-        LIBRARY
+        LIBRARY,
     }
 
     /**
@@ -58,10 +63,11 @@ object SessionControllerPolicy {
         packageName: String,
         ownPackage: String,
         isPlatformController: Boolean,
-        autoEnabled: Boolean = ANDROID_AUTO_ENABLED
-    ): Access = when {
-        canBrowse(packageName, ownPackage, autoEnabled) -> Access.LIBRARY
-        isTrusted(packageName, ownPackage, isPlatformController, autoEnabled) -> Access.TRANSPORT
-        else -> Access.REJECT
-    }
+        autoEnabled: Boolean = ANDROID_AUTO_ENABLED,
+    ): Access =
+        when {
+            canBrowse(packageName, ownPackage, autoEnabled) -> Access.LIBRARY
+            isTrusted(packageName, ownPackage, isPlatformController, autoEnabled) -> Access.TRANSPORT
+            else -> Access.REJECT
+        }
 }

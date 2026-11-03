@@ -7,9 +7,15 @@ import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelRulesEngine
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
 
 /** The items of one reading run and the titles / photos of its chats. */
-data class PlaybackRun(val items: List<PlaybackItem>, val chats: Map<Long, RunChat>)
+data class PlaybackRun(
+    val items: List<PlaybackItem>,
+    val chats: Map<Long, RunChat>,
+)
 
-data class RunChat(val title: String, val photoFileId: Int?)
+data class RunChat(
+    val title: String,
+    val photoFileId: Int?,
+)
 
 /**
  * Use case (#12): builds the reading queue for [invoke]'s chats, in order. Per chat: its unread incoming
@@ -21,7 +27,7 @@ class BuildPlaybackQueue(
     private val rules: () -> ChannelRulesEngine,
     private val unknownChatTitle: () -> String,
     /** Detects / updates each chat's language from its spoken texts before reading (#89). */
-    private val resolveLanguage: suspend (chatId: Long, isPrivate: Boolean, texts: List<String>) -> Unit = { _, _, _ -> }
+    private val resolveLanguage: suspend (chatId: Long, isPrivate: Boolean, texts: List<String>) -> Unit = { _, _, _ -> },
 ) {
     suspend operator fun invoke(chatIds: LongArray): PlaybackRun {
         val runItems = mutableListOf<PlaybackItem>()
@@ -40,18 +46,25 @@ class BuildPlaybackQueue(
                         .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
                 }
                 // Boundary ding, then the chat title spoken on its own (no "New chat" words)
-                val chatItems = ChatTitleSpeech.chatOpening(
-                    chatId,
-                    rawTitle = chat?.title,
-                    displayTitle = title,
-                    silent = silent
-                ) + decisions.map { decision ->
-                    val msg = decision.message
-                    PlaybackItem.MessageItem(
-                        msg.senderName, decision.text, msg.id, chatId, msg.voiceNoteFileId, msg.contentType,
-                        dropped = decision.dropped
-                    )
-                }
+                val chatItems =
+                    ChatTitleSpeech.chatOpening(
+                        chatId,
+                        rawTitle = chat?.title,
+                        displayTitle = title,
+                        silent = silent,
+                    ) +
+                        decisions.map { decision ->
+                            val msg = decision.message
+                            PlaybackItem.MessageItem(
+                                msg.senderName,
+                                decision.text,
+                                msg.id,
+                                chatId,
+                                msg.voiceNoteFileId,
+                                msg.contentType,
+                                dropped = decision.dropped,
+                            )
+                        }
                 // Official sponsored message (channels / bot chats) after the last unread message, before the
                 // next chat's ding. Channel cleaning rules never see it.
                 runItems.addAll(SponsoredSlotPlacement.withSlot(chatItems, chatId, title, silent))

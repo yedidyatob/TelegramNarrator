@@ -10,7 +10,6 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
  * and only if the user did not pause in the meantime.
  */
 class AudioFocusPolicy {
-
     enum class FocusChange { GAIN, LOSS, LOSS_TRANSIENT, LOSS_TRANSIENT_CAN_DUCK }
 
     enum class Action { NONE, PAUSE, RESUME }
@@ -18,25 +17,32 @@ class AudioFocusPolicy {
     private var resumeOnGain = false
 
     /** [userPaused] = playback is already paused (by the user or by an earlier focus loss). */
-    fun onFocusChange(change: FocusChange, userPaused: Boolean): Action = when (change) {
-        FocusChange.LOSS -> {
-            // Another app took over for good (music player, ...): never resume on our own
-            resumeOnGain = false
-            if (userPaused) Action.NONE else Action.PAUSE
-        }
-        FocusChange.LOSS_TRANSIENT, FocusChange.LOSS_TRANSIENT_CAN_DUCK ->
-            if (userPaused) {
-                Action.NONE
-            } else {
-                resumeOnGain = true
-                Action.PAUSE
+    fun onFocusChange(
+        change: FocusChange,
+        userPaused: Boolean,
+    ): Action =
+        when (change) {
+            FocusChange.LOSS -> {
+                // Another app took over for good (music player, ...): never resume on our own
+                resumeOnGain = false
+                if (userPaused) Action.NONE else Action.PAUSE
             }
-        FocusChange.GAIN -> {
-            val resume = resumeOnGain && userPaused
-            resumeOnGain = false
-            if (resume) Action.RESUME else Action.NONE
+
+            FocusChange.LOSS_TRANSIENT, FocusChange.LOSS_TRANSIENT_CAN_DUCK -> {
+                if (userPaused) {
+                    Action.NONE
+                } else {
+                    resumeOnGain = true
+                    Action.PAUSE
+                }
+            }
+
+            FocusChange.GAIN -> {
+                val resume = resumeOnGain && userPaused
+                resumeOnGain = false
+                if (resume) Action.RESUME else Action.NONE
+            }
         }
-    }
 
     /** The user paused / resumed / stopped explicitly: forget any pending automatic resume. */
     fun onUserAction() {

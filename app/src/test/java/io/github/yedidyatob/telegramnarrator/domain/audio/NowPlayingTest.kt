@@ -6,11 +6,13 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class NowPlayingTest {
-
-    private fun playing(chatTitle: String, sender: String?) = NowPlaying(
+    private fun playing(
+        chatTitle: String,
+        sender: String?,
+    ) = NowPlaying(
         chatId = 1,
         chatTitle = chatTitle,
-        content = NowPlaying.Content.Message(1, sender, "hi", MessageContentType.TEXT, isVoiceNote = false)
+        content = NowPlaying.Content.Message(1, sender, "hi", MessageContentType.TEXT, isVoiceNote = false),
     )
 
     @Test

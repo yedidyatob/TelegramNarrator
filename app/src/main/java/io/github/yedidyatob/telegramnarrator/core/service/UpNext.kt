@@ -14,7 +14,7 @@ object UpNext {
         val title: String,
         val photoFileId: Int?,
         val unreadCount: Int,
-        val isCurrent: Boolean
+        val isCurrent: Boolean,
     )
 
     /**
@@ -22,7 +22,12 @@ object UpNext {
      * list. Finished chats (before the current one) are left out, and so are later chats that have nothing
      * unread anymore (read elsewhere); the current chat is always shown.
      */
-    fun items(run: List<Long>, currentChatId: Long?, chats: List<Chat>, fallbackTitle: String): List<Item> {
+    fun items(
+        run: List<Long>,
+        currentChatId: Long?,
+        chats: List<Chat>,
+        fallbackTitle: String,
+    ): List<Item> {
         if (run.isEmpty()) return emptyList()
         val byId = chats.associateBy { it.id }
         val queue = NarrationQueue.entries(run, byId.mapValues { it.value.title }, fallbackTitle)

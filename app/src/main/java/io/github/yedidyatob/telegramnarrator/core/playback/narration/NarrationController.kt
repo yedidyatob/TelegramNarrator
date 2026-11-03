@@ -4,7 +4,6 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy
 import io.github.yedidyatob.telegramnarrator.domain.audio.AudioQueue
 import io.github.yedidyatob.telegramnarrator.domain.audio.ChatPlaybackHistory
 import io.github.yedidyatob.telegramnarrator.domain.audio.CloudTtsPrefetch
-import io.github.yedidyatob.telegramnarrator.domain.language.SpokenPhrases
 import io.github.yedidyatob.telegramnarrator.domain.audio.MessageCleaner
 import io.github.yedidyatob.telegramnarrator.domain.audio.MessageSpeechBody
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
@@ -16,6 +15,7 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackReadProgress
 import io.github.yedidyatob.telegramnarrator.domain.audio.ReadCheckpointer
 import io.github.yedidyatob.telegramnarrator.domain.audio.SpeechResume
 import io.github.yedidyatob.telegramnarrator.domain.audio.VoiceNotePlayback
+import io.github.yedidyatob.telegramnarrator.domain.language.SpokenPhrases
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredSpeech
 import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
@@ -52,7 +52,7 @@ class NarrationController(
     private val failures: TtsFailurePort,
     private val ui: PlaybackManager,
     private val host: PlaybackHost,
-    private val clock: () -> Long
+    private val clock: () -> Long,
 ) {
     companion object {
         /** How long a sponsored-message slot waits for getChatSponsoredMessages before it is passed. */
@@ -69,16 +69,20 @@ class NarrationController(
     var isPaused = false
         private set
     private var currentItem: PlaybackItem? = null
+
     // True when pause() paused a file in place (so resume continues it instead of replaying the item)
     private var audioPausedInPlace = false
+
     // Bumped whenever the item being processed is superseded (next item, pause, skip, stop), so that late
     // coroutines of the old item know they must not start any audio
     private var itemGeneration = 0
+
     // Identify the current system utterance / media file; callbacks of older ones are ignored
     private var speechToken = 0
     private var audioToken = 0
     private var prefetchJob: Job? = null
     private var readFlushJob: Job? = null
+
     // The system-TTS utterance being spoken (for resuming it mid-text after a pause) and the saved resume point
     private var systemUtterance: SystemUtterance? = null
     private var resumePoint: ResumePoint? = null
@@ -89,13 +93,23 @@ class NarrationController(
      * A system-TTS utterance of [item]: [fullText] from [base] on. [lastRange] is the last word offset the engine
      * reported (relative to the spoken part), [startedAtMs] when it became audible.
      */
-    private class SystemUtterance(val item: PlaybackItem, val fullText: String, val base: Int, val token: Int) {
+    private class SystemUtterance(
+        val item: PlaybackItem,
+        val fullText: String,
+        val base: Int,
+        val token: Int,
+    ) {
         var lastRange: Int? = null
         var startedAtMs: Long? = null
     }
 
     /** Where a paused system-TTS [item] continues: [text] from [offset], if the voice [settings] did not change. */
-    private class ResumePoint(val item: PlaybackItem, val text: String, val offset: Int, val settings: Any)
+    private class ResumePoint(
+        val item: PlaybackItem,
+        val text: String,
+        val offset: Int,
+        val settings: Any,
+    )
 
     /** Saved resume offset of a paused system-TTS message (tests / diagnostics). */
     internal fun resumeOffset(): Int? = resumePoint?.offset
@@ -103,36 +117,52 @@ class NarrationController(
     // ---- Commands (any thread) ----------------------------------------------------------------------
 
     /** Starts reading [chatIds] (or restarts with them while already playing). */
-    fun playChats(chatIds: LongArray) = onController {
-        try {
-            startPlayback(chatIds)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            stopPlayback()
+    fun playChats(chatIds: LongArray) =
+        onController {
+            try {
+                startPlayback(chatIds)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                stopPlayback()
+            }
         }
-    }
 
     fun stop() = onController { stopPlayback() }
-    fun userPause() = onController { focusPolicy.onUserAction(); pausePlayback() }
-    fun userResume() = onController { focusPolicy.onUserAction(); resumePlayback() }
+
+    fun userPause() =
+        onController {
+            focusPolicy.onUserAction()
+            pausePlayback()
+        }
+
+    fun userResume() =
+        onController {
+            focusPolicy.onUserAction()
+            resumePlayback()
+        }
+
     fun skipMessage() = onController { doSkipMessage() }
+
     fun skipChat() = onController { doSkipChat() }
+
     fun previousMessage() = onController { doPreviousMessage() }
 
-    fun onAudioFocusChange(change: AudioFocusPolicy.FocusChange) = onController {
-        when (focusPolicy.onFocusChange(change, userPaused = isPaused || !isPlaying)) {
-            AudioFocusPolicy.Action.PAUSE -> pausePlayback()
-            AudioFocusPolicy.Action.RESUME -> resumePlayback()
-            AudioFocusPolicy.Action.NONE -> Unit
+    fun onAudioFocusChange(change: AudioFocusPolicy.FocusChange) =
+        onController {
+            when (focusPolicy.onFocusChange(change, userPaused = isPaused || !isPlaying)) {
+                AudioFocusPolicy.Action.PAUSE -> pausePlayback()
+                AudioFocusPolicy.Action.RESUME -> resumePlayback()
+                AudioFocusPolicy.Action.NONE -> Unit
+            }
         }
-    }
 
     /** Headphones unplugged / Bluetooth disconnected: pause instead of playing from the speaker. */
-    fun onBecomingNoisy() = onController {
-        focusPolicy.onBecomingNoisy()
-        pausePlayback()
-    }
+    fun onBecomingNoisy() =
+        onController {
+            focusPolicy.onBecomingNoisy()
+            pausePlayback()
+        }
 
     /** Service is being destroyed: send pending read checkpoints now. Call on the controller thread. */
     fun shutdown() {
@@ -216,6 +246,7 @@ class NarrationController(
                     playDing(Ding.CHAT_BOUNDARY, generation) { processQueue() }
                 }
             }
+
             is PlaybackItem.ChatTitle -> {
                 ui.setPlayingChatId(item.chatId)
                 publishChatOpening(item.chatId, item.chatName)
@@ -224,15 +255,30 @@ class NarrationController(
                     if (currentItem === item) currentItem = null
                 }
             }
-            is PlaybackItem.MessageItem -> playMessage(item, generation)
-            is PlaybackItem.SponsoredSlot -> playSponsoredSlot(item, generation)
-            is PlaybackItem.Silence -> processQueue()
+
+            is PlaybackItem.MessageItem -> {
+                playMessage(item, generation)
+            }
+
+            is PlaybackItem.SponsoredSlot -> {
+                playSponsoredSlot(item, generation)
+            }
+
+            is PlaybackItem.Silence -> {
+                processQueue()
+            }
+
             // Distinct end cue (not speech, not the chat-boundary ding)
-            is PlaybackItem.Outro -> playDing(Ding.END_OF_MESSAGES, generation) { stopPlayback() }
+            is PlaybackItem.Outro -> {
+                playDing(Ding.END_OF_MESSAGES, generation) { stopPlayback() }
+            }
         }
     }
 
-    private fun playMessage(item: PlaybackItem.MessageItem, generation: Int) {
+    private fun playMessage(
+        item: PlaybackItem.MessageItem,
+        generation: Int,
+    ) {
         if (item.dropped) {
             // Dropped by the channel rules: not read, but handled, so it is marked as read in order
             onMessageFullyPlayed(item)
@@ -249,16 +295,19 @@ class NarrationController(
             publishMessage(item, isVoiceNote = true)
             val loading = ui.beginAudioLoading()
             scope.launch {
-                val path = try {
-                    withContext(io) { voiceNotes.voiceFilePath(fileId) }
-                } finally {
-                    ui.endAudioLoading(loading)
-                }
+                val path =
+                    try {
+                        withContext(io) { voiceNotes.voiceFilePath(fileId) }
+                    } finally {
+                        ui.endAudioLoading(loading)
+                    }
                 // Paused / skipped / stopped while the file was downloading
                 if (generation != itemGeneration) return@launch
                 when (val outcome = VoiceNotePlayback.afterDownload(path)) {
-                    is VoiceNotePlayback.Outcome.Play ->
+                    is VoiceNotePlayback.Outcome.Play -> {
                         playFile(outcome.path, generation, onPlayed = { onMessageFullyPlayed(item) })
+                    }
+
                     VoiceNotePlayback.Outcome.SkipSilently -> {
                         onMessageFullyPlayed(item)
                         processQueue()
@@ -287,14 +336,18 @@ class NarrationController(
      * the cleaned title / text, and report the view once it was read aloud in full. No ad passes silently.
      * Never marked as read.
      */
-    private fun playSponsoredSlot(item: PlaybackItem.SponsoredSlot, generation: Int) {
+    private fun playSponsoredSlot(
+        item: PlaybackItem.SponsoredSlot,
+        generation: Int,
+    ) {
         val loading = ui.beginAudioLoading()
         scope.launch {
-            val ad = try {
-                withTimeoutOrNull(SPONSORED_FETCH_TIMEOUT_MS) { withContext(io) { sponsored.adFor(item.chatId) } }
-            } finally {
-                ui.endAudioLoading(loading)
-            }
+            val ad =
+                try {
+                    withTimeoutOrNull(SPONSORED_FETCH_TIMEOUT_MS) { withContext(io) { sponsored.adFor(item.chatId) } }
+                } finally {
+                    ui.endAudioLoading(loading)
+                }
             // Paused / skipped / stopped while fetching (pause re-queues the slot)
             if (generation != itemGeneration || !isPlaying || isPaused) return@launch
             if (ad == null) {
@@ -305,10 +358,11 @@ class NarrationController(
             ui.showSponsoredAd(ad)
             publish(item.chatId, item.chatName, NowPlaying.Content.Sponsored, engine = speech.provider)
             host.onSponsoredStarted(ad, item.chatName)
-            val text = SponsoredSpeech.speechText(
-                ad,
-                SpokenPhrases.sponsoredCue(speech.chatLanguage(item.chatId), ad.isRecommended)
-            )
+            val text =
+                SponsoredSpeech.speechText(
+                    ad,
+                    SpokenPhrases.sponsoredCue(speech.chatLanguage(item.chatId), ad.isRecommended),
+                )
             if (text == null) {
                 // Nothing speakable (e.g. emoji-only): the card still shows the ad
                 if (currentItem === item) currentItem = null
@@ -332,7 +386,12 @@ class NarrationController(
      * the speech finished. Network engines synthesize a cached audio file played through the audio slot; a failure
      * tells the user (once per episode) and falls back to the system voice.
      */
-    private fun speakText(item: PlaybackItem, text: String, generation: Int, onSpoken: () -> Unit) {
+    private fun speakText(
+        item: PlaybackItem,
+        text: String,
+        generation: Int,
+        onSpoken: () -> Unit,
+    ) {
         // A system-TTS message paused mid-text continues near where it stopped (also when it was the fallback of
         // a network voice: it keeps the voice it was being read with). Any voice-setting change restarts it.
         val resume = resumePoint?.takeIf { it.item === item && it.text == text && it.settings == speech.settingsKey() }
@@ -349,11 +408,12 @@ class NarrationController(
         ui.setNowPlayingEngine(provider)
         val loading = ui.beginAudioLoading()
         scope.launch {
-            val outcome = try {
-                withContext(io) { speech.synthesize(provider, text, CloudTtsPrefetch.chatIdOf(item)) }
-            } finally {
-                ui.endAudioLoading(loading)
-            }
+            val outcome =
+                try {
+                    withContext(io) { speech.synthesize(provider, text, CloudTtsPrefetch.chatIdOf(item)) }
+                } finally {
+                    ui.endAudioLoading(loading)
+                }
             // Paused / skipped / stopped while the audio was being fetched
             if (generation != itemGeneration || !isPlaying || isPaused) return@launch
             when (outcome) {
@@ -363,16 +423,23 @@ class NarrationController(
                     // Warm the next few messages into the disk cache while this one plays
                     scheduleCloudPrefetch(generation)
                     playFile(
-                        outcome.file.absolutePath, generation, onPlayed = onSpoken, speed = outcome.playbackSpeed,
+                        outcome.file.absolutePath,
+                        generation,
+                        onPlayed = onSpoken,
+                        speed = outcome.playbackSpeed,
                         onPlaybackError = {
                             // Corrupt / unplayable file: drop it and read the text with the system voice
                             speech.discard(outcome.file)
                             failures.onFailure(FallbackReason.UNPLAYABLE)
                             speakWithSystemTts(item, text, onSpoken)
-                        }
+                        },
                     )
                 }
-                SpeechSynthesisOutcome.UseSystem -> speakWithSystemTts(item, text, onSpoken)
+
+                SpeechSynthesisOutcome.UseSystem -> {
+                    speakWithSystemTts(item, text, onSpoken)
+                }
+
                 is SpeechSynthesisOutcome.Fallback -> {
                     failures.onFailure(outcome.reason)
                     speakWithSystemTts(item, text, onSpoken)
@@ -382,7 +449,12 @@ class NarrationController(
     }
 
     /** Speaks [text] (from offset [from] on) with the system engine, tracking the position for pause / resume. */
-    private fun speakWithSystemTts(item: PlaybackItem, text: String, onSpoken: () -> Unit, from: Int = 0) {
+    private fun speakWithSystemTts(
+        item: PlaybackItem,
+        text: String,
+        onSpoken: () -> Unit,
+        from: Int = 0,
+    ) {
         ui.setNowPlayingEngine(SpeechProvider.SYSTEM)
         // Until the engine starts speaking the bar shows "Preparing audio…"
         val loading = ui.beginAudioLoading()
@@ -410,7 +482,7 @@ class NarrationController(
                     if (completed) onSpoken()
                     processQueue()
                 }
-            }
+            },
         )
     }
 
@@ -418,14 +490,15 @@ class NarrationController(
     private fun stopSystemSpeech(saveResumeFor: PlaybackItem? = null) {
         val utterance = systemUtterance?.takeIf { it.token == speechToken }
         systemUtterance = null
-        resumePoint = if (saveResumeFor != null && utterance != null && utterance.item === saveResumeFor) {
-            val rest = utterance.fullText.substring(utterance.base)
-            val spokenMs = utterance.startedAtMs?.let { clock() - it }
-            val offset = utterance.base + SpeechResume.resumeOffset(rest, utterance.lastRange, spokenMs, speech.speechRate)
-            ResumePoint(utterance.item, utterance.fullText, offset, speech.settingsKey())
-        } else {
-            null
-        }
+        resumePoint =
+            if (saveResumeFor != null && utterance != null && utterance.item === saveResumeFor) {
+                val rest = utterance.fullText.substring(utterance.base)
+                val spokenMs = utterance.startedAtMs?.let { clock() - it }
+                val offset = utterance.base + SpeechResume.resumeOffset(rest, utterance.lastRange, spokenMs, speech.speechRate)
+                ResumePoint(utterance.item, utterance.fullText, offset, speech.settingsKey())
+            } else {
+                null
+            }
         speechToken++
         speech.stop()
     }
@@ -440,23 +513,24 @@ class NarrationController(
         if (provider == SpeechProvider.SYSTEM) return
         val texts = CloudTtsPrefetch.upcomingSpeech(audioQueue.snapshot(), CloudTtsPrefetch.COUNT)
         if (texts.isEmpty()) return
-        prefetchJob = scope.launch {
-            for ((chatId, text) in texts) {
-                if (generation != itemGeneration || !isPlaying || isPaused) return@launch
-                if (speech.provider != provider) return@launch
-                try {
-                    when (val outcome = withContext(io) { speech.synthesize(provider, text, chatId) }) {
-                        is SpeechSynthesisOutcome.Ready -> if (!outcome.fromCache) failures.onNetworkSuccess()
-                        is SpeechSynthesisOutcome.Fallback -> failures.onPrefetchFailure(outcome.reason)
-                        SpeechSynthesisOutcome.UseSystem -> Unit
+        prefetchJob =
+            scope.launch {
+                for ((chatId, text) in texts) {
+                    if (generation != itemGeneration || !isPlaying || isPaused) return@launch
+                    if (speech.provider != provider) return@launch
+                    try {
+                        when (val outcome = withContext(io) { speech.synthesize(provider, text, chatId) }) {
+                            is SpeechSynthesisOutcome.Ready -> if (!outcome.fromCache) failures.onNetworkSuccess()
+                            is SpeechSynthesisOutcome.Fallback -> failures.onPrefetchFailure(outcome.reason)
+                            SpeechSynthesisOutcome.UseSystem -> Unit
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Next item; playback falls back per message anyway
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // Next item; playback falls back per message anyway
                 }
             }
-        }
     }
 
     private fun cancelPrefetch() {
@@ -475,39 +549,52 @@ class NarrationController(
         generation: Int,
         onPlayed: () -> Unit,
         speed: Float = 1f,
-        onPlaybackError: (() -> Unit)? = null
+        onPlaybackError: (() -> Unit)? = null,
     ) {
         if (!isPlaying || isPaused || generation != itemGeneration) return
         val handleError = {
-            if (onPlaybackError != null) onPlaybackError()
-            else {
+            if (onPlaybackError != null) {
+                onPlaybackError()
+            } else {
                 onPlayed()
                 processQueue()
             }
         }
         startAudio(
-            AudioSource.FilePath(path), speed,
+            AudioSource.FilePath(path),
+            speed,
             onComplete = {
                 onPlayed()
                 processQueue()
             },
-            onError = { if (generation == itemGeneration) handleError() }
+            onError = { if (generation == itemGeneration) handleError() },
         )
     }
 
-    private fun playDing(ding: Ding, generation: Int, onDone: () -> Unit) {
+    private fun playDing(
+        ding: Ding,
+        generation: Int,
+        onDone: () -> Unit,
+    ) {
         val done = { if (generation == itemGeneration) onDone() }
         startAudio(AudioSource.Tone(ding), 1f, onComplete = done, onError = done)
     }
 
-    private fun startAudio(source: AudioSource, speed: Float, onComplete: () -> Unit, onError: () -> Unit) {
+    private fun startAudio(
+        source: AudioSource,
+        speed: Float,
+        onComplete: () -> Unit,
+        onError: () -> Unit,
+    ) {
         audioPausedInPlace = false
         val token = ++audioToken
-        val started = audio.play(
-            source, speed,
-            onComplete = { onController { if (token == audioToken) onComplete() } },
-            onError = { onController { if (token == audioToken) onError() } }
-        )
+        val started =
+            audio.play(
+                source,
+                speed,
+                onComplete = { onController { if (token == audioToken) onComplete() } },
+                onError = { onController { if (token == audioToken) onError() } },
+            )
         if (!started) onError()
     }
 
@@ -659,18 +746,24 @@ class NarrationController(
     private fun scheduleReadFlush() {
         readFlushJob?.cancel()
         val dueAt = readCheckpointer.nextDueAtMs() ?: return
-        readFlushJob = scope.launch {
-            delay((dueAt - clock()).coerceAtLeast(0L))
-            sendReadBatches(readCheckpointer.flushIfDue(clock()))
-        }
+        readFlushJob =
+            scope.launch {
+                delay((dueAt - clock()).coerceAtLeast(0L))
+                sendReadBatches(readCheckpointer.flushIfDue(clock()))
+            }
     }
 
     private fun sendReadBatches(batches: List<ReadCheckpointer.Batch>) = batches.forEach(readMarker::markRead)
 
     // ---- Now playing --------------------------------------------------------------------------------
 
-    private fun publish(chatId: Long, fallbackTitle: String, content: NowPlaying.Content, engine: SpeechProvider?,
-                        messagePosition: PlaybackPosition? = null) {
+    private fun publish(
+        chatId: Long,
+        fallbackTitle: String,
+        content: NowPlaying.Content,
+        engine: SpeechProvider?,
+        messagePosition: PlaybackPosition? = null,
+    ) {
         val chat = runChats[chatId] ?: RunChat(fallbackTitle, null)
         ui.setNowPlaying(
             NowPlaying(
@@ -681,27 +774,34 @@ class NarrationController(
                 chatPosition = plan.chatPosition(chatId),
                 messagePosition = messagePosition,
                 messageCount = plan.messageCount(chatId),
-                engine = engine
-            )
+                engine = engine,
+            ),
         )
     }
 
     /** The chat opens (ding + spoken title): the Player shows the chat and how many messages it has. */
-    private fun publishChatOpening(chatId: Long, chatName: String) =
-        publish(chatId, chatName, NowPlaying.Content.ChatOpening, engine = ui.nowPlaying.value?.engine ?: speech.provider)
+    private fun publishChatOpening(
+        chatId: Long,
+        chatName: String,
+    ) = publish(chatId, chatName, NowPlaying.Content.ChatOpening, engine = ui.nowPlaying.value?.engine ?: speech.provider)
 
-    private fun publishMessage(item: PlaybackItem.MessageItem, isVoiceNote: Boolean) = publish(
+    private fun publishMessage(
+        item: PlaybackItem.MessageItem,
+        isVoiceNote: Boolean,
+    ) = publish(
         item.chatId,
-        ui.nowPlaying.value?.chatTitle.orEmpty(),
+        ui.nowPlaying.value
+            ?.chatTitle
+            .orEmpty(),
         NowPlaying.Content.Message(
             messageId = item.messageId,
             sender = item.sender,
             text = item.text,
             contentType = item.contentType,
-            isVoiceNote = isVoiceNote
+            isVoiceNote = isVoiceNote,
         ),
         // A voice note plays its own audio; text is spoken by the chosen engine (updated on fallback)
         engine = if (isVoiceNote) null else speech.provider,
-        messagePosition = plan.messagePosition(item.chatId, item.messageId)
+        messagePosition = plan.messagePosition(item.chatId, item.messageId),
     )
 }

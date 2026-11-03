@@ -1,14 +1,17 @@
 package io.github.yedidyatob.telegramnarrator.domain.gemini
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 
 /**
  * Unit tests for [GeminiTts] helper functions: cache key generation, key masking,
  * input limits, and voice normalization.
  */
 class GeminiTtsTest {
-
     // ===== Cache Key Tests =====
 
     @Test
@@ -67,8 +70,8 @@ class GeminiTtsTest {
 
     @Test
     fun cacheKey_usesNormalizedVoice() {
-        val key1 = GeminiTts.cacheKey("test", "InvalidVoice")  // normalization happens inside cacheKey
-        val key2 = GeminiTts.cacheKey("test", "Kore")  // normalizes to Kore
+        val key1 = GeminiTts.cacheKey("test", "InvalidVoice") // normalization happens inside cacheKey
+        val key2 = GeminiTts.cacheKey("test", "Kore") // normalizes to Kore
         // Both should produce the same key because InvalidVoice normalizes to Kore
         assertEquals(key1, key2)
     }
@@ -93,7 +96,7 @@ class GeminiTtsTest {
     @Test
     fun maskKey_showsFirstThreeAndLastFour() {
         // Keys >= 16 characters show first 3 + "…" + last 4
-        val masked = GeminiTts.maskKey("1234567890ABCDEF")  // exactly 16 chars
+        val masked = GeminiTts.maskKey("1234567890ABCDEF") // exactly 16 chars
         assertEquals("123…CDEF", masked)
 
         val masked2 = GeminiTts.maskKey("abcdefghijklmnopqrstuvwxyz")

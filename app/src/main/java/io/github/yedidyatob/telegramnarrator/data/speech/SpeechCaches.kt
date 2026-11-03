@@ -12,6 +12,5 @@ object SpeechCaches {
     val DIRECTORIES = listOf("gemini_tts")
 
     /** Deletes every speech cache under [cacheDir]; returns whether all of them are gone. */
-    fun wipe(cacheDir: File): Boolean =
-        DIRECTORIES.map { File(cacheDir, it) }.all { !it.exists() || it.deleteRecursively() }
+    fun wipe(cacheDir: File): Boolean = DIRECTORIES.map { File(cacheDir, it) }.all { !it.exists() || it.deleteRecursively() }
 }

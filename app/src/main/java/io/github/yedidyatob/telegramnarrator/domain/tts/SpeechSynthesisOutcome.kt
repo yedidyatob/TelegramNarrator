@@ -8,13 +8,19 @@ sealed class SpeechSynthesisOutcome {
      * Audio is ready on disk. [playbackSpeed] is applied by the MediaPlayer (1.0 when the engine caches
      * at normal speed, like Gemini).
      */
-    data class Ready(val file: File, val fromCache: Boolean, val playbackSpeed: Float = 1f) : SpeechSynthesisOutcome()
+    data class Ready(
+        val file: File,
+        val fromCache: Boolean,
+        val playbackSpeed: Float = 1f,
+    ) : SpeechSynthesisOutcome()
 
     /** The engine is not selected / nothing to synthesize: use system TTS silently. */
     object UseSystem : SpeechSynthesisOutcome()
 
     /** The user picked a network engine but it failed: tell the user [reason] (once per episode) and use system TTS. */
-    data class Fallback(val reason: FallbackReason) : SpeechSynthesisOutcome()
+    data class Fallback(
+        val reason: FallbackReason,
+    ) : SpeechSynthesisOutcome()
 }
 
 /**
@@ -24,35 +30,49 @@ sealed class SpeechSynthesisOutcome {
 enum class FallbackReason {
     // ---- Gemini ---------------------------------------------------------------------------------
     GEMINI_NO_KEY,
+
     /** HTTP 401 (or 400 "API key not valid"): the key is wrong or was revoked. */
     GEMINI_INVALID_KEY,
+
     /** HTTP 403: the key may not use the API (not enabled, or restricted). */
     GEMINI_PERMISSION_DENIED,
+
     /** HTTP 400 about the voice / language: not supported by the model. */
     GEMINI_UNSUPPORTED_VOICE,
+
     /** HTTP 404: the model or endpoint changed; the app needs an update. */
     GEMINI_ENDPOINT_CHANGED,
+
     /** HTTP 429 with "RESOURCE_EXHAUSTED" and quota hint: the account is out of credit. */
     GEMINI_NO_CREDIT,
+
     /** HTTP 429 rate limit, still limited after the retries. */
     GEMINI_RATE_LIMITED,
+
     /** HTTP 400: Gemini refused this request (bad voice, input too long after splitting, etc.). */
     GEMINI_BAD_REQUEST,
+
     /** HTTP 5xx. */
     GEMINI_SERVER_ERROR,
     GEMINI_TIMEOUT,
+
     /** Successful response but no audio data in the payload. */
     GEMINI_NO_AUDIO,
     GEMINI_FAILED,
 
     // ---- Shared ---------------------------------------------------------------------------------
+
     /** No connection at all (DNS / connect failed), any engine. */
     NO_NETWORK,
+
     /** The synthesized file could not be played. */
-    UNPLAYABLE;
+    UNPLAYABLE,
+
+    ;
 
     /** Failures caused by the network or the service being down (not by this message or the account). */
     val isConnectivity: Boolean
-        get() = this == NO_NETWORK || this == GEMINI_TIMEOUT ||
-            this == GEMINI_SERVER_ERROR
+        get() =
+            this == NO_NETWORK || this == GEMINI_TIMEOUT ||
+                this == GEMINI_SERVER_ERROR
 }

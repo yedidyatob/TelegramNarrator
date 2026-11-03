@@ -17,12 +17,17 @@ object AppRoute {
      * Where the auth state should take the user, or null to stay where they are: nothing while TDLib starts,
      * Home (or the Player on top of it) when signed in, otherwise the first-run onboarding once and then login.
      */
-    fun redirect(authState: AuthState, onboardingCompleted: Boolean, currentRoute: String?): String? {
-        val target = when (authState) {
-            AuthState.Initializing -> return null
-            AuthState.Authenticated -> if (currentRoute in SIGNED_IN) return null else HOME
-            else -> if (OnboardingFlow.shouldShow(onboardingCompleted, signedIn = false)) ONBOARDING else LOGIN
-        }
+    fun redirect(
+        authState: AuthState,
+        onboardingCompleted: Boolean,
+        currentRoute: String?,
+    ): String? {
+        val target =
+            when (authState) {
+                AuthState.Initializing -> return null
+                AuthState.Authenticated -> if (currentRoute in SIGNED_IN) return null else HOME
+                else -> if (OnboardingFlow.shouldShow(onboardingCompleted, signedIn = false)) ONBOARDING else LOGIN
+            }
         return target.takeIf { it != currentRoute }
     }
 
@@ -36,11 +41,15 @@ object AppRoute {
      */
     enum class OpenPlayer { NAVIGATE, CONSUME, WAIT }
 
-    fun openPlayer(authState: AuthState, currentRoute: String?): OpenPlayer = when {
-        authState is AuthState.Initializing -> OpenPlayer.WAIT
-        authState !is AuthState.Authenticated -> OpenPlayer.CONSUME
-        currentRoute == PLAYER -> OpenPlayer.CONSUME
-        currentRoute == HOME -> OpenPlayer.NAVIGATE
-        else -> OpenPlayer.WAIT
-    }
+    fun openPlayer(
+        authState: AuthState,
+        currentRoute: String?,
+    ): OpenPlayer =
+        when {
+            authState is AuthState.Initializing -> OpenPlayer.WAIT
+            authState !is AuthState.Authenticated -> OpenPlayer.CONSUME
+            currentRoute == PLAYER -> OpenPlayer.CONSUME
+            currentRoute == HOME -> OpenPlayer.NAVIGATE
+            else -> OpenPlayer.WAIT
+        }
 }

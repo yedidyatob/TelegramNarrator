@@ -8,10 +8,11 @@ package io.github.yedidyatob.telegramnarrator.domain.home
  * the user silenced in Telegram are not narrated.
  */
 object UnreadChatFilter {
-
     /** True when Telegram mute is active ([muteFor] != 0). Null settings are treated as unmuted. */
     fun isMuted(muteFor: Int?): Boolean = (muteFor ?: 0) != 0
 
-    fun shouldIncludeInUnreadList(unreadCount: Int, muteFor: Int?): Boolean =
-        unreadCount > 0 && !isMuted(muteFor)
+    fun shouldIncludeInUnreadList(
+        unreadCount: Int,
+        muteFor: Int?,
+    ): Boolean = unreadCount > 0 && !isMuted(muteFor)
 }

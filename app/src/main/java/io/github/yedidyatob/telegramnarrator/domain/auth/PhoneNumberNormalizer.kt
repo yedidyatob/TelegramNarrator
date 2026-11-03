@@ -13,24 +13,34 @@ import com.google.i18n.phonenumbers.Phonenumber
  * - A full international number (`+972…`) wins over the selected country (its own country is used).
  * - Spaces, dashes, parentheses, dots and slashes are ignored; non-ASCII digits (e.g. Arabic-Indic) count as digits.
  */
-class PhoneNumberNormalizer(private val util: PhoneNumberUtil = PhoneNumberUtil.getInstance()) {
-
+class PhoneNumberNormalizer(
+    private val util: PhoneNumberUtil = PhoneNumberUtil.getInstance(),
+) {
     sealed interface Result {
-        data class Valid(val e164: String, val regionCode: String?) : Result
-        data class Invalid(val reason: Reason) : Result
+        data class Valid(
+            val e164: String,
+            val regionCode: String?,
+        ) : Result
+
+        data class Invalid(
+            val reason: Reason,
+        ) : Result
     }
 
     enum class Reason {
         /** Nothing typed yet. */
         EMPTY,
+
         /** A local number but no country is selected. */
         NO_COUNTRY,
         TOO_SHORT,
         TOO_LONG,
+
         /** Between the shortest and longest length of the country, but no number type has that length. */
         WRONG_LENGTH,
+
         /** Unknown country code / not a number. */
-        INVALID
+        INVALID,
     }
 
     /** Region codes that have a dial code (e.g. "IL", "US"), for the country picker. */
@@ -42,31 +52,51 @@ class PhoneNumberNormalizer(private val util: PhoneNumberUtil = PhoneNumberUtil.
     fun dialCodeFor(regionCode: String): Int? = util.getCountryCodeForRegion(regionCode).takeIf { it != 0 }
 
     /** An example mobile number of [regionCode] in national format (placeholder text), e.g. "050-234-5678". */
-    fun exampleNationalNumber(regionCode: String): String? = try {
-        util.getExampleNumberForType(regionCode, PhoneNumberUtil.PhoneNumberType.MOBILE)
-            ?.let { util.format(it, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) }
-    } catch (e: Exception) {
-        null
-    }
+    fun exampleNationalNumber(regionCode: String): String? =
+        try {
+            util
+                .getExampleNumberForType(regionCode, PhoneNumberUtil.PhoneNumberType.MOBILE)
+                ?.let { util.format(it, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) }
+        } catch (e: Exception) {
+            null
+        }
 
-    fun normalize(input: String, selectedRegion: String?): Result {
+    fun normalize(
+        input: String,
+        selectedRegion: String?,
+    ): Result {
         val sanitized = sanitize(input)
         if (sanitized.isEmpty() || sanitized == "+") return Result.Invalid(Reason.EMPTY)
         val international = sanitized.startsWith("+")
         if (!international && selectedRegion == null) return Result.Invalid(Reason.NO_COUNTRY)
-        val number = try {
-            util.parse(sanitized, if (international) UNKNOWN_REGION else selectedRegion)
-        } catch (e: NumberParseException) {
-            return Result.Invalid(reasonFor(e.errorType))
-        }
+        val number =
+            try {
+                util.parse(sanitized, if (international) UNKNOWN_REGION else selectedRegion)
+            } catch (e: NumberParseException) {
+                return Result.Invalid(reasonFor(e.errorType))
+            }
         return when (lengthCheck(number)) {
-            PhoneNumberUtil.ValidationResult.IS_POSSIBLE ->
+            PhoneNumberUtil.ValidationResult.IS_POSSIBLE -> {
                 Result.Valid(util.format(number, PhoneNumberUtil.PhoneNumberFormat.E164), regionOf(number))
+            }
+
             PhoneNumberUtil.ValidationResult.IS_POSSIBLE_LOCAL_ONLY,
-            PhoneNumberUtil.ValidationResult.TOO_SHORT -> Result.Invalid(Reason.TOO_SHORT)
-            PhoneNumberUtil.ValidationResult.TOO_LONG -> Result.Invalid(Reason.TOO_LONG)
-            PhoneNumberUtil.ValidationResult.INVALID_LENGTH -> Result.Invalid(Reason.WRONG_LENGTH)
-            PhoneNumberUtil.ValidationResult.INVALID_COUNTRY_CODE, null -> Result.Invalid(Reason.INVALID)
+            PhoneNumberUtil.ValidationResult.TOO_SHORT,
+            -> {
+                Result.Invalid(Reason.TOO_SHORT)
+            }
+
+            PhoneNumberUtil.ValidationResult.TOO_LONG -> {
+                Result.Invalid(Reason.TOO_LONG)
+            }
+
+            PhoneNumberUtil.ValidationResult.INVALID_LENGTH -> {
+                Result.Invalid(Reason.WRONG_LENGTH)
+            }
+
+            PhoneNumberUtil.ValidationResult.INVALID_COUNTRY_CODE, null -> {
+                Result.Invalid(Reason.INVALID)
+            }
         }
     }
 
@@ -152,13 +182,18 @@ class PhoneNumberNormalizer(private val util: PhoneNumberUtil = PhoneNumberUtil.
         return util.getRegionCodeForCountryCode(number.countryCode).takeIf { it in util.supportedRegions }
     }
 
-    private fun reasonFor(type: NumberParseException.ErrorType): Reason = when (type) {
-        NumberParseException.ErrorType.TOO_SHORT_NSN,
-        NumberParseException.ErrorType.TOO_SHORT_AFTER_IDD -> Reason.TOO_SHORT
-        NumberParseException.ErrorType.TOO_LONG -> Reason.TOO_LONG
-        NumberParseException.ErrorType.INVALID_COUNTRY_CODE,
-        NumberParseException.ErrorType.NOT_A_NUMBER -> Reason.INVALID
-    }
+    private fun reasonFor(type: NumberParseException.ErrorType): Reason =
+        when (type) {
+            NumberParseException.ErrorType.TOO_SHORT_NSN,
+            NumberParseException.ErrorType.TOO_SHORT_AFTER_IDD,
+            -> Reason.TOO_SHORT
+
+            NumberParseException.ErrorType.TOO_LONG -> Reason.TOO_LONG
+
+            NumberParseException.ErrorType.INVALID_COUNTRY_CODE,
+            NumberParseException.ErrorType.NOT_A_NUMBER,
+            -> Reason.INVALID
+        }
 
     companion object {
         private const val UNKNOWN_REGION = "ZZ"

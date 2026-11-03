@@ -7,19 +7,29 @@ package io.github.yedidyatob.telegramnarrator.core.service
  * chat ([chatsFrom]).
  */
 object NarrationQueue {
-    data class Entry(val chatId: Long, val title: String) {
+    data class Entry(
+        val chatId: Long,
+        val title: String,
+    ) {
         val mediaId: String get() = AutoBrowseTree.chatId(chatId)
     }
 
     /** Entries for [chatIds]; titles from [titles] (unknown yet: [fallbackTitle]). */
-    fun entries(chatIds: List<Long>, titles: Map<Long, String>, fallbackTitle: String): List<Entry> =
-        chatIds.distinct().map { Entry(it, titles[it]?.takeIf(String::isNotBlank) ?: fallbackTitle) }
+    fun entries(
+        chatIds: List<Long>,
+        titles: Map<Long, String>,
+        fallbackTitle: String,
+    ): List<Entry> = chatIds.distinct().map { Entry(it, titles[it]?.takeIf(String::isNotBlank) ?: fallbackTitle) }
 
     /** Index of the chat being read; before the first chat starts (or for an unknown chat) the first entry. */
-    fun currentIndex(entries: List<Entry>, currentChatId: Long?): Int =
-        entries.indexOfFirst { it.chatId == currentChatId }.coerceAtLeast(0)
+    fun currentIndex(
+        entries: List<Entry>,
+        currentChatId: Long?,
+    ): Int = entries.indexOfFirst { it.chatId == currentChatId }.coerceAtLeast(0)
 
     /** Selecting entry [index] (Auto's queue): read that chat and the ones after it. Null when out of range. */
-    fun chatsFrom(entries: List<Entry>, index: Int): List<Long>? =
-        if (index in entries.indices) entries.drop(index).map { it.chatId } else null
+    fun chatsFrom(
+        entries: List<Entry>,
+        index: Int,
+    ): List<Long>? = if (index in entries.indices) entries.drop(index).map { it.chatId } else null
 }

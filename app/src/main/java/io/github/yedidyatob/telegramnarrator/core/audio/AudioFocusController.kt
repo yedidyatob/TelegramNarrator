@@ -15,32 +15,34 @@ import io.github.yedidyatob.telegramnarrator.domain.audio.AudioFocusPolicy.Focus
  */
 class AudioFocusController(
     context: Context,
-    private val onChange: (FocusChange) -> Unit
+    private val onChange: (FocusChange) -> Unit,
 ) {
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private var request: AudioFocusRequest? = null
 
     /** @return true if focus was granted. Calling again while already holding focus is cheap. */
     fun request(): Boolean {
-        val req = request ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            )
-            .setWillPauseWhenDucked(true) // we pause ourselves; no automatic ducking of speech
-            .setOnAudioFocusChangeListener({ change ->
-                when (change) {
-                    AudioManager.AUDIOFOCUS_GAIN -> FocusChange.GAIN
-                    AudioManager.AUDIOFOCUS_LOSS -> FocusChange.LOSS
-                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> FocusChange.LOSS_TRANSIENT
-                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> FocusChange.LOSS_TRANSIENT_CAN_DUCK
-                    else -> null
-                }?.let(onChange)
-            }, Handler(Looper.getMainLooper()))
-            .build()
-            .also { request = it }
+        val req =
+            request ?: AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                ).setWillPauseWhenDucked(true) // we pause ourselves; no automatic ducking of speech
+                .setOnAudioFocusChangeListener({ change ->
+                    when (change) {
+                        AudioManager.AUDIOFOCUS_GAIN -> FocusChange.GAIN
+                        AudioManager.AUDIOFOCUS_LOSS -> FocusChange.LOSS
+                        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> FocusChange.LOSS_TRANSIENT
+                        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> FocusChange.LOSS_TRANSIENT_CAN_DUCK
+                        else -> null
+                    }?.let(onChange)
+                }, Handler(Looper.getMainLooper()))
+                .build()
+                .also { request = it }
         return audioManager.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 

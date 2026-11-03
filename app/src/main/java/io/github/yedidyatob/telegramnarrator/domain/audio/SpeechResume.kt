@@ -31,20 +31,31 @@ object SpeechResume {
      *   null if the engine never started speaking it
      * @param speechRate the system TTS rate (1.0 = normal) used for the estimate
      */
-    fun resumeOffset(text: String, lastRangeStart: Int?, spokenMs: Long?, speechRate: Float): Int {
+    fun resumeOffset(
+        text: String,
+        lastRangeStart: Int?,
+        spokenMs: Long?,
+        speechRate: Float,
+    ): Int {
         if (text.isEmpty()) return 0
         if (lastRangeStart != null) {
             return wordsBefore(text, wordStartAtOrBefore(text, lastRangeStart.coerceIn(0, text.length - 1)), WORDS_BACK)
         }
         if (spokenMs == null || spokenMs <= 0L) return 0
         val rate = if (speechRate.isFinite() && speechRate > 0f) speechRate else 1f
-        val estimate = (spokenMs / 1000f * ESTIMATE_CHARS_PER_SECOND * rate).toLong()
-            .coerceIn(0L, (text.length - 1).toLong()).toInt()
+        val estimate =
+            (spokenMs / 1000f * ESTIMATE_CHARS_PER_SECOND * rate)
+                .toLong()
+                .coerceIn(0L, (text.length - 1).toLong())
+                .toInt()
         return sentenceStart(text, estimate)
     }
 
     /** The start of the word containing (or, on whitespace, preceding) [index]. */
-    fun wordStartAtOrBefore(text: String, index: Int): Int {
+    fun wordStartAtOrBefore(
+        text: String,
+        index: Int,
+    ): Int {
         var i = index.coerceIn(0, text.length)
         // On whitespace / past the end: step back to the previous word
         while (i > 0 && (i >= text.length || text[i].isWhitespace())) i--
@@ -53,7 +64,11 @@ object SpeechResume {
     }
 
     /** The start of the word [count] words before the word starting at [wordStart] (0 = that word). */
-    fun wordsBefore(text: String, wordStart: Int, count: Int): Int {
+    fun wordsBefore(
+        text: String,
+        wordStart: Int,
+        count: Int,
+    ): Int {
         var i = wordStart
         repeat(count) {
             if (i == 0) return 0
@@ -69,13 +84,17 @@ object SpeechResume {
      * The start of the sentence containing [index]: just after the previous `.`, `!`, `?`, `…`, `׃` (Hebrew sof
      * pasuq) or line break that is followed by whitespace, skipping that whitespace; 0 if there is none.
      */
-    fun sentenceStart(text: String, index: Int): Int {
+    fun sentenceStart(
+        text: String,
+        index: Int,
+    ): Int {
         var i = index.coerceIn(0, text.length)
         // A terminator right at / before index belongs to the sentence being spoken: look before it
         while (i > 0) {
             val c = text[i - 1]
-            val atBoundary = c == '\n' ||
-                (c in SENTENCE_END && (i >= text.length || text[i].isWhitespace()))
+            val atBoundary =
+                c == '\n' ||
+                    (c in SENTENCE_END && (i >= text.length || text[i].isWhitespace()))
             if (atBoundary) break
             i--
         }

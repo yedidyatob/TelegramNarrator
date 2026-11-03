@@ -56,8 +56,17 @@ object SponsoredLinkPolicy {
         val url = normalized(rawUrl)
         if (url.isEmpty()) return null
         if (isTgScheme(url)) return url
-        val uri = try { URI(url) } catch (e: Exception) { return null }
-        val host = uri.host?.lowercase()?.trimEnd('.')?.takeIf { it.isNotEmpty() } ?: return null
+        val uri =
+            try {
+                URI(url)
+            } catch (e: Exception) {
+                return null
+            }
+        val host =
+            uri.host
+                ?.lowercase()
+                ?.trimEnd('.')
+                ?.takeIf { it.isNotEmpty() } ?: return null
         return when (uri.scheme?.lowercase()) {
             "https" -> url
             "http" -> if (TELEGRAM_HOST.containsMatchIn(host)) "https" + url.substring(url.indexOf(':')) else null
@@ -71,8 +80,11 @@ object SponsoredLinkPolicy {
      */
     fun browserFallback(url: String): String? {
         if (!isTgScheme(url)) return url
-        val domain = Regex("""^tg://resolve\?(?:.*&)?domain=([A-Za-z0-9_]{3,64})(?:&|$)""", RegexOption.IGNORE_CASE)
-            .find(url.trim())?.groupValues?.get(1) ?: return null
+        val domain =
+            Regex("""^tg://resolve\?(?:.*&)?domain=([A-Za-z0-9_]{3,64})(?:&|$)""", RegexOption.IGNORE_CASE)
+                .find(url.trim())
+                ?.groupValues
+                ?.get(1) ?: return null
         return "https://t.me/$domain"
     }
 }

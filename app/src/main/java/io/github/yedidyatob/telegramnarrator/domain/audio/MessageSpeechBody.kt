@@ -19,7 +19,10 @@ object MessageSpeechBody {
      * A non-blank [cleanedText] with at least one letter or digit is spoken regardless of [contentType].
      */
     @Suppress("UNUSED_PARAMETER")
-    fun resolve(cleanedText: String, contentType: MessageContentType): String? {
+    fun resolve(
+        cleanedText: String,
+        contentType: MessageContentType,
+    ): String? {
         // contentType is intentional in the API: callers pass PHOTO/VIDEO/etc., but we never
         // invent spoken type labels — only real speakable caption/text is spoken.
         if (cleanedText.isBlank()) return null
@@ -46,7 +49,7 @@ object MessageSpeechBody {
     fun shouldSkipSilently(
         cleanedText: String,
         contentType: MessageContentType,
-        voiceNoteFileId: Int?
+        voiceNoteFileId: Int?,
     ): Boolean {
         if (voiceNoteFileId != null) return false
         return resolve(cleanedText, contentType) == null

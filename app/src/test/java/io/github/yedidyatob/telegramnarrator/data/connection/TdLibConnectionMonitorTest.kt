@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TdLibConnectionMonitorTest {
-
     @Test
     fun `maps every TDLib connection state`() {
         assertEquals(ConnectionStatus.WAITING_FOR_NETWORK, TdLibConnectionMonitor.toStatus(TdApi.ConnectionStateWaitingForNetwork()))

@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MessageCleanerTest {
-
     @Test
     fun `plain text is unchanged`() {
         assertEquals("Hello world", MessageCleaner.clean("Hello world"))
@@ -85,19 +84,21 @@ class MessageCleanerTest {
 
     // ---- Symbol-only lines and repeated punctuation -------------------------------------------------
 
-    private val partiesMessage = "המפלגות שלא שלחו עדיין את עמדתן :\n\nהליכוד\nישר!\nביחד\nהדמוקרטים\nרע\"מ\nהמשותפת\n" +
-        "עוצמה יהודית\nהמילואימניקים\nכחול לבן\nש\"ס\nיהדות התורה\n##\nיש לכן מה להסתיר?\n" +
-        "לא מגיע לבוחרים שלכן לדעת מה עמדותיכן?"
+    private val partiesMessage =
+        "המפלגות שלא שלחו עדיין את עמדתן :\n\nהליכוד\nישר!\nביחד\nהדמוקרטים\nרע\"מ\nהמשותפת\n" +
+            "עוצמה יהודית\nהמילואימניקים\nכחול לבן\nש\"ס\nיהדות התורה\n##\nיש לכן מה להסתיר?\n" +
+            "לא מגיע לבוחרים שלכן לדעת מה עמדותיכן?"
 
-    private val houthisMessage = "כלי תקשורת המזוהים עם החות'ים:\n\nסעודיה תקפה לפני זמן קצר את מתקני חברת הנפט " +
-        "בתחנת א-צבאחה☝️ בעיר הבירה צנעא.\n\n##\nנמתין לתגובה החות'ית המובטחת..."
+    private val houthisMessage =
+        "כלי תקשורת המזוהים עם החות'ים:\n\nסעודיה תקפה לפני זמן קצר את מתקני חברת הנפט " +
+            "בתחנת א-צבאחה☝️ בעיר הבירה צנעא.\n\n##\nנמתין לתגובה החות'ית המובטחת..."
 
     @Test
     fun `real message A - separator line dropped, party list read with pauses`() {
         assertEquals(
             "המפלגות שלא שלחו עדיין את עמדתן : הליכוד, ישר! ביחד, הדמוקרטים, רע\"מ, המשותפת, עוצמה יהודית, " +
                 "המילואימניקים, כחול לבן, ש\"ס, יהדות התורה. יש לכן מה להסתיר? לא מגיע לבוחרים שלכן לדעת מה עמדותיכן?",
-            MessageCleaner.clean(partiesMessage)
+            MessageCleaner.clean(partiesMessage),
         )
     }
 
@@ -106,7 +107,7 @@ class MessageCleanerTest {
         assertEquals(
             "כלי תקשורת המזוהים עם החות'ים: סעודיה תקפה לפני זמן קצר את מתקני חברת הנפט בתחנת א-צבאחה " +
                 "בעיר הבירה צנעא. נמתין לתגובה החות'ית המובטחת.",
-            MessageCleaner.clean(houthisMessage)
+            MessageCleaner.clean(houthisMessage),
         )
     }
 

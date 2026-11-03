@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 object UnreadHistoryPager {
     // TDLib returns at most 100 messages per GetChatHistory request
     const val HISTORY_PAGE_SIZE = 100
+
     // How many history requests in a row may return nothing new before giving up
     const val MAX_STALLED_REQUESTS = 3
     const val DEFAULT_RETRY_DELAY_MS = 300L
@@ -37,7 +38,7 @@ object UnreadHistoryPager {
         idOf: (T) -> Long,
         isOutgoing: (T) -> Boolean,
         retryDelayMs: Long = DEFAULT_RETRY_DELAY_MS,
-        fetchPage: suspend (fromMessageId: Long, limit: Int) -> List<T>
+        fetchPage: suspend (fromMessageId: Long, limit: Int) -> List<T>,
     ): List<T> {
         if (unreadCount <= 0 || maxResults <= 0) return emptyList()
 

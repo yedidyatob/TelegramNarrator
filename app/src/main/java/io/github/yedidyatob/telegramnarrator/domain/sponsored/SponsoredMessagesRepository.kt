@@ -15,7 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class SponsoredMessagesRepository internal constructor(
     private val source: SponsoredMessagesSource,
-    private val nowMs: () -> Long
+    private val nowMs: () -> Long,
 ) {
     @Inject
     constructor(source: SponsoredMessagesSource) : this(source, { System.nanoTime() / 1_000_000L })
@@ -23,39 +23,44 @@ class SponsoredMessagesRepository internal constructor(
     private val cache = SponsoredAdCache()
     private val viewTracker = SponsoredViewTracker()
     private val mutex = Mutex()
+
     // Chat kind never changes: remember it (CHANNEL / BOT, or NONE for chats without ads)
     private val kinds = ConcurrentHashMap<Long, Any>()
+
     private object NoAds
 
     /**
      * The sponsored messages of [chatId] (cached for 5 minutes), oldest-placement first. Empty for chats TDLib has
      * no ads for, and on errors (errors are not cached, so the next call retries).
      */
-    suspend fun adsFor(chatId: Long): List<SponsoredAd> = mutex.withLock {
-        cache.get(chatId, nowMs())?.let { return@withLock it }
-        val kind = kindOf(chatId) ?: return@withLock emptyList()
-        val fetched = try {
-            source.fetch(chatId, kind)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            return@withLock emptyList()
+    suspend fun adsFor(chatId: Long): List<SponsoredAd> =
+        mutex.withLock {
+            cache.get(chatId, nowMs())?.let { return@withLock it }
+            val kind = kindOf(chatId) ?: return@withLock emptyList()
+            val fetched =
+                try {
+                    source.fetch(chatId, kind)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    return@withLock emptyList()
+                }
+            cache.put(chatId, fetched.map { it.copy(chatKind = kind) }, nowMs())
         }
-        cache.put(chatId, fetched.map { it.copy(chatKind = kind) }, nowMs())
-    }
 
     /** The ad to show after the chat's messages (only one: the app plays a channel's unread posts as one block). */
     suspend fun adFor(chatId: Long): SponsoredAd? = adsFor(chatId).firstOrNull()
 
     private suspend fun kindOf(chatId: Long): SponsoredChatKind? {
         kinds[chatId]?.let { return it as? SponsoredChatKind }
-        val kind = try {
-            source.chatKind(chatId)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            return null // not cached: retry next time
-        }
+        val kind =
+            try {
+                source.chatKind(chatId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                return null // not cached: retry next time
+            }
         kinds[chatId] = kind ?: NoAds
         return kind
     }
@@ -81,7 +86,10 @@ class SponsoredMessagesRepository internal constructor(
     fun wasViewReported(ad: SponsoredAd): Boolean = viewTracker.wasReported(ad)
 
     /** The user opened the ad link (button, title, sponsor photo, or [isMediaClick] for photo / GIF media). */
-    suspend fun reportClick(ad: SponsoredAd, isMediaClick: Boolean = false) {
+    suspend fun reportClick(
+        ad: SponsoredAd,
+        isMediaClick: Boolean = false,
+    ) {
         try {
             source.click(ad.chatId, ad.messageId, isMediaClick)
         } catch (e: CancellationException) {
@@ -95,27 +103,36 @@ class SponsoredMessagesRepository internal constructor(
      * One round of the report flow ([SponsoredReportFlow]); [option] is null for the first request. Null result on
      * errors. A reported / expired ad is dropped from the cache, and "ads hidden" clears the whole cache.
      */
-    suspend fun report(ad: SponsoredAd, option: SponsoredReportOption? = null): SponsoredReportResult? {
-        val result = try {
-            source.report(ad.chatId, ad.messageId, option?.id ?: ByteArray(0))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            return null
-        }
+    suspend fun report(
+        ad: SponsoredAd,
+        option: SponsoredReportOption? = null,
+    ): SponsoredReportResult? {
+        val result =
+            try {
+                source.report(ad.chatId, ad.messageId, option?.id ?: ByteArray(0))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                return null
+            }
         val step = SponsoredReportFlow.next(result)
         mutex.withLock {
-            if (step.hideAllAds) cache.clear() else if (step.hideAd) cache.remove(ad)
+            if (step.hideAllAds) {
+                cache.clear()
+            } else if (step.hideAd) {
+                cache.remove(ad)
+            }
         }
         return result
     }
 
     /** Local path of a downloaded TDLib file (sponsor photo, ad media), or null. */
-    suspend fun localFile(fileId: Int): String? = try {
-        source.downloadFile(fileId)
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        null
-    }
+    suspend fun localFile(fileId: Int): String? =
+        try {
+            source.downloadFile(fileId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
 }

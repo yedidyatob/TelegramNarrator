@@ -7,9 +7,14 @@ object ServiceCommands {
      * notification after the process was killed, which recreates the service with startService — must not leave
      * an idle service behind and must never start playback by itself: the service stops again at once.
      */
-    fun stopsIdleService(action: String?, foregroundStarted: Boolean): Boolean =
-        action != PlaybackService.ACTION_PLAY_ALL && !foregroundStarted
+    fun stopsIdleService(
+        action: String?,
+        foregroundStarted: Boolean,
+    ): Boolean = action != PlaybackService.ACTION_PLAY_ALL && !foregroundStarted
 
     /** The wake lock is held only while narration is playing (not paused, not stopped). */
-    fun holdsWakeLock(isPlaying: Boolean, isPaused: Boolean): Boolean = isPlaying && !isPaused
+    fun holdsWakeLock(
+        isPlaying: Boolean,
+        isPaused: Boolean,
+    ): Boolean = isPlaying && !isPaused
 }

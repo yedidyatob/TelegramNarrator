@@ -11,7 +11,10 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.regex.PatternSyntaxException
 
-class ChannelRulesParseException(message: String, cause: Throwable? = null) : Exception(message, cause)
+class ChannelRulesParseException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause)
 
 /**
  * Parses the channel rules JSON (see docs/channel-rules.md). Uses org.json, which is part of
@@ -19,7 +22,6 @@ class ChannelRulesParseException(message: String, cause: Throwable? = null) : Ex
  * value) throws a [ChannelRulesParseException] naming the offending entry.
  */
 object ChannelRulesParser {
-
     fun parse(json: String): ChannelRulesConfig {
         try {
             val root = JSONObject(json)
@@ -36,8 +38,8 @@ object ChannelRulesParser {
                     ChannelPreset(
                         name = name,
                         match = parseMatch(channel.optJSONObject("match"), where),
-                        preset = resolve(spec, inherited = if (inherit) default else null)
-                    )
+                        preset = resolve(spec, inherited = if (inherit) default else null),
+                    ),
                 )
             }
             return ChannelRulesConfig(default, channels)
@@ -58,37 +60,59 @@ object ChannelRulesParser {
         val linkLabel: String?,
         val removeTelegramLinks: Boolean?,
         val numberedLists: NumberedListMode?,
-        val stripSymbols: List<String>
+        val stripSymbols: List<String>,
     )
 
-    private fun parseSpec(json: JSONObject?, where: String): Spec {
+    private fun parseSpec(
+        json: JSONObject?,
+        where: String,
+    ): Spec {
         val rules = json?.optJSONObject("rules")
         val options = json?.optJSONObject("options")
         return Spec(
             dropMessage = strings(rules, "dropMessage").map { regex(it, "$where: dropMessage") },
             cut = strings(rules, "cut").map { regex(it, "$where: cut") },
-            replace = objects(rules, "replace").map {
-                ReplaceRule(
-                    regex(requireString(it, "pattern", "$where: replace"), "$where: replace"),
-                    it.optString("replacement", "")
-                )
-            },
+            replace =
+                objects(rules, "replace").map {
+                    ReplaceRule(
+                        regex(requireString(it, "pattern", "$where: replace"), "$where: replace"),
+                        it.optString("replacement", ""),
+                    )
+                },
             readLinks = if (options != null && options.has("readLinks")) options.getBoolean("readLinks") else null,
-            linkLabel = if (options != null && options.has("linkLabel") && !options.isNull("linkLabel")) options.getString("linkLabel") else null,
-            removeTelegramLinks = if (options != null && options.has("removeTelegramLinks")) options.getBoolean("removeTelegramLinks") else null,
-            numberedLists = options?.optString("numberedLists", "")?.takeIf { it.isNotEmpty() }?.let {
-                when (it.lowercase()) {
-                    "keep" -> NumberedListMode.KEEP
-                    "strip" -> NumberedListMode.STRIP
-                    "natural" -> NumberedListMode.NATURAL
-                    else -> throw ChannelRulesParseException("$where: numberedLists must be keep, strip or natural (was '$it')")
-                }
-            },
-            stripSymbols = strings(options, "stripSymbols")
+            linkLabel =
+                if (options != null && options.has("linkLabel") &&
+                    !options.isNull("linkLabel")
+                ) {
+                    options.getString("linkLabel")
+                } else {
+                    null
+                },
+            removeTelegramLinks =
+                if (options != null &&
+                    options.has("removeTelegramLinks")
+                ) {
+                    options.getBoolean("removeTelegramLinks")
+                } else {
+                    null
+                },
+            numberedLists =
+                options?.optString("numberedLists", "")?.takeIf { it.isNotEmpty() }?.let {
+                    when (it.lowercase()) {
+                        "keep" -> NumberedListMode.KEEP
+                        "strip" -> NumberedListMode.STRIP
+                        "natural" -> NumberedListMode.NATURAL
+                        else -> throw ChannelRulesParseException("$where: numberedLists must be keep, strip or natural (was '$it')")
+                    }
+                },
+            stripSymbols = strings(options, "stripSymbols"),
         )
     }
 
-    private fun resolve(spec: Spec, inherited: CleaningPreset?): CleaningPreset {
+    private fun resolve(
+        spec: Spec,
+        inherited: CleaningPreset?,
+    ): CleaningPreset {
         val base = inherited ?: CleaningPreset()
         return CleaningPreset(
             dropMessage = base.dropMessage + spec.dropMessage,
@@ -98,11 +122,14 @@ object ChannelRulesParser {
             linkLabel = spec.linkLabel ?: base.linkLabel,
             removeTelegramLinks = spec.removeTelegramLinks ?: base.removeTelegramLinks,
             numberedLists = spec.numberedLists ?: base.numberedLists,
-            stripSymbols = base.stripSymbols + spec.stripSymbols
+            stripSymbols = base.stripSymbols + spec.stripSymbols,
         )
     }
 
-    private fun parseMatch(json: JSONObject?, where: String): ChannelMatch {
+    private fun parseMatch(
+        json: JSONObject?,
+        where: String,
+    ): ChannelMatch {
         if (json == null) throw ChannelRulesParseException("$where: missing 'match'")
         val ids = json.optJSONArray("chatIds")
         val chatIds = if (ids == null) emptySet() else (0 until ids.length()).map { ids.getLong(it) }.toSet()
@@ -114,23 +141,37 @@ object ChannelRulesParser {
         return ChannelMatch(chatIds, equals, contains)
     }
 
-    private fun regex(pattern: String, where: String): Regex = try {
-        Regex(pattern, RegexOption.MULTILINE)
-    } catch (e: PatternSyntaxException) {
-        throw ChannelRulesParseException("$where: invalid regex '$pattern': ${e.description}", e)
-    }
+    private fun regex(
+        pattern: String,
+        where: String,
+    ): Regex =
+        try {
+            Regex(pattern, RegexOption.MULTILINE)
+        } catch (e: PatternSyntaxException) {
+            throw ChannelRulesParseException("$where: invalid regex '$pattern': ${e.description}", e)
+        }
 
-    private fun strings(json: JSONObject?, key: String): List<String> {
+    private fun strings(
+        json: JSONObject?,
+        key: String,
+    ): List<String> {
         val array = json?.optJSONArray(key) ?: return emptyList()
         return (0 until array.length()).map { array.getString(it) }
     }
 
-    private fun objects(json: JSONObject?, key: String): List<JSONObject> {
+    private fun objects(
+        json: JSONObject?,
+        key: String,
+    ): List<JSONObject> {
         val array = json?.optJSONArray(key) ?: return emptyList()
         return (0 until array.length()).map { array.getJSONObject(it) }
     }
 
-    private fun requireString(json: JSONObject, key: String, where: String): String {
+    private fun requireString(
+        json: JSONObject,
+        key: String,
+        where: String,
+    ): String {
         if (!json.has(key)) throw ChannelRulesParseException("$where: missing '$key'")
         return json.getString(key)
     }

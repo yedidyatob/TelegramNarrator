@@ -27,24 +27,26 @@ fun SendFeedbackButton(modifier: Modifier = Modifier) {
 
 private fun sendFeedback(context: Context) {
     val subject = context.getString(R.string.feedback_subject)
-    val body = FeedbackEmail.body(
-        context.getString(R.string.feedback_body_prompt),
-        FeedbackEmail.Info(
-            versionName = BuildConfig.VERSION_NAME,
-            versionCode = BuildConfig.VERSION_CODE,
-            buildType = BuildConfig.BUILD_TYPE,
-            ciRun = BuildConfig.CI_RUN_NUMBER,
-            gitSha = BuildConfig.GIT_SHA,
-            androidRelease = Build.VERSION.RELEASE,
-            sdkInt = Build.VERSION.SDK_INT,
-            manufacturer = Build.MANUFACTURER,
-            model = Build.MODEL
+    val body =
+        FeedbackEmail.body(
+            context.getString(R.string.feedback_body_prompt),
+            FeedbackEmail.Info(
+                versionName = BuildConfig.VERSION_NAME,
+                versionCode = BuildConfig.VERSION_CODE,
+                buildType = BuildConfig.BUILD_TYPE,
+                ciRun = BuildConfig.CI_RUN_NUMBER,
+                gitSha = BuildConfig.GIT_SHA,
+                androidRelease = Build.VERSION.RELEASE,
+                sdkInt = Build.VERSION.SDK_INT,
+                manufacturer = Build.MANUFACTURER,
+                model = Build.MODEL,
+            ),
         )
-    )
-    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(FeedbackEmail.mailto(subject, body) { Uri.encode(it) }))
-        .putExtra(Intent.EXTRA_EMAIL, arrayOf(FeedbackEmail.ADDRESS))
-        .putExtra(Intent.EXTRA_SUBJECT, subject)
-        .putExtra(Intent.EXTRA_TEXT, body)
+    val intent =
+        Intent(Intent.ACTION_SENDTO, Uri.parse(FeedbackEmail.mailto(subject, body) { Uri.encode(it) }))
+            .putExtra(Intent.EXTRA_EMAIL, arrayOf(FeedbackEmail.ADDRESS))
+            .putExtra(Intent.EXTRA_SUBJECT, subject)
+            .putExtra(Intent.EXTRA_TEXT, body)
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {

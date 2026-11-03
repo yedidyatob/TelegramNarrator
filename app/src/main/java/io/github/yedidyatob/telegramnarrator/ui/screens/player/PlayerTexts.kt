@@ -5,8 +5,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.text.BidiFormatter
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineIndicator
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineLabel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
@@ -31,8 +31,14 @@ internal fun miniPlayerSubtitle(state: PlayerUiState): String {
                 else -> content.sender?.let(::isolate) ?: stringResource(R.string.playback_unknown_sender)
             }
         }
-        NowPlaying.Content.ChatOpening -> chatOpeningText(nowPlaying.messageCount)
-        NowPlaying.Content.Sponsored -> stringResource(R.string.sponsored_label)
+
+        NowPlaying.Content.ChatOpening -> {
+            chatOpeningText(nowPlaying.messageCount)
+        }
+
+        NowPlaying.Content.Sponsored -> {
+            stringResource(R.string.sponsored_label)
+        }
     }
 }
 
@@ -46,12 +52,13 @@ internal fun chatOpeningText(messageCount: Int): String =
 
 @Composable
 internal fun engineText(engine: EngineIndicator): String {
-    val name = stringResource(
-        when (engine.label) {
-            EngineLabel.SYSTEM -> R.string.player_engine_system
-            EngineLabel.GEMINI -> R.string.player_engine_gemini
-            EngineLabel.ORIGINAL_AUDIO -> R.string.player_engine_original
-        }
-    )
+    val name =
+        stringResource(
+            when (engine.label) {
+                EngineLabel.SYSTEM -> R.string.player_engine_system
+                EngineLabel.GEMINI -> R.string.player_engine_gemini
+                EngineLabel.ORIGINAL_AUDIO -> R.string.player_engine_original
+            },
+        )
     return if (engine.isFallback) stringResource(R.string.player_engine_fallback, name) else name
 }

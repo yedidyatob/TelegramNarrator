@@ -4,8 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ChatPlaybackHistoryTest {
-
-    private fun msg(id: Long, chatId: Long = 1) = PlaybackItem.MessageItem(sender = null, text = "m$id", messageId = id, chatId = chatId)
+    private fun msg(
+        id: Long,
+        chatId: Long = 1,
+    ) = PlaybackItem.MessageItem(sender = null, text = "m$id", messageId = id, chatId = chatId)
 
     @Test
     fun `previous during a message replays the one before, then the current`() {

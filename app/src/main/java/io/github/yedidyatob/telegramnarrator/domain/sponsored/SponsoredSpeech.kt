@@ -20,7 +20,10 @@ object SponsoredSpeech {
      * The utterance for [ad], with [cue] already in the chat's language. Null when neither the title nor the
      * text has anything speakable (then only the card shows the ad).
      */
-    fun speechText(ad: SponsoredAd, cue: String): String? {
+    fun speechText(
+        ad: SponsoredAd,
+        cue: String,
+    ): String? {
         val parts = listOfNotNull(speakable(ad.title), speakable(ad.text))
         if (parts.isEmpty()) return null
         return (listOf(cue) + parts).fold("") { acc, part ->

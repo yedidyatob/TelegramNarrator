@@ -9,11 +9,14 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
 class PlaybackPlan private constructor(
     private val chats: Map<Long, PlaybackPosition>,
     private val messages: Map<Pair<Long, Long>, PlaybackPosition>,
-    private val messageCounts: Map<Long, Int>
+    private val messageCounts: Map<Long, Int>,
 ) {
     fun chatPosition(chatId: Long): PlaybackPosition? = chats[chatId]
 
-    fun messagePosition(chatId: Long, messageId: Long): PlaybackPosition? = messages[chatId to messageId]
+    fun messagePosition(
+        chatId: Long,
+        messageId: Long,
+    ): PlaybackPosition? = messages[chatId to messageId]
 
     /** Messages of [chatId] that are read aloud. */
     fun messageCount(chatId: Long): Int = messageCounts[chatId] ?: 0
@@ -29,7 +32,12 @@ class PlaybackPlan private constructor(
         }
 
         fun from(items: List<PlaybackItem>): PlaybackPlan {
-            val chatOrder = items.filterIsInstance<PlaybackItem.Intro>().filter { !it.silent }.map { it.chatId }.distinct()
+            val chatOrder =
+                items
+                    .filterIsInstance<PlaybackItem.Intro>()
+                    .filter { !it.silent }
+                    .map { it.chatId }
+                    .distinct()
             val chats = chatOrder.mapIndexed { i, id -> id to PlaybackPosition(i + 1, chatOrder.size) }.toMap()
             val heard = items.filterIsInstance<PlaybackItem.MessageItem>().filter(::isHeard).groupBy { it.chatId }
             val messages = HashMap<Pair<Long, Long>, PlaybackPosition>()

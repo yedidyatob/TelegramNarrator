@@ -15,8 +15,14 @@ class TtsFailuresTest {
     fun `Gemini HTTP errors map to specific reasons`() {
         assertEquals(FallbackReason.GEMINI_INVALID_KEY, TtsFailures.geminiHttp(401, "invalid_key"))
         assertEquals(FallbackReason.GEMINI_PERMISSION_DENIED, TtsFailures.geminiHttp(403, "permission_denied"))
-        assertEquals(FallbackReason.GEMINI_INVALID_KEY, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/API key not valid. Please pass a valid API key."))
-        assertEquals(FallbackReason.GEMINI_UNSUPPORTED_VOICE, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/Voice name xyz is not supported"))
+        assertEquals(
+            FallbackReason.GEMINI_INVALID_KEY,
+            TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/API key not valid. Please pass a valid API key."),
+        )
+        assertEquals(
+            FallbackReason.GEMINI_UNSUPPORTED_VOICE,
+            TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/Voice name xyz is not supported"),
+        )
         assertEquals(FallbackReason.GEMINI_UNSUPPORTED_VOICE, TtsFailures.geminiHttp(400, "Unsupported language code"))
         assertEquals(FallbackReason.GEMINI_BAD_REQUEST, TtsFailures.geminiHttp(400, "INVALID_ARGUMENT/Input too long"))
         assertEquals(FallbackReason.GEMINI_ENDPOINT_CHANGED, TtsFailures.geminiHttp(404, "NOT_FOUND"))
@@ -32,10 +38,19 @@ class TtsFailuresTest {
 
     @Test
     fun `transport errors are found in the cause chain`() {
-        assertEquals(FallbackReason.NO_NETWORK, TtsFailures.transport(UnknownHostException("api.google.com"), FallbackReason.GEMINI_TIMEOUT))
-        assertEquals(FallbackReason.NO_NETWORK, TtsFailures.transport(IOException("wrapped", ConnectException()), FallbackReason.GEMINI_TIMEOUT))
+        assertEquals(
+            FallbackReason.NO_NETWORK,
+            TtsFailures.transport(UnknownHostException("api.google.com"), FallbackReason.GEMINI_TIMEOUT),
+        )
+        assertEquals(
+            FallbackReason.NO_NETWORK,
+            TtsFailures.transport(IOException("wrapped", ConnectException()), FallbackReason.GEMINI_TIMEOUT),
+        )
         assertEquals(FallbackReason.GEMINI_TIMEOUT, TtsFailures.transport(SocketTimeoutException(), FallbackReason.GEMINI_TIMEOUT))
-        assertEquals(FallbackReason.GEMINI_TIMEOUT, TtsFailures.transport(java.io.InterruptedIOException("timeout"), FallbackReason.GEMINI_TIMEOUT))
+        assertEquals(
+            FallbackReason.GEMINI_TIMEOUT,
+            TtsFailures.transport(java.io.InterruptedIOException("timeout"), FallbackReason.GEMINI_TIMEOUT),
+        )
         assertNull(TtsFailures.transport(IOException("Gemini: some error"), FallbackReason.GEMINI_TIMEOUT))
     }
 

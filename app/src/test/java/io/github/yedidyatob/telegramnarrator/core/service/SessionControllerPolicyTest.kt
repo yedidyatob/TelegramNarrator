@@ -43,7 +43,7 @@ class SessionControllerPolicyTest {
         for (auto in listOf(
             "com.google.android.projection.gearhead",
             "com.google.android.carassistant",
-            "com.google.android.apps.automotive.templates.host"
+            "com.google.android.apps.automotive.templates.host",
         )) {
             assertEquals(SessionControllerPolicy.Access.LIBRARY, SessionControllerPolicy.access(auto, own, isPlatformController = true))
             assertEquals(SessionControllerPolicy.Access.LIBRARY, SessionControllerPolicy.access(auto, own, isPlatformController = false))
@@ -53,12 +53,21 @@ class SessionControllerPolicyTest {
 
     @Test
     fun `other legacy controllers get transport only, other Media3 controllers are rejected`() {
-        assertEquals(SessionControllerPolicy.Access.TRANSPORT, SessionControllerPolicy.access("com.example.other", own, isPlatformController = true))
-        assertEquals(SessionControllerPolicy.Access.TRANSPORT, SessionControllerPolicy.access("com.android.systemui", own, isPlatformController = false))
-        assertEquals(SessionControllerPolicy.Access.REJECT, SessionControllerPolicy.access("com.example.other", own, isPlatformController = false))
         assertEquals(
             SessionControllerPolicy.Access.TRANSPORT,
-            SessionControllerPolicy.access("com.google.android.projection.gearhead", own, isPlatformController = true, autoEnabled = false)
+            SessionControllerPolicy.access("com.example.other", own, isPlatformController = true),
+        )
+        assertEquals(
+            SessionControllerPolicy.Access.TRANSPORT,
+            SessionControllerPolicy.access("com.android.systemui", own, isPlatformController = false),
+        )
+        assertEquals(
+            SessionControllerPolicy.Access.REJECT,
+            SessionControllerPolicy.access("com.example.other", own, isPlatformController = false),
+        )
+        assertEquals(
+            SessionControllerPolicy.Access.TRANSPORT,
+            SessionControllerPolicy.access("com.google.android.projection.gearhead", own, isPlatformController = true, autoEnabled = false),
         )
     }
 }

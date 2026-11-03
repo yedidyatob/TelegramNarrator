@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VoiceNotePlaybackTest {
-
     @Test
     fun `downloadable path is played without a TTS label`() {
         val outcome = VoiceNotePlayback.afterDownload("/data/voice.ogg")
@@ -23,8 +22,8 @@ class VoiceNotePlaybackTest {
             !MessageSpeechBody.shouldSkipSilently(
                 "",
                 io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType.VOICE_NOTE,
-                voiceNoteFileId = 7
-            )
+                voiceNoteFileId = 7,
+            ),
         )
     }
 }

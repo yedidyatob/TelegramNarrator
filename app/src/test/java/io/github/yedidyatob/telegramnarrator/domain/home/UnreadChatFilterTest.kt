@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UnreadChatFilterTest {
-
     @Test
     fun `unmuted unread chats are included`() {
         assertTrue(UnreadChatFilter.shouldIncludeInUnreadList(3, muteFor = 0))

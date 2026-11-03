@@ -4,10 +4,11 @@ import java.util.regex.Pattern
 
 object MessageCleaner {
     // Regex for URLs (http/https/www)
-    private val URL_PATTERN = Pattern.compile(
-        "(https?://\\S+|www\\.\\S+)",
-        Pattern.CASE_INSENSITIVE
-    )
+    private val URL_PATTERN =
+        Pattern.compile(
+            "(https?://\\S+|www\\.\\S+)",
+            Pattern.CASE_INSENSITIVE,
+        )
 
     // Letters/digits from any script (Hebrew included - note that \w is ASCII-only in Java)
     private const val WORD = "\\p{L}\\p{N}"
@@ -38,12 +39,19 @@ object MessageCleaner {
      * @param linkLabel what URLs are replaced with. By default URLs are removed (not read at all);
      * pass a word such as "link" to have them read as that word instead.
      */
-    fun clean(text: String, linkLabel: String = ""): String {
+    fun clean(
+        text: String,
+        linkLabel: String = "",
+    ): String {
         var cleaned = text
 
         // Remove URLs (or replace them with the link label). Done first so that markdown characters inside URLs are never touched.
         val urlMatcher = URL_PATTERN.matcher(cleaned)
-        cleaned = urlMatcher.replaceAll(java.util.regex.Matcher.quoteReplacement(linkLabel))
+        cleaned =
+            urlMatcher.replaceAll(
+                java.util.regex.Matcher
+                    .quoteReplacement(linkLabel),
+            )
 
         // Angle brackets, guillemets and arrows ("<", "≥", "«", "->", "=>", "&lt;") are never read aloud
         cleaned = ANGLE_SYMBOLS.replace(cleaned, " ")
@@ -74,15 +82,20 @@ object MessageCleaner {
     // "<", ">", "≤", "≥", "«", "»", "‹", "›" (with the "-" / "=" of an arrow like "->", "<=", "=>") and the HTML
     // entities "&lt;" / "&gt;": replaced by a space so the words around them don't merge
     private val ANGLE_SYMBOLS = Regex("[-=]*[<>≤≥«»‹›]+[-=]*|&(?:lt|gt);", RegexOption.IGNORE_CASE)
+
     // "!!!" -> "!", "???" -> "?" (mixed "?!" is kept: it is intonation)
     private val REPEATED_BANG_OR_QUESTION = Regex("([!?])\\1+")
+
     // "...." / "…" -> "." (a pause, never "dot dot dot")
     private val ELLIPSIS = Regex("\\.(?:[ \\t]?\\.)+|…+")
+
     // "##tag" -> "#tag"; a "##" / "###" run that does not start a word is removed
     private val HASH_RUN_BEFORE_WORD = Regex("#{2,}(?=[$WORD])")
     private val HASH_RUN = Regex("#{2,}")
+
     // Separator runs: "----", "====", "~~~~", "••••", "····" -> a space ("_" runs are removed with the markdown)
     private val SEPARATOR_RUN = Regex("([-=~•·])\\1+")
+
     // Line endings that already give a pause; closing brackets / quotes do not
     private const val PAUSE_PUNCTUATION = ".,!?:;"
 
@@ -141,13 +154,17 @@ object MessageCleaner {
         result = STRAY_UNDERSCORE_RUNS.replace(result, "")
         // A lone "*" between two numbers is probably a multiplication ("2 * 3"), keep it
         val source = result
-        result = STRAY_STARS.replace(source) { match ->
-            if (isBetweenDigits(source, match.range)) match.value else ""
-        }
+        result =
+            STRAY_STARS.replace(source) { match ->
+                if (isBetweenDigits(source, match.range)) match.value else ""
+            }
         return result
     }
 
-    private fun isBetweenDigits(text: String, range: IntRange): Boolean {
+    private fun isBetweenDigits(
+        text: String,
+        range: IntRange,
+    ): Boolean {
         var before = range.first - 1
         while (before >= 0 && text[before] == ' ') before--
         var after = range.last + 1

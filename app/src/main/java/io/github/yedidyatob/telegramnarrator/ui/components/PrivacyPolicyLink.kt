@@ -30,7 +30,7 @@ fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
                 Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
             }
         },
-        modifier = modifier
+        modifier = modifier,
     ) {
         Text(stringResource(R.string.login_privacy_policy))
     }

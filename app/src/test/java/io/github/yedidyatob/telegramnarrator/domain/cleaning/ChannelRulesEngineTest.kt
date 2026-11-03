@@ -10,23 +10,35 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChannelRulesEngineTest {
-
     private val abuAliTitle = "אבו עלי אקספרס"
     private val chatId = 100L
     private val engine = ChannelRulesEngine(ChannelRulesParser.parse(TestResources.shippedRulesJson()))
 
-    private fun msg(id: Long, text: String) = Message(
-        id = id, chatId = chatId, senderName = "x", text = text, timestamp = 0L, isOutgoing = false
+    private fun msg(
+        id: Long,
+        text: String,
+    ) = Message(
+        id = id,
+        chatId = chatId,
+        senderName = "x",
+        text = text,
+        timestamp = 0L,
+        isOutgoing = false,
     )
 
     /** What the playback pipeline does for a message that is read: rules, then the generic cleaner. */
-    private fun spoken(chatTitle: String, text: String): String {
+    private fun spoken(
+        chatTitle: String,
+        text: String,
+    ): String {
         val preset = engine.presetFor(chatId, chatTitle)
         return MessageCleaner.clean(engine.applyTextRules(text, preset))
     }
 
-    private fun evaluate(texts: List<String>, title: String = abuAliTitle) =
-        engine.evaluate(chatId, title, texts.mapIndexed { i, t -> msg(i + 1L, t) })
+    private fun evaluate(
+        texts: List<String>,
+        title: String = abuAliTitle,
+    ) = engine.evaluate(chatId, title, texts.mapIndexed { i, t -> msg(i + 1L, t) })
 
     // --- real sample messages ---
 
@@ -34,7 +46,7 @@ class ChannelRulesEngineTest {
     fun `sample 1 headline list - t me links removed and numbers read naturally`() {
         assertEquals(
             TestResources.sample("sample1_headlines.expected.txt"),
-            spoken(abuAliTitle, TestResources.sample("sample1_headlines.txt"))
+            spoken(abuAliTitle, TestResources.sample("sample1_headlines.txt")),
         )
     }
 
@@ -108,7 +120,7 @@ class ChannelRulesEngineTest {
     fun `sample 4 reply outro is cut`() {
         assertEquals(
             TestResources.sample("sample4_react_outro.expected.txt"),
-            spoken(abuAliTitle, TestResources.sample("sample4_react_outro.txt"))
+            spoken(abuAliTitle, TestResources.sample("sample4_react_outro.txt")),
         )
     }
 
@@ -116,7 +128,7 @@ class ChannelRulesEngineTest {
     fun `sample 5 several outros inside one message are all cut`() {
         assertEquals(
             TestResources.sample("sample5_multiple_outros.expected.txt"),
-            spoken(abuAliTitle, TestResources.sample("sample5_multiple_outros.txt"))
+            spoken(abuAliTitle, TestResources.sample("sample5_multiple_outros.txt")),
         )
     }
 
@@ -129,9 +141,12 @@ class ChannelRulesEngineTest {
 
     @Test
     fun `dropMessage drops matches only and keeps positions so they can be marked read in order`() {
-        val e = ChannelRulesEngine(
-            ChannelRulesParser.parse("""{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":{"dropMessage":["(?i)promo"]}}]}""")
-        )
+        val e =
+            ChannelRulesEngine(
+                ChannelRulesParser.parse(
+                    """{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":{"dropMessage":["(?i)promo"]}}]}""",
+                ),
+            )
         val result = e.evaluate(1, "C", listOf("a", "PROMO code", "b").mapIndexed { i, t -> msg(i + 1L, t) })
         assertEquals(listOf(false, true, false), result.map { it.dropped })
         assertEquals("", result[1].text)
@@ -140,12 +155,16 @@ class ChannelRulesEngineTest {
         assertTrue(evaluate(listOf("a", "°תוכן שיווקי", "ad https://givechak.co.il/1", "b")).none { it.dropped })
     }
 
-
     // --- options ---
 
-    private fun preset(options: String, rules: String = "{}") = ChannelRulesParser.parse(
-        """{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":$rules,"options":$options}]}"""
-    ).channels[0].preset
+    private fun preset(
+        options: String,
+        rules: String = "{}",
+    ) = ChannelRulesParser
+        .parse(
+            """{"channels":[{"name":"c","match":{"titleEquals":"C"},"rules":$rules,"options":$options}]}""",
+        ).channels[0]
+        .preset
 
     private val e = ChannelRulesEngine()
     private val linkReader = ChannelRulesEngine(defaultLinkLabel = { "קישור" })
@@ -197,9 +216,10 @@ class ChannelRulesEngineTest {
             "a b c",
             MessageCleaner.clean(
                 e.applyTextRules(
-                    "a https://t.me/chan/12?single b t.me/chan/3 c http://telegram.me/x/1?single=1 https://example.com/t.me", p
-                )
-            )
+                    "a https://t.me/chan/12?single b t.me/chan/3 c http://telegram.me/x/1?single=1 https://example.com/t.me",
+                    p,
+                ),
+            ),
         )
     }
 
@@ -208,15 +228,19 @@ class ChannelRulesEngineTest {
         val text = "1. אחד\n2) שניים\n   10. עשר\nב. לא מספר\n3.14 לא רשימה"
         assertEquals(text, e.applyTextRules(text, preset("""{"numberedLists":"keep"}""")))
         assertEquals("אחד\nשניים\nעשר\nב. לא מספר\n3.14 לא רשימה", e.applyTextRules(text, preset("""{"numberedLists":"strip"}""")))
-        assertEquals("1, אחד\n2, שניים\n10, עשר\nב. לא מספר\n3.14 לא רשימה", e.applyTextRules(text, preset("""{"numberedLists":"natural"}""")))
+        assertEquals(
+            "1, אחד\n2, שניים\n10, עשר\nב. לא מספר\n3.14 לא רשימה",
+            e.applyTextRules(text, preset("""{"numberedLists":"natural"}""")),
+        )
     }
 
     @Test
     fun `stripSymbols cut and replace are applied in that order of rules`() {
-        val p = preset(
-            """{"stripSymbols":["°","■"]}""",
-            """{"cut":["\\(.*?\\)"],"replace":[{"pattern":"(\\d+)%","replacement":"${'$'}1 אחוז"}]}"""
-        )
+        val p =
+            preset(
+                """{"stripSymbols":["°","■"]}""",
+                """{"cut":["\\(.*?\\)"],"replace":[{"pattern":"(\\d+)%","replacement":"${'$'}1 אחוז"}]}""",
+            )
         assertEquals(" הריבית עלתה ב-5 אחוז ", e.applyTextRules("°■ הריבית עלתה ב-5% (מקור: ערוץ)", p))
     }
 

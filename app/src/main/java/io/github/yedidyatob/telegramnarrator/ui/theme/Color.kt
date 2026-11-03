@@ -22,6 +22,7 @@ val TelegramSecondaryContainerDay = Color(0xFFE4EDF4)
 val TelegramOnSecondaryContainerDay = Color(0xFF1C2A35)
 val TelegramTertiaryDay = Color(0xFF3AA757)
 val TelegramSurfaceVariantDay = Color(0xFFEEF2F6)
+
 // Darker than TelegramSecondaryDay so secondary text keeps 4.5:1 contrast on white
 val TelegramOnSurfaceVariantDay = Color(0xFF5B6773)
 val TelegramOutlineDay = Color(0xFFB9C3CC)

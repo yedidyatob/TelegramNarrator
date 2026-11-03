@@ -9,5 +9,5 @@ data class Chat(
     /** TDLib file id of the small chat photo (avatar), if the chat has one. */
     val photoFileId: Int? = null,
     /** One-to-one chat (user / bot), not a group or channel. */
-    val isPrivate: Boolean = false
+    val isPrivate: Boolean = false,
 )

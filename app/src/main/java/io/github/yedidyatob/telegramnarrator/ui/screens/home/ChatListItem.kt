@@ -1,8 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,14 +24,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.ui.components.ChatAvatar
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 
 /**
  * One unread chat: selection checkbox (for Play selected), avatar, title, unread count and its own Play
@@ -48,41 +48,54 @@ fun ChatListItem(
     onToggleSelection: () -> Unit,
     onClick: () -> Unit,
     onPlayClick: () -> Unit,
-    loadPhoto: suspend (Int) -> String?
+    loadPhoto: suspend (Int) -> String?,
 ) {
     val selectDescription = stringResource(R.string.home_select_chat, chat.title)
-    val unreadDescription = LocalContext.current.resources
-        .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
+    val unreadDescription =
+        LocalContext.current.resources
+            .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
     val openLabel = stringResource(R.string.home_open_chat_preview)
     val playLabel = stringResource(R.string.home_play_chat, chat.title)
 
     Card(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            // TalkBack: "double-tap to show messages"; Play is also a custom action on the row itself
-            .semantics {
-                onClick(label = openLabel) { onClick(); true }
-                customActions = listOf(CustomAccessibilityAction(playLabel) { onPlayClick(); true })
-            },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                // TalkBack: "double-tap to show messages"; Play is also a custom action on the row itself
+                .semantics {
+                    onClick(label = openLabel) {
+                        onClick()
+                        true
+                    }
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction(playLabel) {
+                                onPlayClick()
+                                true
+                            },
+                        )
+                },
         border = if (isPlaying) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                isSelected -> MaterialTheme.colorScheme.surfaceContainer
-                else -> MaterialTheme.colorScheme.surfaceContainerLow
-            }
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    when {
+                        isPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        isSelected -> MaterialTheme.colorScheme.surfaceContainer
+                        else -> MaterialTheme.colorScheme.surfaceContainerLow
+                    },
+            ),
     ) {
         Row(
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
                 checked = isSelected,
                 onCheckedChange = { onToggleSelection() },
-                modifier = Modifier.semantics { contentDescription = selectDescription }
+                modifier = Modifier.semantics { contentDescription = selectDescription },
             )
             ChatAvatar(chatId = chat.id, title = chat.title, photoFileId = chat.photoFileId, loadFile = loadPhoto)
             Spacer(Modifier.width(12.dp))
@@ -91,7 +104,7 @@ fun ChatListItem(
                     text = bidiSafe(chat.title),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 // The unread count is in the badge; the second line only appears for the chat being read
                 if (isPlaying) {
@@ -100,13 +113,13 @@ fun ChatListItem(
                             Icons.Rounded.GraphicEq,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 4.dp).size(16.dp)
+                            modifier = Modifier.padding(end = 4.dp).size(16.dp),
                         )
                         Text(
                             text = stringResource(R.string.home_chat_playing),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
                 }
@@ -114,7 +127,7 @@ fun ChatListItem(
             Badge(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.semantics { contentDescription = unreadDescription }
+                modifier = Modifier.semantics { contentDescription = unreadDescription },
             ) {
                 Text(text = chat.unreadCount.toString())
             }
@@ -122,7 +135,7 @@ fun ChatListItem(
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = stringResource(R.string.home_play_chat, chat.title),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }

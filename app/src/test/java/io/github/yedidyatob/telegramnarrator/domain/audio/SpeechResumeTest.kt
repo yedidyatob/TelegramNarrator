@@ -6,7 +6,10 @@ import org.junit.Test
 class SpeechResumeTest {
     private val text = "one two three four five six seven"
 
-    private fun offsetOf(word: String, inText: String = text) = inText.indexOf(word)
+    private fun offsetOf(
+        word: String,
+        inText: String = text,
+    ) = inText.indexOf(word)
 
     @Test
     fun `resumes three words before the last reported word`() {

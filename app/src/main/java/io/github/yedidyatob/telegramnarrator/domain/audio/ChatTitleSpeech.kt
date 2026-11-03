@@ -16,10 +16,12 @@ object ChatTitleSpeech {
     fun speakableTitle(rawTitle: String?): String? {
         if (rawTitle.isNullOrBlank()) return null
         val cleaned = MessageCleaner.clean(rawTitle)
-        val kept = cleaned.split(' ')
-            .filter { it.isNotEmpty() && !MessageSpeechBody.isSymbolsOnly(it) }
-            .joinToString(" ")
-            .trim()
+        val kept =
+            cleaned
+                .split(' ')
+                .filter { it.isNotEmpty() && !MessageSpeechBody.isSymbolsOnly(it) }
+                .joinToString(" ")
+                .trim()
         return kept.ifEmpty { null }
     }
 
@@ -28,7 +30,12 @@ object ChatTitleSpeech {
      * silent and its title has something speakable, the spoken [PlaybackItem.ChatTitle]. A silent chat
      * (every message dropped by the channel rules) gets neither a ding nor a title.
      */
-    fun chatOpening(chatId: Long, rawTitle: String?, displayTitle: String, silent: Boolean): List<PlaybackItem> {
+    fun chatOpening(
+        chatId: Long,
+        rawTitle: String?,
+        displayTitle: String,
+        silent: Boolean,
+    ): List<PlaybackItem> {
         val intro = PlaybackItem.Intro(displayTitle, chatId, silent = silent)
         if (silent) return listOf(intro)
         val spoken = speakableTitle(rawTitle) ?: return listOf(intro)

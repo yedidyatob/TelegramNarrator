@@ -32,9 +32,8 @@ class TdLibChatRepository(
     private val userCache: TdLibUserCache,
     // Always on in release builds; debug builds can turn it off in Voice settings (Telegram API ToS 1.4)
     private val markAsReadSetting: () -> Boolean,
-    private val repositoryScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val repositoryScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
 ) : ChatRepository {
-
     companion object {
         /** How long a voice note may take to download before it is skipped. */
         const val VOICE_DOWNLOAD_TIMEOUT_MS = 30_000L
@@ -59,17 +58,23 @@ class TdLibChatRepository(
         repositoryScope.launch {
             client.authorizationState.filterNotNull().collect { state ->
                 when (state) {
-                    is TdApi.AuthorizationStateReady -> try {
-                        loadChats()
-                    } catch (e: Exception) {
-                        // Home retries (and shows the error) on its own
+                    is TdApi.AuthorizationStateReady -> {
+                        try {
+                            loadChats()
+                        } catch (e: Exception) {
+                            // Home retries (and shows the error) on its own
+                        }
                     }
+
                     is TdApi.AuthorizationStateClosed -> {
                         // A new client (new session / account) starts without the old chats
                         cache.clear()
                         refreshUnreadList()
                     }
-                    else -> Unit
+
+                    else -> {
+                        Unit
+                    }
                 }
             }
         }
@@ -92,25 +97,30 @@ class TdLibChatRepository(
         }
     }
 
-    private suspend fun fetchChat(chatId: Long): ChatSnapshot =
-        cache.put(client.send(TdApi.GetChat(chatId))).also { refreshUnreadList() }
+    private suspend fun fetchChat(chatId: Long): ChatSnapshot = cache.put(client.send(TdApi.GetChat(chatId))).also { refreshUnreadList() }
 
-    override suspend fun getChatMessages(chatId: Long, limit: Int): List<Message> {
+    override suspend fun getChatMessages(
+        chatId: Long,
+        limit: Int,
+    ): List<Message> {
         val tdChat = getOrFetchChat(chatId) ?: return emptyList()
 
         // The oldest unread messages first: a chat with more unread messages than the cap is read
         // from its first unread message forward, the rest is left for the next run
-        val unread = UnreadHistoryPager.collectOldestUnread(
-            unreadCount = tdChat.unreadCount,
-            lastReadId = tdChat.lastReadInboxMessageId,
-            maxResults = minOf(limit, ChatRepository.MAX_UNREAD_MESSAGES),
-            idOf = { it.id },
-            isOutgoing = { it.isOutgoing }
-        ) { fromMessageId, pageSize ->
-            client.send<TdApi.Messages>(
-                TdApi.GetChatHistory(chatId, fromMessageId, 0, pageSize, false)
-            ).messages.toList()
-        }
+        val unread =
+            UnreadHistoryPager.collectOldestUnread(
+                unreadCount = tdChat.unreadCount,
+                lastReadId = tdChat.lastReadInboxMessageId,
+                maxResults = minOf(limit, ChatRepository.MAX_UNREAD_MESSAGES),
+                idOf = { it.id },
+                isOutgoing = { it.isOutgoing },
+            ) { fromMessageId, pageSize ->
+                client
+                    .send<TdApi.Messages>(
+                        TdApi.GetChatHistory(chatId, fromMessageId, 0, pageSize, false),
+                    ).messages
+                    .toList()
+            }
 
         return unread.map { toDomainMessage(it) }
     }
@@ -120,27 +130,56 @@ class TdLibChatRepository(
         var voiceFileId: Int? = null
         // text is only the text / caption; the content type tells the player what to announce
         // for media without a caption (and unsupported content has no text at all)
-        val (contentType, text) = when (content) {
-            is TdApi.MessageText -> MessageContentType.TEXT to content.text.text
-            is TdApi.MessagePhoto -> MessageContentType.PHOTO to content.caption.text
-            is TdApi.MessageVideo -> MessageContentType.VIDEO to content.caption.text
-            is TdApi.MessageVoiceNote -> {
-                voiceFileId = content.voiceNote.voice.id
-                MessageContentType.VOICE_NOTE to content.caption.text
+        val (contentType, text) =
+            when (content) {
+                is TdApi.MessageText -> {
+                    MessageContentType.TEXT to content.text.text
+                }
+
+                is TdApi.MessagePhoto -> {
+                    MessageContentType.PHOTO to content.caption.text
+                }
+
+                is TdApi.MessageVideo -> {
+                    MessageContentType.VIDEO to content.caption.text
+                }
+
+                is TdApi.MessageVoiceNote -> {
+                    voiceFileId = content.voiceNote.voice.id
+                    MessageContentType.VOICE_NOTE to content.caption.text
+                }
+
+                is TdApi.MessageVideoNote -> {
+                    MessageContentType.VIDEO_NOTE to ""
+                }
+
+                is TdApi.MessageSticker -> {
+                    MessageContentType.STICKER to ""
+                }
+
+                is TdApi.MessageAnimation -> {
+                    MessageContentType.ANIMATION to content.caption.text
+                }
+
+                is TdApi.MessageAudio -> {
+                    MessageContentType.AUDIO to content.caption.text
+                }
+
+                is TdApi.MessageDocument -> {
+                    MessageContentType.DOCUMENT to content.caption.text
+                }
+
+                else -> {
+                    MessageContentType.UNSUPPORTED to ""
+                }
             }
-            is TdApi.MessageVideoNote -> MessageContentType.VIDEO_NOTE to ""
-            is TdApi.MessageSticker -> MessageContentType.STICKER to ""
-            is TdApi.MessageAnimation -> MessageContentType.ANIMATION to content.caption.text
-            is TdApi.MessageAudio -> MessageContentType.AUDIO to content.caption.text
-            is TdApi.MessageDocument -> MessageContentType.DOCUMENT to content.caption.text
-            else -> MessageContentType.UNSUPPORTED to ""
-        }
-        
-        val senderName = when (val s = tdMessage.senderId) {
-            is TdApi.MessageSenderUser -> userCache.getUserName(s.userId)
-            is TdApi.MessageSenderChat -> getChat(s.chatId)?.title
-            else -> null
-        }
+
+        val senderName =
+            when (val s = tdMessage.senderId) {
+                is TdApi.MessageSenderUser -> userCache.getUserName(s.userId)
+                is TdApi.MessageSenderChat -> getChat(s.chatId)?.title
+                else -> null
+            }
 
         return Message(
             id = tdMessage.id,
@@ -150,11 +189,14 @@ class TdLibChatRepository(
             timestamp = tdMessage.date.toLong(),
             isOutgoing = tdMessage.isOutgoing,
             voiceNoteFileId = voiceFileId,
-            contentType = contentType
+            contentType = contentType,
         )
     }
 
-    override suspend fun markChatAsRead(chatId: Long, messageIds: List<Long>) {
+    override suspend fun markChatAsRead(
+        chatId: Long,
+        messageIds: List<Long>,
+    ) {
         if (!markAsReadEnabled) {
             Log.d("ChatRepository", "Mark as read skipped (turned off in debug settings): $chatId")
             return
@@ -184,7 +226,7 @@ class TdLibChatRepository(
                 val refreshed = fetchChat(chatId)
                 Log.d(
                     "ChatRepository",
-                    "After mark-read chat=$chatId unread=${refreshed.unreadCount} lastRead=${refreshed.lastReadInboxMessageId}"
+                    "After mark-read chat=$chatId unread=${refreshed.unreadCount} lastRead=${refreshed.lastReadInboxMessageId}",
                 )
             } catch (refreshError: Exception) {
                 Log.w("ChatRepository", "Marked read but could not refresh chat $chatId", refreshError)
@@ -198,35 +240,38 @@ class TdLibChatRepository(
      * Downloads a voice note and returns its local path, or null if it cannot be downloaded in
      * [VOICE_DOWNLOAD_TIMEOUT_MS]. Waits for TDLib's UpdateFile instead of polling.
      */
-    override suspend fun getVoiceFilePath(fileId: Int): String? = try {
-        withTimeoutOrNull(VOICE_DOWNLOAD_TIMEOUT_MS) {
-            coroutineScope {
-                // "Not active" only means stopped once TDLib has accepted the download request
-                val requested = java.util.concurrent.atomic.AtomicBoolean(false)
-                // Subscribed before the download starts, so the completing UpdateFile cannot be missed
-                val finished = async(start = CoroutineStart.UNDISPATCHED) {
-                    client.updates.filterIsInstance<TdApi.UpdateFile>()
-                        .first {
-                            it.file.id == fileId &&
-                                (it.file.local?.isDownloadingCompleted == true || (requested.get() && it.file.local.isFinished()))
+    override suspend fun getVoiceFilePath(fileId: Int): String? =
+        try {
+            withTimeoutOrNull(VOICE_DOWNLOAD_TIMEOUT_MS) {
+                coroutineScope {
+                    // "Not active" only means stopped once TDLib has accepted the download request
+                    val requested =
+                        java.util.concurrent.atomic
+                            .AtomicBoolean(false)
+                    // Subscribed before the download starts, so the completing UpdateFile cannot be missed
+                    val finished =
+                        async(start = CoroutineStart.UNDISPATCHED) {
+                            client.updates
+                                .filterIsInstance<TdApi.UpdateFile>()
+                                .first {
+                                    it.file.id == fileId &&
+                                        (it.file.local?.isDownloadingCompleted == true || (requested.get() && it.file.local.isFinished()))
+                                }.file
                         }
-                        .file
+                    val started = client.send(TdApi.DownloadFile(fileId, 1, 0, 0, false))
+                    requested.set(true)
+                    val file = if (started.local.isFinished()) started.also { finished.cancel() } else finished.await()
+                    file.local?.takeIf { it.isDownloadingCompleted }?.path
                 }
-                val started = client.send(TdApi.DownloadFile(fileId, 1, 0, 0, false))
-                requested.set(true)
-                val file = if (started.local.isFinished()) started.also { finished.cancel() } else finished.await()
-                file.local?.takeIf { it.isDownloadingCompleted }?.path
             }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e("ChatRepository", "Failed to get voice file path", e)
+            null
         }
-    } catch (e: Exception) {
-        if (e is kotlinx.coroutines.CancellationException) throw e
-        Log.e("ChatRepository", "Failed to get voice file path", e)
-        null
-    }
 
     /** Downloaded, or stopped without being downloaded (failed / cancelled). */
-    private fun TdApi.LocalFile?.isFinished(): Boolean =
-        this != null && (isDownloadingCompleted || !isDownloadingActive)
+    private fun TdApi.LocalFile?.isFinished(): Boolean = this != null && (isDownloadingCompleted || !isDownloadingActive)
 
     override suspend fun loadChats() {
         try {

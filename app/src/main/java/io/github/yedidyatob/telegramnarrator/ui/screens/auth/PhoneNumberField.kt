@@ -71,7 +71,7 @@ fun PhoneNumberInput(
     normalizer: PhoneNumberNormalizer,
     countries: () -> List<PhoneCountry>,
     defaultRegion: String?,
-    onEnter: (String) -> Unit
+    onEnter: (String) -> Unit,
 ) {
     var text by rememberSaveable { mutableStateOf("") }
     var selectedRegion by rememberSaveable { mutableStateOf(defaultRegion) }
@@ -80,9 +80,10 @@ fun PhoneNumberInput(
 
     val result = remember(text, selectedRegion) { normalizer.normalize(text, selectedRegion) }
     // A typed / pasted +international number selects its own country
-    val shownRegion = remember(text, selectedRegion) {
-        PhoneFieldValidation.effectiveRegion(text, selectedRegion, normalizer)
-    }
+    val shownRegion =
+        remember(text, selectedRegion) {
+            PhoneFieldValidation.effectiveRegion(text, selectedRegion, normalizer)
+        }
     val inlineReason = PhoneFieldValidation.visibleReason(result, submitAttempted)
     val submit = {
         submitAttempted = true
@@ -98,21 +99,21 @@ fun PhoneNumberInput(
         error = error,
         onSubmit = submit,
         // Telegram API ToS 2.2 / 2.3 notice + the in-app privacy policy link Google Play requires
-        footer = { UnofficialAppNotice() }
+        footer = { UnofficialAppNotice() },
     ) {
         // Dial code + number read as one left-to-right phone number, also in RTL locales
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Row(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(0.9f)
+                modifier = Modifier.fillMaxWidth(0.9f),
             ) {
                 CountryButton(
                     region = shownRegion,
                     normalizer = normalizer,
                     enabled = !isLoading,
                     onClick = { pickerOpen = true },
-                    modifier = Modifier.padding(top = 8.dp) // align with the outlined field (label space)
+                    modifier = Modifier.padding(top = 8.dp), // align with the outlined field (label space)
                 )
                 OutlinedTextField(
                     value = text,
@@ -129,7 +130,7 @@ fun PhoneNumberInput(
                     supportingText = inlineReason?.let { reason -> { Text(stringResource(reason.messageRes())) } },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { submit() })
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
                 )
             }
         }
@@ -147,21 +148,27 @@ fun PhoneNumberInput(
                 }
                 pickerOpen = false
             },
-            onDismiss = { pickerOpen = false }
+            onDismiss = { pickerOpen = false },
         )
     }
 }
 
 private val LtrTextStyle = TextStyle(textDirection = TextDirection.Ltr)
 
-private fun PhoneNumberNormalizer.Reason.messageRes(): Int = when (this) {
-    PhoneNumberNormalizer.Reason.TOO_SHORT -> R.string.login_phone_error_too_short
-    PhoneNumberNormalizer.Reason.TOO_LONG -> R.string.login_phone_error_too_long
-    PhoneNumberNormalizer.Reason.WRONG_LENGTH -> R.string.login_phone_error_wrong_length
-    PhoneNumberNormalizer.Reason.NO_COUNTRY -> R.string.login_phone_error_no_country
-    PhoneNumberNormalizer.Reason.INVALID,
-    PhoneNumberNormalizer.Reason.EMPTY -> R.string.login_phone_error_invalid
-}
+private fun PhoneNumberNormalizer.Reason.messageRes(): Int =
+    when (this) {
+        PhoneNumberNormalizer.Reason.TOO_SHORT -> R.string.login_phone_error_too_short
+
+        PhoneNumberNormalizer.Reason.TOO_LONG -> R.string.login_phone_error_too_long
+
+        PhoneNumberNormalizer.Reason.WRONG_LENGTH -> R.string.login_phone_error_wrong_length
+
+        PhoneNumberNormalizer.Reason.NO_COUNTRY -> R.string.login_phone_error_no_country
+
+        PhoneNumberNormalizer.Reason.INVALID,
+        PhoneNumberNormalizer.Reason.EMPTY,
+        -> R.string.login_phone_error_invalid
+    }
 
 /** Flag + dial code ("🇮🇱 +972 ▾"), or "Country ▾" when nothing is selected. 56dp high like the text field. */
 @Composable
@@ -170,22 +177,24 @@ private fun CountryButton(
     normalizer: PhoneNumberNormalizer,
     enabled: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val dial = region?.let { normalizer.dialCodeFor(it) }
-    val description = if (region != null && dial != null) {
-        stringResource(R.string.login_country_button_a11y, PhoneCountries.displayName(region), "+$dial")
-    } else {
-        stringResource(R.string.login_country_choose_a11y)
-    }
+    val description =
+        if (region != null && dial != null) {
+            stringResource(R.string.login_country_button_a11y, PhoneCountries.displayName(region), "+$dial")
+        } else {
+            stringResource(R.string.login_country_choose_a11y)
+        }
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(4.dp),
         contentPadding = PaddingValues(start = 12.dp, end = 4.dp),
-        modifier = modifier
-            .heightIn(min = 56.dp)
-            .semantics { contentDescription = description }
+        modifier =
+            modifier
+                .heightIn(min = 56.dp)
+                .semantics { contentDescription = description },
     ) {
         // The button's description says it all; the visible parts are hidden from TalkBack
         val hidden = Modifier.clearAndSetSemantics {}
@@ -206,7 +215,7 @@ private fun CountryPickerDialog(
     countries: List<PhoneCountry>,
     selectedRegion: String?,
     onSelect: (PhoneCountry) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val filtered = remember(countries, query) { PhoneCountries.filter(countries, query) }
@@ -216,9 +225,10 @@ private fun CountryPickerDialog(
                 Text(
                     stringResource(R.string.login_country_picker_title),
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier
-                        .padding(horizontal = 24.dp)
-                        .semantics { heading() }
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 24.dp)
+                            .semantics { heading() },
                 )
                 OutlinedTextField(
                     value = query,
@@ -227,16 +237,17 @@ private fun CountryPickerDialog(
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                 )
                 HorizontalDivider()
                 if (filtered.isEmpty()) {
                     Text(
                         stringResource(R.string.login_country_none_found),
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(24.dp)
+                        modifier = Modifier.padding(24.dp),
                     )
                 }
                 LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
@@ -256,15 +267,20 @@ private fun CountryPickerDialog(
 }
 
 @Composable
-private fun CountryRow(country: PhoneCountry, selected: Boolean, onClick: () -> Unit) {
+private fun CountryRow(
+    country: PhoneCountry,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { this.selected = selected }
-            .padding(horizontal = 24.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics { this.selected = selected }
+                .padding(horizontal = 24.dp),
     ) {
         // TalkBack reads "<name> +<code>" (the merged texts); the flag emoji is decorative
         Text(country.flag, modifier = Modifier.width(36.dp).clearAndSetSemantics {})
@@ -272,7 +288,7 @@ private fun CountryRow(country: PhoneCountry, selected: Boolean, onClick: () -> 
         Text(
             country.dialCodeText,
             style = MaterialTheme.typography.bodyMedium.merge(LtrTextStyle),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (selected) {
             Spacer(Modifier.width(8.dp))

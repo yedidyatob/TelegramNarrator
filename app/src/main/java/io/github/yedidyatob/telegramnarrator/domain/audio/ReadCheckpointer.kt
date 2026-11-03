@@ -15,14 +15,17 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
  */
 class ReadCheckpointer(
     private val maxPending: Int = DEFAULT_MAX_PENDING,
-    private val maxDelayMs: Long = DEFAULT_MAX_DELAY_MS
+    private val maxDelayMs: Long = DEFAULT_MAX_DELAY_MS,
 ) {
     companion object {
         const val DEFAULT_MAX_PENDING = 3
         const val DEFAULT_MAX_DELAY_MS = 2000L
     }
 
-    data class Batch(val chatId: Long, val messageIds: List<Long>)
+    data class Batch(
+        val chatId: Long,
+        val messageIds: List<Long>,
+    )
 
     private val lock = Any()
     private var pendingChatId = 0L
@@ -30,36 +33,44 @@ class ReadCheckpointer(
     private var oldestPendingAtMs = 0L
 
     /** Records that [messageId] finished playing at [nowMs]; returns the batches that are due now. */
-    fun messagePlayed(chatId: Long, messageId: Long, nowMs: Long): List<Batch> = synchronized(lock) {
-        val due = ArrayList<Batch>()
-        if (pendingIds.isNotEmpty() && pendingChatId != chatId) drainInto(due)
+    fun messagePlayed(
+        chatId: Long,
+        messageId: Long,
+        nowMs: Long,
+    ): List<Batch> =
+        synchronized(lock) {
+            val due = ArrayList<Batch>()
+            if (pendingIds.isNotEmpty() && pendingChatId != chatId) drainInto(due)
 
-        if (pendingIds.isEmpty()) oldestPendingAtMs = nowMs
-        pendingChatId = chatId
-        if (messageId !in pendingIds) pendingIds.add(messageId)
+            if (pendingIds.isEmpty()) oldestPendingAtMs = nowMs
+            pendingChatId = chatId
+            if (messageId !in pendingIds) pendingIds.add(messageId)
 
-        if (pendingIds.size >= maxPending || nowMs - oldestPendingAtMs >= maxDelayMs) drainInto(due)
-        due
-    }
+            if (pendingIds.size >= maxPending || nowMs - oldestPendingAtMs >= maxDelayMs) drainInto(due)
+            due
+        }
 
     /** Batches that have waited long enough at [nowMs] (call when the timer from [nextDueAtMs] fires). */
-    fun flushIfDue(nowMs: Long): List<Batch> = synchronized(lock) {
-        val due = ArrayList<Batch>()
-        if (pendingIds.isNotEmpty() && nowMs - oldestPendingAtMs >= maxDelayMs) drainInto(due)
-        due
-    }
+    fun flushIfDue(nowMs: Long): List<Batch> =
+        synchronized(lock) {
+            val due = ArrayList<Batch>()
+            if (pendingIds.isNotEmpty() && nowMs - oldestPendingAtMs >= maxDelayMs) drainInto(due)
+            due
+        }
 
     /** Everything that is waiting, immediately. */
-    fun flush(): List<Batch> = synchronized(lock) {
-        val due = ArrayList<Batch>()
-        drainInto(due)
-        due
-    }
+    fun flush(): List<Batch> =
+        synchronized(lock) {
+            val due = ArrayList<Batch>()
+            drainInto(due)
+            due
+        }
 
     /** When the pending messages become due ([flushIfDue]), or null if nothing is waiting. */
-    fun nextDueAtMs(): Long? = synchronized(lock) {
-        if (pendingIds.isEmpty()) null else oldestPendingAtMs + maxDelayMs
-    }
+    fun nextDueAtMs(): Long? =
+        synchronized(lock) {
+            if (pendingIds.isEmpty()) null else oldestPendingAtMs + maxDelayMs
+        }
 
     private fun drainInto(out: MutableList<Batch>) {
         if (pendingIds.isEmpty()) return

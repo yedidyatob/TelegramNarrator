@@ -7,7 +7,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HomeStateMapperTest {
-
     private val chats = listOf(Chat(id = 1, title = "News", unreadCount = 3))
 
     @Test
@@ -33,7 +32,7 @@ class HomeStateMapperTest {
     fun `failed load without chats is an error with the detail`() {
         assertEquals(
             HomeContent.Error("FLOOD_WAIT"),
-            HomeStateMapper.content(emptyList(), ChatListLoad.Failed("FLOOD_WAIT"), ConnectionStatus.READY)
+            HomeStateMapper.content(emptyList(), ChatListLoad.Failed("FLOOD_WAIT"), ConnectionStatus.READY),
         )
     }
 
@@ -69,7 +68,7 @@ class HomeStateMapperTest {
         assertEquals(listOf(ConnectionStatus.WAITING_FOR_NETWORK), ConnectionStatus.values().filter { it.isOffline })
         assertEquals(
             setOf(ConnectionStatus.CONNECTING, ConnectionStatus.CONNECTING_TO_PROXY, ConnectionStatus.UPDATING),
-            ConnectionStatus.values().filter { it.isConnecting }.toSet()
+            ConnectionStatus.values().filter { it.isConnecting }.toSet(),
         )
     }
 }

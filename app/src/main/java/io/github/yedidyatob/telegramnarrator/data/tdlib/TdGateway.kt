@@ -24,7 +24,10 @@ interface TdGateway {
      * Sends [function] and suspends until its reply. Cancellable (a late reply is dropped); fails with
      * [TdLibTimeoutException] after [timeoutMs] and with [TdLibException] when TDLib answers with an `Error`.
      */
-    suspend fun <T : TdApi.Object> send(function: TdApi.Function<T>, timeoutMs: Long = DEFAULT_TIMEOUT_MS): T
+    suspend fun <T : TdApi.Object> send(
+        function: TdApi.Function<T>,
+        timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    ): T
 
     /** Creates a new TDLib client after the old one was closed (AuthorizationStateClosed). */
     fun recreateClient()
@@ -36,12 +39,16 @@ interface TdGateway {
 }
 
 /** A TDLib `Error` reply. The message format is unchanged from the previous plain RuntimeException. */
-open class TdLibException(val code: Int, val tdMessage: String?) :
-    RuntimeException("TDLib Error: $code - $tdMessage")
+open class TdLibException(
+    val code: Int,
+    val tdMessage: String?,
+) : RuntimeException("TDLib Error: $code - $tdMessage")
 
 /** No reply within the request's timeout. */
-class TdLibTimeoutException(function: String, timeoutMs: Long) :
-    TdLibException(TIMEOUT_CODE, "$function: no reply within $timeoutMs ms") {
+class TdLibTimeoutException(
+    function: String,
+    timeoutMs: Long,
+) : TdLibException(TIMEOUT_CODE, "$function: no reply within $timeoutMs ms") {
     companion object {
         /** Like HTTP 408; TDLib itself never uses it. */
         const val TIMEOUT_CODE = 408

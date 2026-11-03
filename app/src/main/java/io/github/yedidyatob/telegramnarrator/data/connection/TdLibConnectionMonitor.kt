@@ -16,21 +16,31 @@ import javax.inject.Singleton
 
 /** [ConnectionMonitor] backed by TDLib's UpdateConnectionState. */
 @Singleton
-class TdLibConnectionMonitor @Inject constructor(client: TdGateway) : ConnectionMonitor {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+class TdLibConnectionMonitor
+    @Inject
+    constructor(
+        client: TdGateway,
+    ) : ConnectionMonitor {
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    override val status: StateFlow<ConnectionStatus> = client.connectionState
-        .map(::toStatus)
-        .stateIn(scope, SharingStarted.Eagerly, toStatus(client.connectionState.value))
+        override val status: StateFlow<ConnectionStatus> =
+            client.connectionState
+                .map(::toStatus)
+                .stateIn(scope, SharingStarted.Eagerly, toStatus(client.connectionState.value))
 
-    companion object {
-        fun toStatus(state: TdApi.ConnectionState?): ConnectionStatus = when (state) {
-            is TdApi.ConnectionStateWaitingForNetwork -> ConnectionStatus.WAITING_FOR_NETWORK
-            is TdApi.ConnectionStateConnectingToProxy -> ConnectionStatus.CONNECTING_TO_PROXY
-            is TdApi.ConnectionStateConnecting -> ConnectionStatus.CONNECTING
-            is TdApi.ConnectionStateUpdating -> ConnectionStatus.UPDATING
-            // Ready, or nothing reported yet
-            else -> ConnectionStatus.READY
+        companion object {
+            fun toStatus(state: TdApi.ConnectionState?): ConnectionStatus =
+                when (state) {
+                    is TdApi.ConnectionStateWaitingForNetwork -> ConnectionStatus.WAITING_FOR_NETWORK
+
+                    is TdApi.ConnectionStateConnectingToProxy -> ConnectionStatus.CONNECTING_TO_PROXY
+
+                    is TdApi.ConnectionStateConnecting -> ConnectionStatus.CONNECTING
+
+                    is TdApi.ConnectionStateUpdating -> ConnectionStatus.UPDATING
+
+                    // Ready, or nothing reported yet
+                    else -> ConnectionStatus.READY
+                }
         }
     }
-}

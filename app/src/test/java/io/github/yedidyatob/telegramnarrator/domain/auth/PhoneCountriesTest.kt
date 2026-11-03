@@ -2,14 +2,13 @@ package io.github.yedidyatob.telegramnarrator.domain.auth
 
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneNumberNormalizer.Reason
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneNumberNormalizer.Result
-import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class PhoneCountriesTest {
-
     private val normalizer = PhoneNumberNormalizer()
     private val countries = PhoneCountries.all(normalizer, Locale.ENGLISH)
 
@@ -57,7 +56,7 @@ class PhoneCountriesTest {
         assertNull(PhoneFieldValidation.visibleReason(Result.Valid("+972521234567", "IL"), submitAttempted = true))
         assertEquals(
             Reason.NO_COUNTRY,
-            PhoneFieldValidation.visibleReason(normalizer.normalize("0521234567", null), submitAttempted = true)
+            PhoneFieldValidation.visibleReason(normalizer.normalize("0521234567", null), submitAttempted = true),
         )
     }
 
