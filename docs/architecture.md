@@ -37,11 +37,11 @@ io.github.yedidyatob.telegramnarrator
 │   │               PlayerViewModel (+ PlayerUiState), TtsSettingsViewModel, SponsoredViewModel
 │   └── theme/
 ├── domain/    Pure Kotlin (no Android types), unit-tested on the JVM
-│   ├── model/        Chat, Message, AuthState, AudioState, MessageContentType, ApiCredentials
+│   ├── model/        Chat, Message, AuthState, MessageContentType, ApiCredentials
 │   ├── repository/   AuthRepository, ChatRepository (interfaces)
 │   ├── audio/        AudioQueue + PlaybackItem, MessageCleaner, MessageSpeechBody, LanguageDetector,
 │   │                 ReadCheckpointer, PlaybackReadProgress, AudioFocusPolicy, VoiceNotePlayback,
-│   │                 CloudTtsPrefetch, PlaybackSpeedCycle, PlaybackManager (shared playback UI state),
+│   │                 CloudTtsPrefetch, PlaybackManager (shared playback UI state),
 │   │                 NowPlaying, PlaybackPlan (message / chat positions), ChatPlaybackHistory (previous)
 │   ├── sponsored/    SponsoredMessagesRepository (cache, view-once, click / report), SponsoredAd, SponsoredSpeech,
 │   │                 SponsoredLinkPolicy, SponsoredReportFlow, SponsoredAdCache, SponsoredViewTracker
