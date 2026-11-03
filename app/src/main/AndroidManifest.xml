@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Every permission is listed with its reason in docs/play-data-safety.md -->
-    <!-- TDLib (Telegram), and the optional Edge / OpenAI speech engines -->
+    <!-- TDLib (Telegram), and the optional Gemini speech engine -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- PlaybackService keeps reading aloud with the screen off (foreground service type mediaPlayback) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

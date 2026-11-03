@@ -11,12 +11,12 @@ class SpeechCachesTest {
     @get:Rule val tmp = TemporaryFolder()
 
     @Test
-    fun `logout wipe deletes Gemini and legacy Edge and OpenAI audio but nothing else`() {
+    fun `logout wipe deletes Gemini and legacy OpenAI audio but nothing else`() {
         val cache = tmp.root
-        listOf("edge_tts", "gemini_tts", "openai_tts").forEach { File(cache, it).apply { mkdirs() }.resolve("a.mp3").writeText("x") }
+        listOf("gemini_tts", "openai_tts").forEach { File(cache, it).apply { mkdirs() }.resolve("a.mp3").writeText("x") }
         val other = File(cache, "artwork").apply { mkdirs() }.resolve("p.png").apply { writeText("y") }
         assertTrue(SpeechCaches.wipe(cache))
-        listOf("edge_tts", "gemini_tts", "openai_tts").forEach { assertFalse(File(cache, it).exists()) }
+        listOf("gemini_tts", "openai_tts").forEach { assertFalse(File(cache, it).exists()) }
         assertTrue(other.exists())
         assertTrue(SpeechCaches.wipe(cache)) // nothing left: still fine
     }
