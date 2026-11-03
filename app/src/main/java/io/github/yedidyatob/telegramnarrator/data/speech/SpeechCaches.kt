@@ -8,8 +8,8 @@ fun interface SpeechCacheWiper {
 }
 
 object SpeechCaches {
-    /** Gemini's, and the former OpenAI engine's directory (may remain from older installs). */
-    val DIRECTORIES = listOf("gemini_tts", "openai_tts")
+    /** Gemini's synthesized-audio directory. */
+    val DIRECTORIES = listOf("gemini_tts")
 
     /** Deletes every speech cache under [cacheDir]; returns whether all of them are gone. */
     fun wipe(cacheDir: File): Boolean =

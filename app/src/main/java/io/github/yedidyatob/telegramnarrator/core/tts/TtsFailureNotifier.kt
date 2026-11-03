@@ -23,7 +23,7 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
 
 /**
  * Tells the user why a network voice fell back to the system voice (#63): a toast once per failure episode
- * ([TtsFailureEpisodes]); for failures fixed on the OpenAI website (invalid key, no credit) also a notification
+ * ([TtsFailureEpisodes]); for failures fixed on the Gemini / Google AI Studio website (invalid key, no credit) also a notification
  * that opens the page. Prefetch failures only count when the network itself is down, so prefetching the next
  * messages never produces a message per item.
  */

@@ -18,10 +18,6 @@ import javax.inject.Singleton
  * TtsManager needs the values synchronously while it initializes the engine.)
  *
  * No stored engine, or an unknown one: [SpeechProvider.DEFAULT] (System).
- *
- * Migration: a stored provider id of "openai" and the legacy `openai_enabled` flag are both migrated to
- * "gemini" so existing BYOK users keep the paid-engine slot. The legacy `openai_model` key is dropped on next
- * write (it has no Gemini equivalent). The `openai_voice` key is similarly dropped.
  */
 @Singleton
 class TtsPreferences @Inject constructor(
@@ -33,8 +29,6 @@ class TtsPreferences @Inject constructor(
         const val KEY_RATE = "rate"
         const val KEY_MARK_AS_READ = "mark_as_read"
         const val KEY_PROVIDER = "provider"
-        /** Legacy (OpenAI PR builds): read once to migrate to [KEY_PROVIDER], no longer written. */
-        const val KEY_OPENAI_ENABLED = "openai_enabled"
         const val KEY_GEMINI_VOICE = "gemini_voice"
         const val VOICE_PREFIX = "voice."
     }
@@ -62,10 +56,7 @@ class TtsPreferences @Inject constructor(
             speechRate = TtsVoiceLogic.clampRate(prefs.getFloat(KEY_RATE, TtsVoiceLogic.DEFAULT_RATE)),
             voices = voices,
             markAsReadOverride = if (prefs.contains(KEY_MARK_AS_READ)) prefs.getBoolean(KEY_MARK_AS_READ, true) else null,
-            provider = SpeechProvider.fromStored(
-                prefs.getString(KEY_PROVIDER, null),
-                legacyOpenAiEnabled = prefs.getBoolean(KEY_OPENAI_ENABLED, false)
-            ),
+            provider = SpeechProvider.fromId(prefs.getString(KEY_PROVIDER, null)),
             gemini = GeminiTtsOptions(
                 voice = GeminiTts.normalizeVoice(prefs.getString(KEY_GEMINI_VOICE, GeminiTts.DEFAULT_VOICE))
             )

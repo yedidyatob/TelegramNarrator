@@ -219,7 +219,7 @@
     <string name="settings_gemini_remove_key">Remove key</string>
     <string name="settings_gemini_voice">Voice</string>
     <string name="settings_gemini_test_needs_key">Save a key to test the voice</string>
-    <string name="settings_gemini_cost_privacy">About the same price as OpenAI tts-1 (audio billed per token; intro rates can change). Message text, chat names and the key go only to generativelanguage.googleapis.com. The key is stored encrypted on this device.</string>
+    <string name="settings_gemini_cost_privacy">Billed by Google per audio token to your own key (prices can change). Message text, chat names and the key go only to generativelanguage.googleapis.com. The key is stored encrypted on this device.</string>
     <string name="settings_gemini_test_failed">Gemini voice test failed (check the key and the network).</string>
 
     <!-- 3. Playback -->

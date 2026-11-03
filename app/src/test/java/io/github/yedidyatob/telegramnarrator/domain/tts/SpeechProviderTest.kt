@@ -18,27 +18,9 @@ class SpeechProviderTest {
     }
 
     @Test
-    fun fromId_fallsBackToSystem() {
+    fun fromId_resolvesKnownIdsAndFallsBackToSystem() {
+        assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromId("system"))
         assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromId("gemini"))
-        for (id in listOf("unknown", "openai", "", null)) assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromId(id))
-    }
-
-    @Test
-    fun fromStored_explicitIds() {
-        assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored("system", legacyOpenAiEnabled = false))
-        assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromStored("gemini", legacyOpenAiEnabled = false))
-        assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored("system", legacyOpenAiEnabled = true))
-    }
-
-    @Test
-    fun fromStored_nothingStoredIsSystem() {
-        assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored(null, legacyOpenAiEnabled = false))
-    }
-
-    @Test
-    fun fromStored_legacyOpenAiMigratesToGemini() {
-        assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromStored("openai", legacyOpenAiEnabled = false))
-        assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromStored(null, legacyOpenAiEnabled = true))
-        assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromStored("future_engine", legacyOpenAiEnabled = true))
+        for (id in listOf("unknown", "", null)) assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromId(id))
     }
 }
