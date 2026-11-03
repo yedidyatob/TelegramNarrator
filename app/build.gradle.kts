@@ -41,6 +41,16 @@ val tnVersionCode: Int = setting("TN_VERSION_CODE")?.toInt() ?: run {
 val ciRunNumber: String = System.getenv("GITHUB_RUN_NUMBER")?.takeIf { it.isNotBlank() }.orEmpty()
 val ciShortSha: String = System.getenv("GITHUB_SHA")?.takeIf { it.isNotBlank() }?.take(7).orEmpty()
 
+// Local builds (Android Studio, ./gradlew): the commit from git, "-dirty" with uncommitted changes, so About tells
+// two local installs apart. Empty when git (or the .git directory) is missing.
+val localShortSha: String = if (ciShortSha.isNotEmpty()) "" else runCatching {
+    providers.exec {
+        commandLine("git", "describe", "--always", "--dirty", "--abbrev=7", "--exclude=*")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+}.getOrDefault("")
+val gitShortSha: String = ciShortSha.ifEmpty { localShortSha }
+
 // ---- Release signing ------------------------------------------------------------------------------
 // The upload keystore is NEVER committed. Point the build at it with these four settings, either in
 // local.properties or as environment variables (CI): TN_KEYSTORE_PATH, TN_KEYSTORE_PASSWORD, TN_KEY_ALIAS,
@@ -87,7 +97,7 @@ android {
         buildConfigField("String", "TELEGRAM_API_ID", "\"${localProperties.getProperty("TELEGRAM_API_ID") ?: ""}\"")
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${localProperties.getProperty("TELEGRAM_API_HASH") ?: ""}\"")
         buildConfigField("String", "CI_RUN_NUMBER", "\"$ciRunNumber\"")
-        buildConfigField("String", "GIT_SHA", "\"$ciShortSha\"")
+        buildConfigField("String", "GIT_SHA", "\"$gitShortSha\"")
     }
 
     signingConfigs {
@@ -105,6 +115,8 @@ android {
         debug {
             if (ciRunNumber.isNotEmpty()) {
                 versionNameSuffix = "-debug+$ciRunNumber" + if (ciShortSha.isNotEmpty()) ".$ciShortSha" else ""
+            } else if (localShortSha.isNotEmpty()) {
+                versionNameSuffix = "-debug+local.$localShortSha"
             }
         }
         release {

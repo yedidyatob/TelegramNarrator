@@ -48,7 +48,12 @@ if you use the release workflow below.
 **CI builds:** when `GITHUB_RUN_NUMBER` / `GITHUB_SHA` are set (GitHub Actions sets both; the workflow needs no
 change), the build stores them in `BuildConfig.CI_RUN_NUMBER` / `BuildConfig.GIT_SHA` (short SHA) and About shows
 *CI run N · abc1234*. Debug CI APKs also get a unique `versionName` suffix, e.g. `1.0.0-debug+42.abc1234`, so two
-test APKs can be told apart; release builds keep the plain `versionName`. Local builds show no CI line.
+test APKs can be told apart; release builds keep the plain `versionName`.
+
+**Local builds** (Android Studio, `./gradlew` without those variables): the short commit comes from
+`git describe --always --dirty --abbrev=7` (with `-dirty` when there are uncommitted changes) and About shows
+*Local build · abc1234*; debug builds get `versionName` `1.0.0-debug+local.abc1234`. Without git the line is left out.
+`versionCode` never changes with this, so a local debug install can still be updated in place.
 
 One-off overrides (rarely needed): `./gradlew bundleRelease -PTN_VERSION_NAME=1.2.3` and/or
 `-PTN_VERSION_CODE=10204`.
