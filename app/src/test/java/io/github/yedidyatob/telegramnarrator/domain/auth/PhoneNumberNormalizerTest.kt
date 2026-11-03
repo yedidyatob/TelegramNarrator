@@ -7,14 +7,17 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class PhoneNumberNormalizerTest {
-
     private val normalizer = PhoneNumberNormalizer()
 
-    private fun e164(input: String, region: String?): String? =
-        (normalizer.normalize(input, region) as? Result.Valid)?.e164
+    private fun e164(
+        input: String,
+        region: String?,
+    ): String? = (normalizer.normalize(input, region) as? Result.Valid)?.e164
 
-    private fun reason(input: String, region: String?): Reason? =
-        (normalizer.normalize(input, region) as? Result.Invalid)?.reason
+    private fun reason(
+        input: String,
+        region: String?,
+    ): Reason? = (normalizer.normalize(input, region) as? Result.Invalid)?.reason
 
     @Test
     fun `Israel - with or without trunk prefix, international and formatted all give the same E164`() {

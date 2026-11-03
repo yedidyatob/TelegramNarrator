@@ -17,7 +17,10 @@ object LanguageDetector {
     val ARABIC: Locale = Locale("ar")
 
     /** The script language of [text], or the device language when it has no letters of a known script. */
-    fun detect(text: String, deviceLocale: Locale = Locale.getDefault()): Locale = detectOrNull(text) ?: deviceLocale
+    fun detect(
+        text: String,
+        deviceLocale: Locale = Locale.getDefault(),
+    ): Locale = detectOrNull(text) ?: deviceLocale
 
     /** Like [detect], but null when the text has no letters of a script we know (so nothing to go on). */
     fun detectOrNull(text: String?): Locale? {
@@ -33,10 +36,22 @@ object LanguageDetector {
             i += Character.charCount(codePoint)
             if (!Character.isLetter(codePoint)) continue
             when (Character.UnicodeScript.of(codePoint)) {
-                Character.UnicodeScript.HEBREW -> hebrew++
-                Character.UnicodeScript.LATIN -> latin++
-                Character.UnicodeScript.CYRILLIC -> cyrillic++
-                Character.UnicodeScript.ARABIC -> arabic++
+                Character.UnicodeScript.HEBREW -> {
+                    hebrew++
+                }
+
+                Character.UnicodeScript.LATIN -> {
+                    latin++
+                }
+
+                Character.UnicodeScript.CYRILLIC -> {
+                    cyrillic++
+                }
+
+                Character.UnicodeScript.ARABIC -> {
+                    arabic++
+                }
+
                 else -> {}
             }
         }

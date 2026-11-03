@@ -22,7 +22,7 @@ class SponsoredLinkPolicyTest {
             "https://core.telegram.org/api",
             "https://T.ME/UpperCase",
             "t.me/no_scheme",
-            "tg://resolve?domain=durov"
+            "tg://resolve?domain=durov",
         ).forEach { assertFalse(it, SponsoredLinkPolicy.requiresConfirmation(it)) }
     }
 
@@ -37,7 +37,7 @@ class SponsoredLinkPolicyTest {
             "https://fragment.com.attacker.net",
             "http://192.168.0.1/",
             "",
-            "not a url at all"
+            "not a url at all",
         ).forEach { assertTrue(it, SponsoredLinkPolicy.requiresConfirmation(it)) }
     }
 

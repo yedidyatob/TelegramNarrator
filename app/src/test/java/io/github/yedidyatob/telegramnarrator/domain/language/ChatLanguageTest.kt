@@ -9,7 +9,11 @@ import org.junit.Test
 
 class ChatLanguageTest {
     private val fr = "Bonjour à tous, voici les nouvelles du jour pour la région"
-    private fun g(lang: String, conf: Float = 0.95f) = listOf(LanguageGuess(lang, conf))
+
+    private fun g(
+        lang: String,
+        conf: Float = 0.95f,
+    ) = listOf(LanguageGuess(lang, conf))
 
     @Test
     fun `normalize maps legacy and romanized codes`() {
@@ -91,40 +95,58 @@ class ChatLanguageTest {
 
     private class MemoryStore : ChatLanguageStore {
         val map = HashMap<Long, ChatLanguage>()
+
         override fun get(chatId: Long) = map[chatId]
-        override fun put(chatId: Long, value: ChatLanguage) { map[chatId] = value }
-        override fun remove(chatId: Long) { map.remove(chatId) }
+
+        override fun put(
+            chatId: Long,
+            value: ChatLanguage,
+        ) {
+            map[chatId] = value
+        }
+
+        override fun remove(chatId: Long) {
+            map.remove(chatId)
+        }
+
         override fun clear() = map.clear()
     }
 
     @Test
-    fun `resolver detects, counts, keeps confirmed on inconclusive recheck, resets`() = runBlocking {
-        val store = MemoryStore()
-        var answer = "fr"
-        var conf = 0.95f
-        var calls = 0
-        val r = ChatLanguageResolver(store, { calls++; g(answer, conf) }, { "en" })
-        assertEquals("fr", r.resolve(1, false, List(5) { fr })?.language)
-        assertTrue(store.map[1]!!.confirmed)
-        val before = calls
-        r.resolve(1, false, List(3) { fr })
-        assertEquals(before, calls)
-        assertEquals(3, store.map[1]!!.messagesSinceCheck)
-        store.map[1] = store.map[1]!!.copy(messagesSinceCheck = 60)
-        conf = 0.2f
-        assertEquals("fr", r.resolve(1, false, List(5) { fr })?.language)
-        assertEquals(0, store.map[1]!!.messagesSinceCheck)
-        r.reset(1)
-        assertNull(r.languageOf(1))
-        assertEquals("en", r.languageCodeOf(1))
-        r.resolve(2, false, List(5) { fr }); r.resetAll()
-        assertTrue(store.map.isEmpty())
-    }
+    fun `resolver detects, counts, keeps confirmed on inconclusive recheck, resets`() =
+        runBlocking {
+            val store = MemoryStore()
+            var answer = "fr"
+            var conf = 0.95f
+            var calls = 0
+            val r =
+                ChatLanguageResolver(store, {
+                    calls++
+                    g(answer, conf)
+                }, { "en" })
+            assertEquals("fr", r.resolve(1, false, List(5) { fr })?.language)
+            assertTrue(store.map[1]!!.confirmed)
+            val before = calls
+            r.resolve(1, false, List(3) { fr })
+            assertEquals(before, calls)
+            assertEquals(3, store.map[1]!!.messagesSinceCheck)
+            store.map[1] = store.map[1]!!.copy(messagesSinceCheck = 60)
+            conf = 0.2f
+            assertEquals("fr", r.resolve(1, false, List(5) { fr })?.language)
+            assertEquals(0, store.map[1]!!.messagesSinceCheck)
+            r.reset(1)
+            assertNull(r.languageOf(1))
+            assertEquals("en", r.languageCodeOf(1))
+            r.resolve(2, false, List(5) { fr })
+            r.resetAll()
+            assertTrue(store.map.isEmpty())
+        }
 
     @Test
-    fun `resolver survives identifier failures`() = runBlocking {
-        val r = ChatLanguageResolver(MemoryStore(), { error("boom") }, { "de" })
-        val out = r.resolve(1, false, List(5) { fr })!!
-        assertFalse(out.confirmed)
-    }
+    fun `resolver survives identifier failures`() =
+        runBlocking {
+            val r = ChatLanguageResolver(MemoryStore(), { error("boom") }, { "de" })
+            val out = r.resolve(1, false, List(5) { fr })!!
+            assertFalse(out.confirmed)
+        }
 }

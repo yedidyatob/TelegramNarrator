@@ -8,11 +8,13 @@ import javax.inject.Inject
 
 /** App-level navigation state that isn't about the Telegram login: whether the onboarding was done. */
 @HiltViewModel
-class AppNavigationViewModel @Inject constructor(
-    private val onboardingPreferences: OnboardingPreferences
-) : ViewModel() {
-    val onboardingCompleted: StateFlow<Boolean> = onboardingPreferences.completed
+class AppNavigationViewModel
+    @Inject
+    constructor(
+        private val onboardingPreferences: OnboardingPreferences,
+    ) : ViewModel() {
+        val onboardingCompleted: StateFlow<Boolean> = onboardingPreferences.completed
 
-    /** Already signed in (e.g. updated from a version without onboarding): never show it. */
-    fun onSignedIn() = onboardingPreferences.markCompleted()
-}
+        /** Already signed in (e.g. updated from a version without onboarding): never show it. */
+        fun onSignedIn() = onboardingPreferences.markCompleted()
+    }

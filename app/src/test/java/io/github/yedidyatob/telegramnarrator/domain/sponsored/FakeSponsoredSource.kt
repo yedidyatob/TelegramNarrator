@@ -20,22 +20,36 @@ class FakeSponsoredSource : SponsoredMessagesSource {
         return kinds[chatId]
     }
 
-    override suspend fun fetch(chatId: Long, kind: SponsoredChatKind): List<SponsoredAd> {
+    override suspend fun fetch(
+        chatId: Long,
+        kind: SponsoredChatKind,
+    ): List<SponsoredAd> {
         fetchCalls++
         if (failFetch) throw RuntimeException("network")
         return ads[chatId].orEmpty()
     }
 
-    override suspend fun view(chatId: Long, messageId: Long) {
+    override suspend fun view(
+        chatId: Long,
+        messageId: Long,
+    ) {
         if (failView) throw RuntimeException("network")
         views += chatId to messageId
     }
 
-    override suspend fun click(chatId: Long, messageId: Long, isMediaClick: Boolean) {
+    override suspend fun click(
+        chatId: Long,
+        messageId: Long,
+        isMediaClick: Boolean,
+    ) {
         clicks += Triple(chatId, messageId, isMediaClick)
     }
 
-    override suspend fun report(chatId: Long, messageId: Long, optionId: ByteArray): SponsoredReportResult {
+    override suspend fun report(
+        chatId: Long,
+        messageId: Long,
+        optionId: ByteArray,
+    ): SponsoredReportResult {
         reports += Triple(chatId, messageId, optionId)
         if (failReport) throw RuntimeException("network")
         return reportResults.removeFirst()
@@ -44,5 +58,9 @@ class FakeSponsoredSource : SponsoredMessagesSource {
     override suspend fun downloadFile(fileId: Int): String? = "/files/$fileId.jpg"
 }
 
-fun ad(chatId: Long = 1L, messageId: Long = 100L, title: String = "Title", text: String = "Text") =
-    SponsoredAd(chatId = chatId, messageId = messageId, title = title, text = text, canBeReported = true)
+fun ad(
+    chatId: Long = 1L,
+    messageId: Long = 100L,
+    title: String = "Title",
+    text: String = "Text",
+) = SponsoredAd(chatId = chatId, messageId = messageId, title = title, text = text, canBeReported = true)

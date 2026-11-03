@@ -18,7 +18,7 @@ data class VoiceGroup(
     val displayName: String,
     val voices: List<VoiceOption>,
     /** Name of the voice chosen for this language, null = engine default. */
-    val selectedVoice: String?
+    val selectedVoice: String?,
 )
 
 /** System TTS section. [loading] is true while the system engine (re)starts; only this section waits for it. */
@@ -29,7 +29,7 @@ data class SystemVoiceUiState(
     val selectedEngine: String? = null,
     val groups: List<VoiceGroup> = emptyList(),
     /** True from Test voice until the engine starts speaking the sample. */
-    val testing: Boolean = false
+    val testing: Boolean = false,
 )
 
 /**
@@ -42,17 +42,21 @@ data class GeminiVoiceUiState(
     /** "AI…abcd" style hint of the saved key, null when no key is saved. */
     val keyHint: String? = null,
     /** True while the Test voice sample is being synthesized. */
-    val testing: Boolean = false
+    val testing: Boolean = false,
 ) {
     companion object {
         /** [apiKey] is only used to derive [hasKey] / [keyHint]; it is not stored. */
-        fun from(options: GeminiTtsOptions, apiKey: String?, testing: Boolean = false): GeminiVoiceUiState {
+        fun from(
+            options: GeminiTtsOptions,
+            apiKey: String?,
+            testing: Boolean = false,
+        ): GeminiVoiceUiState {
             val hint = GeminiTts.maskKey(apiKey)
             return GeminiVoiceUiState(
                 voice = GeminiTts.normalizeVoice(options.voice),
                 hasKey = hint != null,
                 keyHint = hint,
-                testing = testing
+                testing = testing,
             )
         }
     }
@@ -69,7 +73,7 @@ data class TtsSettingsUiState(
     /** The "Mark messages as read" switch is shown in debug builds only (Telegram API ToS 1.4). */
     val markAsReadSwitchVisible: Boolean = false,
     /** Language of the Test voice sample (shared by all engines); defaults to the device UI language. */
-    val testLanguage: TestLanguage = TestLanguage.FALLBACK
+    val testLanguage: TestLanguage = TestLanguage.FALLBACK,
 ) {
     val sections: List<VoiceSettingsSection> get() = VoiceSettingsLogic.visibleSections(provider)
 }

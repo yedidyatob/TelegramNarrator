@@ -12,17 +12,18 @@ import kotlin.coroutines.resumeWithException
 class MlKitLanguageIdentifier : LanguageIdentifier {
     private val client by lazy {
         LanguageIdentification.getClient(
-            LanguageIdentificationOptions.Builder().setConfidenceThreshold(MIN_CONFIDENCE).build()
+            LanguageIdentificationOptions.Builder().setConfidenceThreshold(MIN_CONFIDENCE).build(),
         )
     }
 
-    override suspend fun identify(text: String): List<LanguageGuess> = suspendCancellableCoroutine { cont ->
-        client.identifyPossibleLanguages(text.take(MAX_CHARS))
-            .addOnSuccessListener { list ->
-                cont.resume(list.map { LanguageGuess(it.languageTag, it.confidence) }.sortedByDescending { it.confidence })
-            }
-            .addOnFailureListener { cont.resumeWithException(it) }
-    }
+    override suspend fun identify(text: String): List<LanguageGuess> =
+        suspendCancellableCoroutine { cont ->
+            client
+                .identifyPossibleLanguages(text.take(MAX_CHARS))
+                .addOnSuccessListener { list ->
+                    cont.resume(list.map { LanguageGuess(it.languageTag, it.confidence) }.sortedByDescending { it.confidence })
+                }.addOnFailureListener { cont.resumeWithException(it) }
+        }
 
     private companion object {
         const val MIN_CONFIDENCE = 0.1f

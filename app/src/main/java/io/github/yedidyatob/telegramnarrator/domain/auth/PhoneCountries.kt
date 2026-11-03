@@ -9,31 +9,37 @@ data class PhoneCountry(
     /** Without "+", e.g. 972. */
     val dialCode: Int,
     /** Country name in the UI language. */
-    val name: String
+    val name: String,
 ) {
     val flag: String get() = PhoneCountries.flagEmoji(regionCode)
     val dialCodeText: String get() = "+$dialCode"
 }
 
 object PhoneCountries {
-
     /** All countries with a dial code, sorted by their name in [displayLocale]. */
-    fun all(normalizer: PhoneNumberNormalizer, displayLocale: Locale = Locale.getDefault()): List<PhoneCountry> =
+    fun all(
+        normalizer: PhoneNumberNormalizer,
+        displayLocale: Locale = Locale.getDefault(),
+    ): List<PhoneCountry> =
         normalizer.supportedRegions
             .mapNotNull { region ->
                 val dial = normalizer.dialCodeFor(region) ?: return@mapNotNull null
                 PhoneCountry(region, dial, displayName(region, displayLocale))
-            }
-            .sortedWith(compareBy(java.text.Collator.getInstance(displayLocale)) { it.name })
+            }.sortedWith(compareBy(java.text.Collator.getInstance(displayLocale)) { it.name })
 
-    fun displayName(regionCode: String, displayLocale: Locale = Locale.getDefault()): String =
-        Locale("", regionCode).getDisplayCountry(displayLocale).ifBlank { regionCode }
+    fun displayName(
+        regionCode: String,
+        displayLocale: Locale = Locale.getDefault(),
+    ): String = Locale("", regionCode).getDisplayCountry(displayLocale).ifBlank { regionCode }
 
     /**
      * Search by country name (UI language or English), ISO code or dial code: "isr", "ישראל", "IL", "972", "+972".
      * Blank query returns [countries] unchanged.
      */
-    fun filter(countries: List<PhoneCountry>, query: String): List<PhoneCountry> {
+    fun filter(
+        countries: List<PhoneCountry>,
+        query: String,
+    ): List<PhoneCountry> {
         val q = query.trim()
         if (q.isEmpty()) return countries
         val digits = q.removePrefix("+").trim()

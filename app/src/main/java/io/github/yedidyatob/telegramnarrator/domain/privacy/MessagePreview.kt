@@ -7,6 +7,7 @@ package io.github.yedidyatob.telegramnarrator.domain.privacy
  */
 object MessagePreview {
     const val MAX_CHARS = 60
+
     /** Lines the preview may take on screen (the text is also ellipsized to [MAX_CHARS]). */
     const val MAX_LINES = 1
     private const val ELLIPSIS = "…"
@@ -15,7 +16,10 @@ object MessagePreview {
      * [text] with line breaks / runs of whitespace collapsed to single spaces, cut to at most [maxChars]
      * characters (preferring a word boundary, never splitting a surrogate pair) plus an ellipsis.
      */
-    fun of(text: String, maxChars: Int = MAX_CHARS): String {
+    fun of(
+        text: String,
+        maxChars: Int = MAX_CHARS,
+    ): String {
         val flat = text.trim().replace(Regex("\\s+"), " ")
         if (flat.length <= maxChars) return flat
         var end = maxChars

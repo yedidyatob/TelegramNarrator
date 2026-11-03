@@ -5,7 +5,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LanguageDetectorTest {
-
     @Test
     fun `hebrew text is hebrew`() {
         assertEquals(LanguageDetector.HEBREW, LanguageDetector.detect("שלום, מה שלומך היום?"))

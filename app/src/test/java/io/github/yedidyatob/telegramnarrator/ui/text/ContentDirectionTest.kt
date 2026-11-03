@@ -6,7 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ContentDirectionTest {
-
     @Test
     fun `Hebrew text is RTL and English text is LTR`() {
         assertEquals(LayoutDirection.Rtl, ContentDirection.of("תחזית מדויקת לכל עיר בישראל."))

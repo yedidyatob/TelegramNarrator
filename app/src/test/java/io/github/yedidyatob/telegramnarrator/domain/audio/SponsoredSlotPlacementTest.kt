@@ -5,7 +5,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class SponsoredSlotPlacementTest {
-    private fun msg(chatId: Long, id: Long) = PlaybackItem.MessageItem("s", "text $id", id, chatId)
+    private fun msg(
+        chatId: Long,
+        id: Long,
+    ) = PlaybackItem.MessageItem("s", "text $id", id, chatId)
 
     @Test
     fun `slot goes after the chat's last message`() {
@@ -16,8 +19,9 @@ class SponsoredSlotPlacementTest {
 
     @Test
     fun `silent chats get no slot`() {
-        val items = ChatTitleSpeech.chatOpening(1L, "News", "News", silent = true) +
-            listOf(msg(1, 10).copy(dropped = true))
+        val items =
+            ChatTitleSpeech.chatOpening(1L, "News", "News", silent = true) +
+                listOf(msg(1, 10).copy(dropped = true))
         assertEquals(items, SponsoredSlotPlacement.withSlot(items, 1L, "News", silent = true))
     }
 

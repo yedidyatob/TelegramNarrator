@@ -39,7 +39,15 @@ class UpNextTest {
     @Test
     fun `idle run is empty and items never carry message text`() {
         assertTrue(UpNext.items(emptyList(), null, chats, "Chat").isEmpty())
-        val withText = listOf(Chat(1, "News", 1, lastMessage = Message(id = 1, chatId = 1, senderName = null, text = "secret", timestamp = 0, isOutgoing = false)))
+        val withText =
+            listOf(
+                Chat(
+                    1,
+                    "News",
+                    1,
+                    lastMessage = Message(id = 1, chatId = 1, senderName = null, text = "secret", timestamp = 0, isOutgoing = false),
+                ),
+            )
         val item = UpNext.items(listOf(1L), 1L, withText, "Chat").single()
         assertTrue("secret" !in item.toString())
     }

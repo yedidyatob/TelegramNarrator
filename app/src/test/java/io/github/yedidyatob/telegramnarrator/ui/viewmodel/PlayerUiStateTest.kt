@@ -11,12 +11,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerUiStateTest {
-
-    private fun message(voice: Boolean = false, engine: SpeechProvider? = null) = NowPlaying(
+    private fun message(
+        voice: Boolean = false,
+        engine: SpeechProvider? = null,
+    ) = NowPlaying(
         chatId = 1,
         chatTitle = "News",
-        content = NowPlaying.Content.Message(messageId = 10, sender = "Dana", text = "שלום", contentType = MessageContentType.TEXT, isVoiceNote = voice),
-        engine = engine
+        content =
+            NowPlaying.Content.Message(
+                messageId = 10,
+                sender = "Dana",
+                text = "שלום",
+                contentType = MessageContentType.TEXT,
+                isVoiceNote = voice,
+            ),
+        engine = engine,
     )
 
     private val ad = SponsoredAd(chatId = 1, messageId = 99, title = "Ad", text = "Buy")
@@ -27,7 +36,7 @@ class PlayerUiStateTest {
         isPreparing: Boolean = false,
         nowPlaying: NowPlaying? = message(),
         playingAd: SponsoredAd? = null,
-        selected: SpeechProvider = SpeechProvider.SYSTEM
+        selected: SpeechProvider = SpeechProvider.SYSTEM,
     ) = PlayerUiState.from(isPlaying, isPaused, isPreparing, nowPlaying, playingAd, selected, status = "Reading")
 
     @Test
@@ -65,7 +74,10 @@ class PlayerUiStateTest {
 
     @Test
     fun `engine indicator follows the engine that speaks`() {
-        assertEquals(EngineIndicator(EngineLabel.GEMINI), state(nowPlaying = message(engine = SpeechProvider.GEMINI), selected = SpeechProvider.GEMINI).engine)
+        assertEquals(
+            EngineIndicator(EngineLabel.GEMINI),
+            state(nowPlaying = message(engine = SpeechProvider.GEMINI), selected = SpeechProvider.GEMINI).engine,
+        )
         assertEquals(EngineIndicator(EngineLabel.SYSTEM), state().engine)
     }
 
@@ -73,12 +85,15 @@ class PlayerUiStateTest {
     fun `system voice standing in for an online engine is a fallback`() {
         assertEquals(
             EngineIndicator(EngineLabel.SYSTEM, isFallback = true),
-            state(nowPlaying = message(engine = SpeechProvider.SYSTEM), selected = SpeechProvider.GEMINI).engine
+            state(nowPlaying = message(engine = SpeechProvider.SYSTEM), selected = SpeechProvider.GEMINI).engine,
         )
     }
 
     @Test
     fun `voice notes play the original audio`() {
-        assertEquals(EngineIndicator(EngineLabel.ORIGINAL_AUDIO), state(nowPlaying = message(voice = true), selected = SpeechProvider.GEMINI).engine)
+        assertEquals(
+            EngineIndicator(EngineLabel.ORIGINAL_AUDIO),
+            state(nowPlaying = message(voice = true), selected = SpeechProvider.GEMINI).engine,
+        )
     }
 }

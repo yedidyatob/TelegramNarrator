@@ -33,11 +33,12 @@ private fun shareDebugLog(context: Context) {
         return
     }
     val uri = FileProvider.getUriForFile(context, context.packageName + ".diagnostics", file)
-    val send = Intent(Intent.ACTION_SEND)
-        .setType("text/plain")
-        .putExtra(Intent.EXTRA_STREAM, uri)
-        .putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.settings_debug_log_subject))
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    val send =
+        Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.settings_debug_log_subject))
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     try {
         context.startActivity(Intent.createChooser(send, context.getString(R.string.settings_share_debug_log)))
     } catch (e: ActivityNotFoundException) {

@@ -7,13 +7,15 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 class PlaybackReadProgressTest {
-
-    private fun msg(id: Long, chatId: Long = 1L) = PlaybackItem.MessageItem(
+    private fun msg(
+        id: Long,
+        chatId: Long = 1L,
+    ) = PlaybackItem.MessageItem(
         sender = "A",
         text = "hi",
         messageId = id,
         chatId = chatId,
-        contentType = MessageContentType.TEXT
+        contentType = MessageContentType.TEXT,
     )
 
     @Test

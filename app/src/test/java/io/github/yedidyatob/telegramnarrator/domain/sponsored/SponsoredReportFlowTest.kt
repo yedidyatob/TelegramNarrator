@@ -16,7 +16,7 @@ class SponsoredReportFlowTest {
     fun `an empty option list is an error`() {
         assertEquals(
             Step(toast = Toast.ERROR),
-            SponsoredReportFlow.next(SponsoredReportResult.OptionRequired("Report", emptyList()))
+            SponsoredReportFlow.next(SponsoredReportResult.OptionRequired("Report", emptyList())),
         )
     }
 
@@ -25,7 +25,7 @@ class SponsoredReportFlowTest {
         assertEquals(Step(toast = Toast.REPORTED, hideAd = true), SponsoredReportFlow.next(SponsoredReportResult.Reported))
         assertEquals(
             Step(toast = Toast.ADS_HIDDEN, hideAd = true, hideAllAds = true),
-            SponsoredReportFlow.next(SponsoredReportResult.AdsHidden)
+            SponsoredReportFlow.next(SponsoredReportResult.AdsHidden),
         )
         assertEquals(Step(toast = Toast.PREMIUM_REQUIRED), SponsoredReportFlow.next(SponsoredReportResult.PremiumRequired))
         assertEquals(Step(toast = Toast.EXPIRED, hideAd = true), SponsoredReportFlow.next(SponsoredReportResult.Failed))

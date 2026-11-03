@@ -37,8 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.ui.components.ChatAvatar
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
 
 /**
@@ -54,7 +54,7 @@ fun MiniPlayer(
     onNextMessage: () -> Unit,
     onStop: () -> Unit,
     loadPhoto: suspend (Int) -> String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val nowPlaying = state.nowPlaying
     val openLabel = stringResource(R.string.player_open)
@@ -63,30 +63,36 @@ fun MiniPlayer(
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         tonalElevation = 3.dp,
         shadowElevation = 8.dp,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column {
             // Message progress in the chat; indeterminate while the audio is prepared
             Box(Modifier.fillMaxWidth().height(3.dp)) {
                 val position = nowPlaying?.messagePosition
                 when {
-                    state.isPreparing -> LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    )
-                    position != null -> LinearProgressIndicator(
-                        progress = { position.fraction },
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    )
+                    state.isPreparing -> {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth().height(3.dp),
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        )
+                    }
+
+                    position != null -> {
+                        LinearProgressIndicator(
+                            progress = { position.fraction },
+                            modifier = Modifier.fillMaxWidth().height(3.dp),
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        )
+                    }
                 }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClickLabel = openLabel, onClick = onOpen)
-                    .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClickLabel = openLabel, onClick = onOpen)
+                        .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             ) {
                 if (nowPlaying != null) {
                     ChatAvatar(
@@ -94,7 +100,7 @@ fun MiniPlayer(
                         title = nowPlaying.chatTitle,
                         photoFileId = nowPlaying.chatPhotoFileId,
                         loadFile = loadPhoto,
-                        size = 40.dp
+                        size = 40.dp,
                     )
                 } else {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp)) {
@@ -105,22 +111,23 @@ fun MiniPlayer(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                 ) {
                     Text(
                         text = bidiSafe(nowPlaying?.chatTitle ?: stringResource(R.string.home_now_playing)),
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         AnimatedVisibility(visible = state.isPreparing, enter = fadeIn(), exit = fadeOut()) {
                             CircularProgressIndicator(
                                 modifier = Modifier.padding(end = 6.dp).size(10.dp),
                                 strokeWidth = 1.5.dp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
                         Text(
@@ -128,14 +135,14 @@ fun MiniPlayer(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
                 IconButton(onClick = onTogglePause) {
                     Icon(
                         imageVector = if (state.isPaused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
-                        contentDescription = stringResource(if (state.isPaused) R.string.playback_resume else R.string.playback_pause)
+                        contentDescription = stringResource(if (state.isPaused) R.string.playback_resume else R.string.playback_pause),
                     )
                 }
                 IconButton(onClick = onNextMessage) {

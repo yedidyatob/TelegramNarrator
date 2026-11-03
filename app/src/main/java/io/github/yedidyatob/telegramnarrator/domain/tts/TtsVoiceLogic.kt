@@ -13,11 +13,14 @@ data class VoiceOption(
     val quality: Int,
     val requiresNetwork: Boolean,
     /** false when the voice data still has to be downloaded (not usable offline yet). */
-    val installed: Boolean
+    val installed: Boolean,
 )
 
 /** A TTS engine app installed on the device (e.g. Google, Samsung, eSpeak). */
-data class EngineOption(val packageName: String, val label: String)
+data class EngineOption(
+    val packageName: String,
+    val label: String,
+)
 
 /**
  * The user's TTS choices.
@@ -38,7 +41,7 @@ data class TtsSettings(
     /** Engine that speaks messages: system TTS (default) or Gemini (BYOK). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** Optional Bring-Your-Own-Key Gemini TTS choices (used when [provider] is GEMINI). */
-    val gemini: GeminiTtsOptions = GeminiTtsOptions()
+    val gemini: GeminiTtsOptions = GeminiTtsOptions(),
 ) {
     /**
      * Whether played messages are marked as read in Telegram.
@@ -52,8 +55,7 @@ data class TtsSettings(
      * Either way only messages that were actually read aloud (or deliberately skipped) are marked, see
      * `ReadCheckpointer`.
      */
-    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean =
-        if (isDebugBuild) markAsReadOverride ?: true else true
+    fun markAsReadEnabled(isDebugBuild: Boolean): Boolean = if (isDebugBuild) markAsReadOverride ?: true else true
 
     companion object {
         /** The "Mark messages as read" switch exists only in debug builds (Telegram API ToS 1.4). */
@@ -73,7 +75,12 @@ object TtsVoiceLogic {
 
     /** Lower-case language code with the legacy Java codes mapped to the modern ones ("iw" -> "he"). */
     fun normalizeLanguage(languageOrTag: String): String {
-        val language = languageOrTag.trim().replace('_', '-').substringBefore('-').lowercase()
+        val language =
+            languageOrTag
+                .trim()
+                .replace('_', '-')
+                .substringBefore('-')
+                .lowercase()
         return when (language) {
             "iw" -> "he"
             "in" -> "id"
@@ -100,51 +107,69 @@ object TtsVoiceLogic {
             .distinct()
 
     /** Only voices that work offline with the system engine: installed and not needing a network. */
-    fun usableVoices(all: List<VoiceOption>): List<VoiceOption> =
-        all.filter { it.installed && !it.requiresNetwork }
+    fun usableVoices(all: List<VoiceOption>): List<VoiceOption> = all.filter { it.installed && !it.requiresNetwork }
 
     /**
      * Usable voices grouped by language for the given [languages] (in that order, empty groups kept so
      * that the UI can say "no voice installed"). Inside a group the best quality comes first, then by name.
      */
-    fun voicesByLanguage(all: List<VoiceOption>, languages: List<String>): LinkedHashMap<String, List<VoiceOption>> {
+    fun voicesByLanguage(
+        all: List<VoiceOption>,
+        languages: List<String>,
+    ): LinkedHashMap<String, List<VoiceOption>> {
         val usable = usableVoices(all)
         val result = LinkedHashMap<String, List<VoiceOption>>()
         for (language in languages) {
-            result[language] = usable
-                .filter { it.language == language }
-                .sortedWith(compareByDescending<VoiceOption> { it.quality }.thenBy { it.name })
+            result[language] =
+                usable
+                    .filter { it.language == language }
+                    .sortedWith(compareByDescending<VoiceOption> { it.quality }.thenBy { it.name })
         }
         return result
     }
 
     /** The voice to apply for [language]: the user's choice if it is (still) usable and of that language, else null = engine default. */
-    fun chosenVoiceFor(settings: TtsSettings, language: String, all: List<VoiceOption>): VoiceOption? {
+    fun chosenVoiceFor(
+        settings: TtsSettings,
+        language: String,
+        all: List<VoiceOption>,
+    ): VoiceOption? {
         val key = normalizeLanguage(language)
         val name = settings.voices[key] ?: return null
         return usableVoices(all).firstOrNull { it.name == name && it.language == key }
     }
 
     /** [settings] with the voice for [language] set to [voiceName], or back to the default when null. */
-    fun withVoice(settings: TtsSettings, language: String, voiceName: String?): TtsSettings {
+    fun withVoice(
+        settings: TtsSettings,
+        language: String,
+        voiceName: String?,
+    ): TtsSettings {
         val key = normalizeLanguage(language)
         val voices = settings.voices.toMutableMap()
         if (voiceName == null) voices.remove(key) else voices[key] = voiceName
         return settings.copy(voices = voices)
     }
 
-    fun withRate(settings: TtsSettings, rate: Float): TtsSettings = settings.copy(speechRate = clampRate(rate))
+    fun withRate(
+        settings: TtsSettings,
+        rate: Float,
+    ): TtsSettings = settings.copy(speechRate = clampRate(rate))
 
     /** Switching the engine drops the voice choices: voice names belong to one engine. */
-    fun withEngine(settings: TtsSettings, enginePackage: String?): TtsSettings =
+    fun withEngine(
+        settings: TtsSettings,
+        enginePackage: String?,
+    ): TtsSettings =
         if (settings.enginePackage == enginePackage) settings else settings.copy(enginePackage = enginePackage, voices = emptyMap())
 
     /** Quality bucket of a voice; the settings sheet turns it into a string resource. */
-    fun qualityOf(voice: VoiceOption): VoiceQuality = when {
-        voice.quality >= 400 -> VoiceQuality.HIGH
-        voice.quality >= 300 -> VoiceQuality.NORMAL
-        else -> VoiceQuality.BASIC
-    }
+    fun qualityOf(voice: VoiceOption): VoiceQuality =
+        when {
+            voice.quality >= 400 -> VoiceQuality.HIGH
+            voice.quality >= 300 -> VoiceQuality.NORMAL
+            else -> VoiceQuality.BASIC
+        }
 }
 
 /** Coarse voice quality shown next to each system voice. */

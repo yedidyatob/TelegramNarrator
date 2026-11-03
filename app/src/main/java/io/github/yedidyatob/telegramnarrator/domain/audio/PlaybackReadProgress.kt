@@ -12,7 +12,10 @@ object PlaybackReadProgress {
      * After [finished] completed speaking, return the [currentItem] value that should remain.
      * If it still refers to [finished], clear it so pause cannot re-queue a completed message.
      */
-    fun afterMessageCompleted(currentItem: PlaybackItem?, finished: PlaybackItem.MessageItem): PlaybackItem? {
+    fun afterMessageCompleted(
+        currentItem: PlaybackItem?,
+        finished: PlaybackItem.MessageItem,
+    ): PlaybackItem? {
         val cur = currentItem ?: return null
         if (cur === finished) return null
         if (cur is PlaybackItem.MessageItem &&

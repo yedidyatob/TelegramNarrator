@@ -24,7 +24,10 @@ class FakeTdGateway : TdGateway {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override suspend fun <T : TdApi.Object> send(function: TdApi.Function<T>, timeoutMs: Long): T {
+    override suspend fun <T : TdApi.Object> send(
+        function: TdApi.Function<T>,
+        timeoutMs: Long,
+    ): T {
         sent += function
         val result = reply(function)
         if (result is TdApi.Error) throw TdLibErrors.toException(result)
@@ -44,27 +47,37 @@ object TdFixtures {
         title: String = "Chat $id",
         unread: Int = 1,
         mainOrder: Long = id,
-        muteFor: Int = 0
-    ): TdApi.Chat = TdApi.Chat().apply {
-        this.id = id
-        this.title = title
-        unreadCount = unread
-        lastReadInboxMessageId = 0
-        notificationSettings = TdApi.ChatNotificationSettings().apply { this.muteFor = muteFor }
-        positions = if (mainOrder == 0L) emptyArray() else arrayOf(position(TdApi.ChatListMain(), mainOrder))
-    }
+        muteFor: Int = 0,
+    ): TdApi.Chat =
+        TdApi.Chat().apply {
+            this.id = id
+            this.title = title
+            unreadCount = unread
+            lastReadInboxMessageId = 0
+            notificationSettings = TdApi.ChatNotificationSettings().apply { this.muteFor = muteFor }
+            positions = if (mainOrder == 0L) emptyArray() else arrayOf(position(TdApi.ChatListMain(), mainOrder))
+        }
 
-    fun position(list: TdApi.ChatList, order: Long) = TdApi.ChatPosition().apply {
+    fun position(
+        list: TdApi.ChatList,
+        order: Long,
+    ) = TdApi.ChatPosition().apply {
         this.list = list
         this.order = order
     }
 
-    fun file(id: Int, completed: Boolean, active: Boolean, path: String = "/voice/$id.oga") = TdApi.File().apply {
+    fun file(
+        id: Int,
+        completed: Boolean,
+        active: Boolean,
+        path: String = "/voice/$id.oga",
+    ) = TdApi.File().apply {
         this.id = id
-        local = TdApi.LocalFile().apply {
-            this.path = if (completed) path else ""
-            isDownloadingCompleted = completed
-            isDownloadingActive = active
-        }
+        local =
+            TdApi.LocalFile().apply {
+                this.path = if (completed) path else ""
+                isDownloadingCompleted = completed
+                isDownloadingActive = active
+            }
     }
 }

@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DelayedLoadingTest {
-
     @Test
     fun `default delay is 300 ms`() {
         assertEquals(300L, DelayedLoading().delayMs)

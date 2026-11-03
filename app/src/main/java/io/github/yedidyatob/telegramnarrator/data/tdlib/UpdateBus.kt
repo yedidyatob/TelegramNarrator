@@ -20,14 +20,15 @@ class UpdateBus<T> {
         for (subscriber in subscribers) subscriber.trySend(item)
     }
 
-    val flow: Flow<T> = flow {
-        val channel = Channel<T>(Channel.UNLIMITED)
-        subscribers += channel
-        try {
-            for (item in channel) emit(item)
-        } finally {
-            subscribers -= channel
-            channel.close()
+    val flow: Flow<T> =
+        flow {
+            val channel = Channel<T>(Channel.UNLIMITED)
+            subscribers += channel
+            try {
+                for (item in channel) emit(item)
+            } finally {
+                subscribers -= channel
+                channel.close()
+            }
         }
-    }
 }

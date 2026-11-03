@@ -4,13 +4,18 @@ package io.github.yedidyatob.telegramnarrator.domain.cleaning
 enum class NumberedListMode {
     /** Leave them alone */
     KEEP,
+
     /** Remove the marker: "1. text" -> "text" */
     STRIP,
+
     /** Make the number read naturally: "1. text" -> "1, text" */
-    NATURAL
+    NATURAL,
 }
 
-data class ReplaceRule(val pattern: Regex, val replacement: String)
+data class ReplaceRule(
+    val pattern: Regex,
+    val replacement: String,
+)
 
 /**
  * Everything that controls how the messages of one chat are cleaned before being read aloud.
@@ -31,16 +36,19 @@ data class CleaningPreset(
     val removeTelegramLinks: Boolean = true,
     val numberedLists: NumberedListMode = NumberedListMode.KEEP,
     /** Literal strings removed from the text, e.g. "°". */
-    val stripSymbols: List<String> = emptyList()
+    val stripSymbols: List<String> = emptyList(),
 )
 
 /** Which chats a [ChannelPreset] applies to; a chat matches if any of the criteria matches. */
 data class ChannelMatch(
     val chatIds: Set<Long> = emptySet(),
     val titleEquals: String? = null,
-    val titleContains: String? = null
+    val titleContains: String? = null,
 ) {
-    fun matches(chatId: Long, title: String?): Boolean {
+    fun matches(
+        chatId: Long,
+        title: String?,
+    ): Boolean {
         if (chatId in chatIds) return true
         val t = title?.trim() ?: return false
         if (titleEquals != null && t.equals(titleEquals.trim(), ignoreCase = true)) return true
@@ -52,14 +60,14 @@ data class ChannelMatch(
 data class ChannelPreset(
     val name: String,
     val match: ChannelMatch,
-    val preset: CleaningPreset
+    val preset: CleaningPreset,
 )
 
 data class ChannelRulesConfig(
     /** Used for every chat that no channel matches. */
     val default: CleaningPreset = CleaningPreset(),
     /** Checked in order, the first match wins. */
-    val channels: List<ChannelPreset> = emptyList()
+    val channels: List<ChannelPreset> = emptyList(),
 ) {
     companion object {
         /** No rules at all: only the generic MessageCleaner applies. */

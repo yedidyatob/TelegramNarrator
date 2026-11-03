@@ -5,14 +5,17 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class PhoneCountryResolverTest {
-
     private val normalizer = PhoneNumberNormalizer()
 
-    private fun resolve(sim: String?, network: String?, telephony: Boolean = true, locale: String?) =
-        PhoneCountryResolver.resolve(
-            PhoneCountryResolver.Signals(sim, network, telephony, locale),
-            normalizer::isSupportedRegion
-        )
+    private fun resolve(
+        sim: String?,
+        network: String?,
+        telephony: Boolean = true,
+        locale: String?,
+    ) = PhoneCountryResolver.resolve(
+        PhoneCountryResolver.Signals(sim, network, telephony, locale),
+        normalizer::isSupportedRegion,
+    )
 
     @Test
     fun `SIM country wins over network and locale`() {

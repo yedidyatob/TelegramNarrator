@@ -11,7 +11,7 @@ import java.io.File
  */
 class DiskAudioCache(
     private val dir: File,
-    private val maxBytes: Long = UNLIMITED
+    private val maxBytes: Long = UNLIMITED,
 ) {
     fun fileFor(key: String): File = File(dir, "$key.mp3")
 
@@ -24,7 +24,10 @@ class DiskAudioCache(
     }
 
     @Synchronized
-    fun put(key: String, bytes: ByteArray): File {
+    fun put(
+        key: String,
+        bytes: ByteArray,
+    ): File {
         dir.mkdirs()
         val file = fileFor(key)
         val tmp = File(dir, "${file.name}.tmp")
@@ -57,8 +60,7 @@ class DiskAudioCache(
         }
     }
 
-    private fun cachedFiles(): List<File> =
-        dir.listFiles { f -> f.isFile && f.name.endsWith(".mp3") }?.toList().orEmpty()
+    private fun cachedFiles(): List<File> = dir.listFiles { f -> f.isFile && f.name.endsWith(".mp3") }?.toList().orEmpty()
 
     companion object {
         const val UNLIMITED = Long.MAX_VALUE

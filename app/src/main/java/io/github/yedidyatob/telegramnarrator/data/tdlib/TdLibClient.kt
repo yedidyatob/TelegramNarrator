@@ -17,51 +17,56 @@ import kotlin.coroutines.resumeWithException
 
 /** The TDLib [Client] behind [TdGateway] (#13). */
 @Singleton
-class TdLibClient @Inject constructor() : TdGateway {
+class TdLibClient
+    @Inject
+    constructor() : TdGateway {
+        @Volatile private var client: Client? = null
+        private val bus = UpdateBus<TdApi.Object>()
+        override val updates: Flow<TdApi.Object> = bus.flow
 
-    @Volatile private var client: Client? = null
-    private val bus = UpdateBus<TdApi.Object>()
-    override val updates: Flow<TdApi.Object> = bus.flow
+        // Kept here rather than in a collector of [updates]: TDLib only reports changes, and a late collector would
+        // miss the current state (e.g. the first WaitTdlibParameters, leaving login stuck on "Initializing")
+        private val _authorizationState = MutableStateFlow<TdApi.AuthorizationState?>(null)
+        override val authorizationState: StateFlow<TdApi.AuthorizationState?> = _authorizationState.asStateFlow()
 
-    // Kept here rather than in a collector of [updates]: TDLib only reports changes, and a late collector would
-    // miss the current state (e.g. the first WaitTdlibParameters, leaving login stuck on "Initializing")
-    private val _authorizationState = MutableStateFlow<TdApi.AuthorizationState?>(null)
-    override val authorizationState: StateFlow<TdApi.AuthorizationState?> = _authorizationState.asStateFlow()
+        private val _connectionState = MutableStateFlow<TdApi.ConnectionState?>(null)
+        override val connectionState: StateFlow<TdApi.ConnectionState?> = _connectionState.asStateFlow()
 
-    private val _connectionState = MutableStateFlow<TdApi.ConnectionState?>(null)
-    override val connectionState: StateFlow<TdApi.ConnectionState?> = _connectionState.asStateFlow()
-
-    init {
-        Client.execute(TdApi.SetLogVerbosityLevel(1))
-        recreateClient()
-    }
-
-    override fun recreateClient() {
-        Log.d(TAG, "Recreating TDLib client")
-        client = Client.create(
-            ::onUpdate,
-            { e -> TdLibErrors.onHandlerException("update handler", e) },
-            { e -> TdLibErrors.onHandlerException("result handler", e) }
-        )
-    }
-
-    private fun onUpdate(update: TdApi.Object) {
-        when (update) {
-            is TdApi.UpdateAuthorizationState -> _authorizationState.value = update.authorizationState
-            is TdApi.UpdateConnectionState -> _connectionState.value = update.state
+        init {
+            Client.execute(TdApi.SetLogVerbosityLevel(1))
+            recreateClient()
         }
-        bus.publish(update)
-    }
 
-    override suspend fun <T : TdApi.Object> send(function: TdApi.Function<T>, timeoutMs: Long): T {
-        val currentClient = client ?: throw IllegalStateException("TDLib Client not initialized")
-        return TdReplies.await(function.javaClass.simpleName, timeoutMs) { onReply -> currentClient.send(function, onReply) }
-    }
+        override fun recreateClient() {
+            Log.d(TAG, "Recreating TDLib client")
+            client =
+                Client.create(
+                    ::onUpdate,
+                    { e -> TdLibErrors.onHandlerException("update handler", e) },
+                    { e -> TdLibErrors.onHandlerException("result handler", e) },
+                )
+        }
 
-    private companion object {
-        const val TAG = "TdLibClient"
+        private fun onUpdate(update: TdApi.Object) {
+            when (update) {
+                is TdApi.UpdateAuthorizationState -> _authorizationState.value = update.authorizationState
+                is TdApi.UpdateConnectionState -> _connectionState.value = update.state
+            }
+            bus.publish(update)
+        }
+
+        override suspend fun <T : TdApi.Object> send(
+            function: TdApi.Function<T>,
+            timeoutMs: Long,
+        ): T {
+            val currentClient = client ?: throw IllegalStateException("TDLib Client not initialized")
+            return TdReplies.await(function.javaClass.simpleName, timeoutMs) { onReply -> currentClient.send(function, onReply) }
+        }
+
+        private companion object {
+            const val TAG = "TdLibClient"
+        }
     }
-}
 
 /** Turns TDLib's callback replies into a cancellable suspending call with a timeout (#13). */
 object TdReplies {
@@ -70,14 +75,21 @@ object TdReplies {
      * [TdLibErrors]), no reply within [timeoutMs] a [TdLibTimeoutException]. If the caller is cancelled first, a
      * late reply is dropped.
      */
-    suspend fun <T : TdApi.Object> await(name: String, timeoutMs: Long, send: (onReply: (TdApi.Object) -> Unit) -> Unit): T =
+    suspend fun <T : TdApi.Object> await(
+        name: String,
+        timeoutMs: Long,
+        send: (onReply: (TdApi.Object) -> Unit) -> Unit,
+    ): T =
         withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine<T> { continuation ->
                 send { result -> deliver(continuation, result) }
             }
         } ?: throw TdLibTimeoutException(name, timeoutMs)
 
-    private fun <T> deliver(continuation: CancellableContinuation<T>, result: TdApi.Object) {
+    private fun <T> deliver(
+        continuation: CancellableContinuation<T>,
+        result: TdApi.Object,
+    ) {
         if (!continuation.isActive) return
         if (result is TdApi.Error) {
             continuation.resumeWithException(TdLibErrors.toException(result))
@@ -96,7 +108,10 @@ object TdReplies {
 object TdLibErrors {
     fun toException(error: TdApi.Error): TdLibException = TdLibException(error.code, error.message)
 
-    fun onHandlerException(where: String, e: Throwable) {
+    fun onHandlerException(
+        where: String,
+        e: Throwable,
+    ) {
         Log.e("TdLibClient", "Exception in TDLib $where", e)
     }
 }

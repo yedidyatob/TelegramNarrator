@@ -6,7 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ReadCheckpointerTest {
-
     @Test
     fun `a single played message waits for the delay`() {
         val c = ReadCheckpointer(maxPending = 3, maxDelayMs = 2000)

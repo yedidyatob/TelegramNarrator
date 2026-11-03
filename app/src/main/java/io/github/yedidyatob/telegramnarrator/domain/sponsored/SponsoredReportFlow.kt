@@ -20,17 +20,34 @@ object SponsoredReportFlow {
         val chooseFrom: SponsoredReportResult.OptionRequired? = null,
         val toast: Toast? = null,
         val hideAd: Boolean = false,
-        val hideAllAds: Boolean = false
+        val hideAllAds: Boolean = false,
     )
 
     /** The next step for [result]; null means the request failed (network / TDLib error). */
-    fun next(result: SponsoredReportResult?): Step = when (result) {
-        null -> Step(toast = Toast.ERROR)
-        is SponsoredReportResult.OptionRequired ->
-            if (result.options.isEmpty()) Step(toast = Toast.ERROR) else Step(chooseFrom = result)
-        SponsoredReportResult.Reported -> Step(toast = Toast.REPORTED, hideAd = true)
-        SponsoredReportResult.AdsHidden -> Step(toast = Toast.ADS_HIDDEN, hideAd = true, hideAllAds = true)
-        SponsoredReportResult.PremiumRequired -> Step(toast = Toast.PREMIUM_REQUIRED)
-        SponsoredReportResult.Failed -> Step(toast = Toast.EXPIRED, hideAd = true)
-    }
+    fun next(result: SponsoredReportResult?): Step =
+        when (result) {
+            null -> {
+                Step(toast = Toast.ERROR)
+            }
+
+            is SponsoredReportResult.OptionRequired -> {
+                if (result.options.isEmpty()) Step(toast = Toast.ERROR) else Step(chooseFrom = result)
+            }
+
+            SponsoredReportResult.Reported -> {
+                Step(toast = Toast.REPORTED, hideAd = true)
+            }
+
+            SponsoredReportResult.AdsHidden -> {
+                Step(toast = Toast.ADS_HIDDEN, hideAd = true, hideAllAds = true)
+            }
+
+            SponsoredReportResult.PremiumRequired -> {
+                Step(toast = Toast.PREMIUM_REQUIRED)
+            }
+
+            SponsoredReportResult.Failed -> {
+                Step(toast = Toast.EXPIRED, hideAd = true)
+            }
+        }
 }

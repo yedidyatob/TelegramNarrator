@@ -64,7 +64,12 @@ class TdLibChatRepositoryTest {
         eventually { while (gateway.sentOf<TdApi.LoadChats>().isEmpty()) yield() }
         gateway.publish(TdApi.UpdateAuthorizationState(TdApi.AuthorizationStateClosed()))
         eventually { repo.getUnreadChats().first { it.isEmpty() } }
-        assertNull(runBlocking { gateway.reply = { TdApi.Error(400, "gone") }; repo.getChat(1) })
+        assertNull(
+            runBlocking {
+                gateway.reply = { TdApi.Error(400, "gone") }
+                repo.getChat(1)
+            },
+        )
     }
 
     @Test
@@ -78,13 +83,14 @@ class TdLibChatRepositoryTest {
     fun `voice note path arrives through UpdateFile`() {
         gateway.reply = { f -> if (f is TdApi.DownloadFile) file(7, completed = false, active = true) else TdApi.Ok() }
         val repo = repository()
-        val path = runBlocking {
-            val result = async(Dispatchers.Default) { repo.getVoiceFilePath(7) }
-            withTimeout(5_000) { while (gateway.sentOf<TdApi.DownloadFile>().isEmpty()) yield() }
-            gateway.publish(TdApi.UpdateFile(file(8, completed = true, active = false)))
-            gateway.publish(TdApi.UpdateFile(file(7, completed = true, active = false)))
-            withTimeout(5_000) { result.await() }
-        }
+        val path =
+            runBlocking {
+                val result = async(Dispatchers.Default) { repo.getVoiceFilePath(7) }
+                withTimeout(5_000) { while (gateway.sentOf<TdApi.DownloadFile>().isEmpty()) yield() }
+                gateway.publish(TdApi.UpdateFile(file(8, completed = true, active = false)))
+                gateway.publish(TdApi.UpdateFile(file(7, completed = true, active = false)))
+                withTimeout(5_000) { result.await() }
+            }
         assertEquals("/voice/7.oga", path)
         assertEquals(false, gateway.sentOf<TdApi.DownloadFile>().single().synchronous)
     }

@@ -15,6 +15,7 @@ enum class MessageContentType {
     ANIMATION,
     AUDIO,
     DOCUMENT,
+
     // Anything the app can't handle: it is not read aloud
-    UNSUPPORTED
+    UNSUPPORTED,
 }

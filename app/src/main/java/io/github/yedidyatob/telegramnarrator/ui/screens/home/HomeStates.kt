@@ -62,30 +62,45 @@ fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
         initialValue = 0.45f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(850), RepeatMode.Reverse),
-        label = "pulse"
+        label = "pulse",
     )
     val shade = MaterialTheme.colorScheme.surfaceContainerHighest
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .clearAndSetSemantics { contentDescription = description },
-        userScrollEnabled = false
+        modifier =
+            modifier
+                .fillMaxSize()
+                .clearAndSetSemantics { contentDescription = description },
+        userScrollEnabled = false,
     ) {
         items(count = 7) { index ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .alpha(pulse)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .alpha(pulse),
             ) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(shade))
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     // Varying widths look less mechanical
-                    Box(Modifier.fillMaxWidth(listOf(0.62f, 0.48f, 0.7f, 0.55f)[index % 4]).height(14.dp).clip(RoundedCornerShape(7.dp)).background(shade))
+                    Box(
+                        Modifier
+                            .fillMaxWidth(
+                                listOf(0.62f, 0.48f, 0.7f, 0.55f)[index % 4],
+                            ).height(14.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(shade),
+                    )
                     Spacer(Modifier.height(8.dp))
-                    Box(Modifier.fillMaxWidth(0.32f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(shade))
+                    Box(
+                        Modifier
+                            .fillMaxWidth(0.32f)
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(shade),
+                    )
                 }
                 Spacer(Modifier.width(16.dp))
                 Box(Modifier.size(24.dp).clip(CircleShape).background(shade))
@@ -96,7 +111,10 @@ fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
 
 /** No unread chats. */
 @Composable
-fun HomeEmptyState(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeEmptyState(
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     HomeStateMessage(
         icon = Icons.Outlined.MarkChatRead,
         title = stringResource(R.string.home_empty_title),
@@ -104,13 +122,17 @@ fun HomeEmptyState(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
         actionLabel = stringResource(R.string.home_refresh),
         onAction = onRefresh,
         primaryAction = false,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 /** Loading the chat list failed (TDLib error or timeout). */
 @Composable
-fun HomeErrorState(detail: String?, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeErrorState(
+    detail: String?,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     HomeStateMessage(
         icon = Icons.Outlined.ErrorOutline,
         title = stringResource(R.string.home_error_title),
@@ -120,7 +142,7 @@ fun HomeErrorState(detail: String?, onRetry: () -> Unit, modifier: Modifier = Mo
         onAction = onRetry,
         primaryAction = true,
         iconTint = MaterialTheme.colorScheme.error,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
@@ -132,7 +154,7 @@ fun HomeOfflineState(modifier: Modifier = Modifier) {
         title = stringResource(R.string.home_offline_title),
         body = stringResource(R.string.home_offline_body),
         modifier = modifier,
-        showProgress = true
+        showProgress = true,
     )
 }
 
@@ -151,22 +173,23 @@ private fun HomeStateMessage(
     onAction: (() -> Unit)? = null,
     primaryAction: Boolean = false,
     showProgress: Boolean = false,
-    iconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary
+    iconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
 ) {
     LazyColumn(modifier = modifier.fillMaxSize()) {
         item {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillParentMaxSize()
-                    .padding(horizontal = 32.dp, vertical = 24.dp)
-                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                modifier =
+                    Modifier
+                        .fillParentMaxSize()
+                        .padding(horizontal = 32.dp, vertical = 24.dp)
+                        .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
             ) {
                 Surface(
                     shape = CircleShape,
                     color = iconTint.copy(alpha = 0.12f),
-                    modifier = Modifier.size(96.dp)
+                    modifier = Modifier.size(96.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(44.dp))
@@ -178,7 +201,7 @@ private fun HomeStateMessage(
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.semantics { heading() }
+                    modifier = Modifier.semantics { heading() },
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -186,7 +209,7 @@ private fun HomeStateMessage(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.widthIn(max = 360.dp)
+                    modifier = Modifier.widthIn(max = 360.dp),
                 )
                 if (detail != null) {
                     Spacer(Modifier.height(8.dp))
@@ -195,7 +218,7 @@ private fun HomeStateMessage(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.widthIn(max = 360.dp)
+                        modifier = Modifier.widthIn(max = 360.dp),
                     )
                 }
                 if (showProgress) {
@@ -225,16 +248,20 @@ private fun HomeStateMessage(
 
 /** "Waiting for network…" / "Connecting…" strip under the top bar. */
 @Composable
-fun ConnectionBannerBar(banner: ConnectionBanner, modifier: Modifier = Modifier) {
+fun ConnectionBannerBar(
+    banner: ConnectionBanner,
+    modifier: Modifier = Modifier,
+) {
     val offline = banner == ConnectionBanner.OFFLINE
     val container = if (offline) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
     val content = if (offline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
     Surface(color = container, contentColor = content, modifier = modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+            modifier =
+                Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         ) {
             if (offline) {
                 Icon(Icons.Rounded.WifiOff, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -244,9 +271,8 @@ fun ConnectionBannerBar(banner: ConnectionBanner, modifier: Modifier = Modifier)
             Spacer(Modifier.width(12.dp))
             Text(
                 text = stringResource(if (offline) R.string.home_banner_offline else R.string.home_banner_connecting),
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
 }
-

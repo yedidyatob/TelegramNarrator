@@ -12,11 +12,15 @@ enum class LoginError {
     PASSWORD_INVALID,
     TOO_MANY_ATTEMPTS,
     NETWORK,
-    UNKNOWN;
+    UNKNOWN,
+    ;
 
     companion object {
         /** [code]/[message] of a TDLib `Error` (null when the failure was not a TDLib error). */
-        fun classify(code: Int?, message: String?): LoginError {
+        fun classify(
+            code: Int?,
+            message: String?,
+        ): LoginError {
             val text = message.orEmpty().uppercase()
             return when {
                 code == 429 || "FLOOD_WAIT" in text || "TOO MANY REQUESTS" in text -> TOO_MANY_ATTEMPTS

@@ -16,6 +16,9 @@ object ChatListSettle {
     const val MAX_MS = 4_000L
 
     @OptIn(FlowPreview::class)
-    suspend fun <T> await(list: Flow<T>, quietMs: Long = QUIET_MS, maxMs: Long = MAX_MS): T =
-        withTimeoutOrNull(maxMs) { list.debounce(quietMs).first() } ?: list.first()
+    suspend fun <T> await(
+        list: Flow<T>,
+        quietMs: Long = QUIET_MS,
+        maxMs: Long = MAX_MS,
+    ): T = withTimeoutOrNull(maxMs) { list.debounce(quietMs).first() } ?: list.first()
 }

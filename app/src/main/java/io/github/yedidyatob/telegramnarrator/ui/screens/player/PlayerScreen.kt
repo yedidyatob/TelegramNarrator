@@ -1,24 +1,12 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.player
 
-import io.github.yedidyatob.telegramnarrator.core.service.UpNext
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.Badge
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +24,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -49,15 +38,20 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -78,12 +72,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,8 +91,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.core.labelRes
+import io.github.yedidyatob.telegramnarrator.core.service.UpNext
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
@@ -105,6 +102,7 @@ import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsSheet
 import io.github.yedidyatob.telegramnarrator.ui.text.ContentTextStyle
 import io.github.yedidyatob.telegramnarrator.ui.text.ProvideContentDirection
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
@@ -118,7 +116,7 @@ data class PlayerActions(
     val onNext: () -> Unit = {},
     val onNextChat: () -> Unit = {},
     val onStop: () -> Unit = {},
-    val onOpenVoiceSettings: () -> Unit = {}
+    val onOpenVoiceSettings: () -> Unit = {},
 )
 
 /** Callbacks of the sponsored card shown while an ad is read. */
@@ -126,7 +124,7 @@ data class PlayerAdActions(
     val onFullyVisible: (SponsoredAd) -> Unit = {},
     val onLinkClicked: (SponsoredAd, Boolean) -> Unit = { _, _ -> },
     val onReport: (SponsoredAd) -> Unit = {},
-    val loadFile: suspend (Int) -> String? = { null }
+    val loadFile: suspend (Int) -> String? = { null },
 )
 
 /**
@@ -137,7 +135,7 @@ data class PlayerAdActions(
 fun PlayerScreen(
     onDismiss: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
-    sponsoredViewModel: SponsoredViewModel = hiltViewModel()
+    sponsoredViewModel: SponsoredViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val upNext by viewModel.upNext.collectAsStateWithLifecycle()
@@ -148,7 +146,11 @@ fun PlayerScreen(
     // Playback ended (end of the queue, Stop, the notification): back to Home
     LaunchedEffect(state.isActive) { if (!state.isActive) onDismiss() }
     LaunchedEffect(Unit) {
-        sponsoredViewModel.toasts.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+        sponsoredViewModel.toasts.collect {
+            android.widget.Toast
+                .makeText(context, it, android.widget.Toast.LENGTH_SHORT)
+                .show()
+        }
     }
 
     var backProgress by remember { mutableFloatStateOf(0f) }
@@ -164,33 +166,36 @@ fun PlayerScreen(
 
     PlayerContent(
         state = state,
-        actions = PlayerActions(
-            onDismiss = onDismiss,
-            onTogglePause = viewModel::togglePause,
-            onPrevious = viewModel::previousMessage,
-            onNext = viewModel::nextMessage,
-            onNextChat = viewModel::nextChat,
-            onStop = viewModel::stop,
-            onOpenVoiceSettings = { showVoiceSettings = true }
-        ),
-        adActions = PlayerAdActions(
-            onFullyVisible = sponsoredViewModel::onFullyVisible,
-            onLinkClicked = sponsoredViewModel::onLinkClicked,
-            onReport = sponsoredViewModel::startReport,
-            loadFile = sponsoredViewModel::localFile
-        ),
+        actions =
+            PlayerActions(
+                onDismiss = onDismiss,
+                onTogglePause = viewModel::togglePause,
+                onPrevious = viewModel::previousMessage,
+                onNext = viewModel::nextMessage,
+                onNextChat = viewModel::nextChat,
+                onStop = viewModel::stop,
+                onOpenVoiceSettings = { showVoiceSettings = true },
+            ),
+        adActions =
+            PlayerAdActions(
+                onFullyVisible = sponsoredViewModel::onFullyVisible,
+                onLinkClicked = sponsoredViewModel::onLinkClicked,
+                onReport = sponsoredViewModel::startReport,
+                loadFile = sponsoredViewModel::localFile,
+            ),
         loadPhoto = viewModel::chatPhotoPath,
         upNext = upNext,
         onJumpTo = viewModel::jumpTo,
-        modifier = Modifier.graphicsLayer {
-            // Material predictive back for a full-screen surface: shrink to 90 % and move with the gesture
-            val scale = 1f - 0.1f * backProgress
-            scaleX = scale
-            scaleY = scale
-            translationY = backProgress * 64.dp.toPx()
-            shape = RoundedCornerShape((32 * backProgress).dp)
-            clip = backProgress > 0f
-        }
+        modifier =
+            Modifier.graphicsLayer {
+                // Material predictive back for a full-screen surface: shrink to 90 % and move with the gesture
+                val scale = 1f - 0.1f * backProgress
+                scaleX = scale
+                scaleY = scale
+                translationY = backProgress * 64.dp.toPx()
+                shape = RoundedCornerShape((32 * backProgress).dp)
+                clip = backProgress > 0f
+            },
     )
 
     if (showVoiceSettings) VoiceSettingsSheet(onDismiss = { showVoiceSettings = false })
@@ -199,7 +204,7 @@ fun PlayerScreen(
             title = dialog.title,
             options = dialog.options,
             onChoose = sponsoredViewModel::chooseReportOption,
-            onDismiss = sponsoredViewModel::dismissReport
+            onDismiss = sponsoredViewModel::dismissReport,
         )
     }
 }
@@ -215,15 +220,18 @@ fun PlayerContent(
     upNext: List<UpNext.Item> = emptyList(),
     onJumpTo: (UpNext.Item) -> Unit = {},
     /** Opens with the Up next sheet showing (screenshot tests). */
-    initiallyShowUpNext: Boolean = false
+    initiallyShowUpNext: Boolean = false,
 ) {
     var showUpNext by rememberSaveable { mutableStateOf(initiallyShowUpNext) }
     if (showUpNext) {
         UpNextSheet(
             items = upNext,
             loadPhoto = loadPhoto,
-            onJumpTo = { onJumpTo(it); showUpNext = false },
-            onDismiss = { showUpNext = false }
+            onJumpTo = {
+                onJumpTo(it)
+                showUpNext = false
+            },
+            onDismiss = { showUpNext = false },
         )
     }
     Scaffold(
@@ -245,38 +253,47 @@ fun PlayerContent(
                             label = { Text(label, maxLines = 1) },
                             leadingIcon = {
                                 Icon(
-                                    if (engine.label == io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineLabel.ORIGINAL_AUDIO) Icons.Rounded.GraphicEq else Icons.Rounded.RecordVoiceOver,
+                                    if (engine.label ==
+                                        io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineLabel.ORIGINAL_AUDIO
+                                    ) {
+                                        Icons.Rounded.GraphicEq
+                                    } else {
+                                        Icons.Rounded.RecordVoiceOver
+                                    },
                                     contentDescription = null,
-                                    modifier = Modifier.size(AssistChipDefaults.IconSize)
+                                    modifier = Modifier.size(AssistChipDefaults.IconSize),
                                 )
                             },
-                            colors = if (engine.isFallback) {
-                                AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    labelColor = MaterialTheme.colorScheme.onErrorContainer,
-                                    leadingIconContentColor = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            } else {
-                                AssistChipDefaults.assistChipColors()
-                            },
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .semantics { contentDescription = a11y }
+                            colors =
+                                if (engine.isFallback) {
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        labelColor = MaterialTheme.colorScheme.onErrorContainer,
+                                        leadingIconContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                } else {
+                                    AssistChipDefaults.assistChipColors()
+                                },
+                            modifier =
+                                Modifier
+                                    .padding(end = 8.dp)
+                                    .semantics { contentDescription = a11y },
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 16.dp)
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 16.dp),
         ) {
             ChatHeader(state, loadPhoto)
             Spacer(Modifier.height(16.dp))
@@ -288,7 +305,7 @@ fun PlayerContent(
             Spacer(Modifier.height(16.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 FilledTonalButton(onClick = actions.onNextChat, enabled = state.isActive) {
                     Icon(Icons.Rounded.FastForward, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -299,7 +316,7 @@ fun PlayerContent(
                     val upNextA11y = pluralStringResource(R.plurals.player_up_next_a11y, upNext.size, upNext.size)
                     FilledTonalIconButton(
                         onClick = { showUpNext = true },
-                        modifier = Modifier.semantics { contentDescription = upNextA11y }
+                        modifier = Modifier.semantics { contentDescription = upNextA11y },
                     ) {
                         Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
                     }
@@ -321,48 +338,69 @@ private fun UpNextSheet(
     items: List<UpNext.Item>,
     loadPhoto: suspend (Int) -> String?,
     onJumpTo: (UpNext.Item) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
             stringResource(R.string.player_up_next),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).semantics { heading() }
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).semantics { heading() },
         )
         androidx.compose.foundation.lazy.LazyColumn(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
             items(items.size, key = { items[it].chatId }) { i ->
                 val item = items[i]
                 val unread = pluralStringResource(R.plurals.home_unread_messages, item.unreadCount, item.unreadCount)
-                val label = if (item.isCurrent) stringResource(R.string.player_up_next_current_a11y, item.title, unread)
-                    else stringResource(R.string.player_up_next_item_a11y, item.title, unread)
+                val label =
+                    if (item.isCurrent) {
+                        stringResource(R.string.player_up_next_current_a11y, item.title, unread)
+                    } else {
+                        stringResource(R.string.player_up_next_item_a11y, item.title, unread)
+                    }
                 ListItem(
                     headlineContent = {
                         Text(
                             item.title,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            fontWeight = if (item.isCurrent) androidx.compose.ui.text.font.FontWeight.SemiBold else null
+                            fontWeight = if (item.isCurrent) androidx.compose.ui.text.font.FontWeight.SemiBold else null,
                         )
                     },
-                    supportingContent = if (item.isCurrent) {
-                        { Text(stringResource(R.string.player_up_next_now), color = MaterialTheme.colorScheme.primary) }
-                    } else null,
+                    supportingContent =
+                        if (item.isCurrent) {
+                            { Text(stringResource(R.string.player_up_next_now), color = MaterialTheme.colorScheme.primary) }
+                        } else {
+                            null
+                        },
                     leadingContent = { ChatAvatar(item.chatId, item.title, item.photoFileId, loadPhoto, size = 40.dp) },
-                    trailingContent = if (item.unreadCount > 0) {
-                        { Badge { Text(item.unreadCount.toString()) } }
-                    } else null,
-                    colors = if (item.isCurrent) {
-                        ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                    } else {
-                        ListItemDefaults.colors()
-                    },
-                    modifier = Modifier
-                        .clickable(enabled = !item.isCurrent, onClickLabel = stringResource(R.string.player_up_next_jump)) { onJumpTo(item) }
-                        .clearAndSetSemantics {
-                            contentDescription = label
-                            if (item.isCurrent) selected = true
-                            else onClick(label = null) { onJumpTo(item); true }
-                        }
+                    trailingContent =
+                        if (item.unreadCount > 0) {
+                            { Badge { Text(item.unreadCount.toString()) } }
+                        } else {
+                            null
+                        },
+                    colors =
+                        if (item.isCurrent) {
+                            ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        } else {
+                            ListItemDefaults.colors()
+                        },
+                    modifier =
+                        Modifier
+                            .clickable(
+                                enabled = !item.isCurrent,
+                                onClickLabel = stringResource(R.string.player_up_next_jump),
+                            ) { onJumpTo(item) }
+                            .clearAndSetSemantics {
+                                contentDescription = label
+                                if (item.isCurrent) {
+                                    selected = true
+                                } else {
+                                    onClick(label = null) {
+                                        onJumpTo(item)
+                                        true
+                                    }
+                                }
+                            },
                 )
             }
         }
@@ -370,7 +408,10 @@ private fun UpNextSheet(
 }
 
 @Composable
-private fun ChatHeader(state: PlayerUiState, loadPhoto: suspend (Int) -> String?) {
+private fun ChatHeader(
+    state: PlayerUiState,
+    loadPhoto: suspend (Int) -> String?,
+) {
     val nowPlaying = state.nowPlaying
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (nowPlaying != null) {
@@ -379,7 +420,7 @@ private fun ChatHeader(state: PlayerUiState, loadPhoto: suspend (Int) -> String?
                 title = nowPlaying.chatTitle,
                 photoFileId = nowPlaying.chatPhotoFileId,
                 loadFile = loadPhoto,
-                size = 56.dp
+                size = 56.dp,
             )
             Spacer(Modifier.width(16.dp))
         }
@@ -390,33 +431,38 @@ private fun ChatHeader(state: PlayerUiState, loadPhoto: suspend (Int) -> String?
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { heading() }
+                modifier = Modifier.semantics { heading() },
             )
             nowPlaying?.chatPosition?.let { position ->
                 Text(
                     text = stringResource(R.string.player_chat_position, position.index, position.count),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
 }
 
-private fun readingKey(nowPlaying: NowPlaying?): String = when (val content = nowPlaying?.content) {
-    is NowPlaying.Content.Message -> "m${nowPlaying.chatId}:${content.messageId}"
-    NowPlaying.Content.ChatOpening -> "c${nowPlaying.chatId}"
-    NowPlaying.Content.Sponsored -> "s${nowPlaying.chatId}"
-    null -> "none"
-}
+private fun readingKey(nowPlaying: NowPlaying?): String =
+    when (val content = nowPlaying?.content) {
+        is NowPlaying.Content.Message -> "m${nowPlaying.chatId}:${content.messageId}"
+        NowPlaying.Content.ChatOpening -> "c${nowPlaying.chatId}"
+        NowPlaying.Content.Sponsored -> "s${nowPlaying.chatId}"
+        null -> "none"
+    }
 
 /** The message being read (direction-aware), the voice note / chat opening placeholder, or the ad. */
 @Composable
-private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, modifier: Modifier) {
+private fun NowReadingCard(
+    state: PlayerUiState,
+    adActions: PlayerAdActions,
+    modifier: Modifier,
+) {
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Box {
             // Cross-fade only when the item changes (not on pause / preparing / engine updates)
@@ -424,77 +470,93 @@ private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, mod
                 targetState = state,
                 contentKey = { readingKey(it.nowPlaying) },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "now-reading"
+                label = "now-reading",
             ) { shown ->
                 val nowPlaying = shown.nowPlaying
                 val content = nowPlaying?.content
                 when {
-                    content is NowPlaying.Content.Message && content.isVoiceNote ->
+                    content is NowPlaying.Content.Message && content.isVoiceNote -> {
                         CenteredInfo(Icons.Rounded.GraphicEq, stringResource(R.string.playback_voice_note), senderLine(content))
-                    content is NowPlaying.Content.Message -> MessageText(content, nowPlaying.distinctSender)
-                    content is NowPlaying.Content.Sponsored && shown.sponsoredAd != null -> Column(
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(12.dp)
-                    ) {
-                        SponsoredCard(
-                            ad = shown.sponsoredAd,
-                            onFullyVisible = adActions.onFullyVisible,
-                            onLinkClicked = adActions.onLinkClicked,
-                            onReport = adActions.onReport,
-                            loadFile = adActions.loadFile
-                        )
                     }
-                    content == NowPlaying.Content.ChatOpening ->
+
+                    content is NowPlaying.Content.Message -> {
+                        MessageText(content, nowPlaying.distinctSender)
+                    }
+
+                    content is NowPlaying.Content.Sponsored && shown.sponsoredAd != null -> {
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp),
+                        ) {
+                            SponsoredCard(
+                                ad = shown.sponsoredAd,
+                                onFullyVisible = adActions.onFullyVisible,
+                                onLinkClicked = adActions.onLinkClicked,
+                                onReport = adActions.onReport,
+                                loadFile = adActions.loadFile,
+                            )
+                        }
+                    }
+
+                    content == NowPlaying.Content.ChatOpening -> {
                         // The ding and the chat title are what is heard now; the count is in the position row below
                         CenteredInfo(Icons.Rounded.Forum, stringResource(R.string.player_chat_opening), bidiSafe(nowPlaying.chatTitle))
-                    content == NowPlaying.Content.Sponsored ->
+                    }
+
+                    content == NowPlaying.Content.Sponsored -> {
                         // The ad's card appears as soon as it is known
                         CenteredInfo(Icons.Rounded.Campaign, stringResource(R.string.sponsored_label), bidiSafe(nowPlaying.chatTitle))
-                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                shown.status ?: stringResource(R.string.home_player_starting),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+                    }
+
+                    else -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    shown.status ?: stringResource(R.string.home_player_starting),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
                 }
             }
             // "Preparing audio…" / "Paused" pill at the bottom of the card
-            val pill = when {
-                state.isPreparing -> stringResource(R.string.home_preparing_audio)
-                state.isPaused -> stringResource(R.string.playback_paused)
-                else -> null
-            }
+            val pill =
+                when {
+                    state.isPreparing -> stringResource(R.string.home_preparing_audio)
+                    state.isPaused -> stringResource(R.string.playback_paused)
+                    else -> null
+                }
             AnimatedVisibility(
                 visible = pill != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
             ) {
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                    shadowElevation = 2.dp
+                    shadowElevation = 2.dp,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
                     ) {
                         if (state.isPreparing) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(14.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.inverseOnSurface
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
                             )
                             Spacer(Modifier.width(8.dp))
                         }
@@ -507,11 +569,13 @@ private fun NowReadingCard(state: PlayerUiState, adActions: PlayerAdActions, mod
 }
 
 @Composable
-private fun senderLine(content: NowPlaying.Content.Message): String =
-    content.sender ?: stringResource(R.string.playback_unknown_sender)
+private fun senderLine(content: NowPlaying.Content.Message): String = content.sender ?: stringResource(R.string.playback_unknown_sender)
 
 @Composable
-private fun MessageText(content: NowPlaying.Content.Message, sender: String?) {
+private fun MessageText(
+    content: NowPlaying.Content.Message,
+    sender: String?,
+) {
     val scroll = rememberScrollState()
     LaunchedEffect(content.messageId) { scroll.scrollTo(0) }
     val mediaLabel = content.contentType.takeIf { it != MessageContentType.TEXT }?.labelRes()
@@ -522,14 +586,14 @@ private fun MessageText(content: NowPlaying.Content.Message, sender: String?) {
                 .fillMaxSize()
                 .verticalScroll(scroll)
                 .padding(horizontal = 24.dp, vertical = 20.dp)
-                .padding(bottom = 40.dp)
+                .padding(bottom = 40.dp),
         ) {
             // Groups name the sender; in channels and private chats it is the chat itself (already in the header)
             if (sender != null) {
                 Text(
                     text = sender,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
             if (mediaLabel != null) {
@@ -539,27 +603,34 @@ private fun MessageText(content: NowPlaying.Content.Message, sender: String?) {
                         text = stringResource(mediaLabel),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }
             Spacer(Modifier.height(12.dp))
             Text(
                 text = content.text,
-                style = MaterialTheme.typography.bodyLarge.merge(ContentTextStyle).copy(fontSize = 20.sp, lineHeight = 30.sp),
+                style =
+                    MaterialTheme.typography.bodyLarge
+                        .merge(ContentTextStyle)
+                        .copy(fontSize = 20.sp, lineHeight = 30.sp),
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
 
 @Composable
-private fun CenteredInfo(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
+private fun CenteredInfo(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize().padding(24.dp)
+        modifier = Modifier.fillMaxSize().padding(24.dp),
     ) {
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(88.dp)) {
             Box(contentAlignment = Alignment.Center) {
@@ -573,7 +644,7 @@ private fun CenteredInfo(icon: androidx.compose.ui.graphics.vector.ImageVector, 
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -582,17 +653,18 @@ private fun CenteredInfo(icon: androidx.compose.ui.graphics.vector.ImageVector, 
 @Composable
 private fun PositionRow(state: PlayerUiState) {
     val position = state.nowPlaying?.messagePosition
-    val text = when {
-        position != null -> stringResource(R.string.player_message_position, position.index, position.count)
-        state.nowPlaying?.content == NowPlaying.Content.Sponsored -> stringResource(R.string.sponsored_label)
-        state.nowPlaying != null -> chatOpeningText(state.nowPlaying.messageCount)
-        else -> ""
-    }
+    val text =
+        when {
+            position != null -> stringResource(R.string.player_message_position, position.index, position.count)
+            state.nowPlaying?.content == NowPlaying.Content.Sponsored -> stringResource(R.string.sponsored_label)
+            state.nowPlaying != null -> chatOpeningText(state.nowPlaying.messageCount)
+            else -> ""
+        }
     Column(Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(8.dp))
         val track = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -600,13 +672,13 @@ private fun PositionRow(state: PlayerUiState) {
             LinearProgressIndicator(
                 progress = { position.fraction },
                 trackColor = track,
-                modifier = Modifier.fillMaxWidth().height(6.dp).clearAndSetSemantics { }
+                modifier = Modifier.fillMaxWidth().height(6.dp).clearAndSetSemantics { },
             )
         } else {
             LinearProgressIndicator(
                 progress = { if (state.nowPlaying?.content == NowPlaying.Content.Sponsored) 1f else 0f },
                 trackColor = track,
-                modifier = Modifier.fillMaxWidth().height(6.dp).clearAndSetSemantics { }
+                modifier = Modifier.fillMaxWidth().height(6.dp).clearAndSetSemantics { },
             )
         }
     }
@@ -617,15 +689,22 @@ private fun PositionRow(state: PlayerUiState) {
  * layouts too (Material bidirectionality guidance), so they are laid out LTR.
  */
 @Composable
-private fun TransportControls(state: PlayerUiState, actions: PlayerActions) {
+private fun TransportControls(
+    state: PlayerUiState,
+    actions: PlayerActions,
+) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             IconButton(onClick = actions.onPrevious, enabled = state.canGoPrevious, modifier = Modifier.size(64.dp)) {
-                Icon(Icons.Rounded.SkipPrevious, contentDescription = stringResource(R.string.player_previous), modifier = Modifier.size(40.dp))
+                Icon(
+                    Icons.Rounded.SkipPrevious,
+                    contentDescription = stringResource(R.string.player_previous),
+                    modifier = Modifier.size(40.dp),
+                )
             }
             Box(contentAlignment = Alignment.Center) {
                 FilledIconButton(
@@ -633,18 +712,18 @@ private fun TransportControls(state: PlayerUiState, actions: PlayerActions) {
                     enabled = state.isActive,
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(),
-                    modifier = Modifier.size(88.dp)
+                    modifier = Modifier.size(88.dp),
                 ) {
                     Icon(
                         imageVector = if (state.isPaused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
                         contentDescription = stringResource(if (state.isPaused) R.string.playback_resume else R.string.playback_pause),
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(44.dp),
                     )
                 }
                 if (state.isPreparing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(100.dp),
-                        strokeWidth = 3.dp
+                        strokeWidth = 3.dp,
                     )
                 }
             }
@@ -654,4 +733,3 @@ private fun TransportControls(state: PlayerUiState, actions: PlayerActions) {
         }
     }
 }
-

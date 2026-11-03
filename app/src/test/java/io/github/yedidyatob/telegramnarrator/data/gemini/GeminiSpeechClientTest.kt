@@ -2,9 +2,12 @@ package io.github.yedidyatob.telegramnarrator.data.gemini
 
 import android.util.Base64
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
-import org.junit.Test
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Assert.*
+import org.junit.Test
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -13,7 +16,6 @@ import java.nio.ByteOrder
  * and error handling.
  */
 class GeminiSpeechClientTest {
-
     private lateinit var client: GeminiSpeechClient
 
     @Before
@@ -140,42 +142,46 @@ class GeminiSpeechClientTest {
 
     @Test
     fun request_keepsApiKeySecret() {
-        val req = GeminiSpeechClient.Request(
-            apiKey = "test_key_12345",
-            voice = "Kore",
-            text = "Hello"
-        )
+        val req =
+            GeminiSpeechClient.Request(
+                apiKey = "test_key_12345",
+                voice = "Kore",
+                text = "Hello",
+            )
         assertEquals("test_key_12345", req.apiKey)
         // (The actual HTTP body won't log this; tested separately)
     }
 
     @Test
     fun request_normalizesVoice() {
-        val req1 = GeminiSpeechClient.Request(
-            apiKey = "key",
-            voice = "Charon",
-            text = "test"
-        )
+        val req1 =
+            GeminiSpeechClient.Request(
+                apiKey = "key",
+                voice = "Charon",
+                text = "test",
+            )
         assertEquals("Charon", req1.voice)
 
         // voice passed as-is; normalization happens in synthesize()
-        val req2 = GeminiSpeechClient.Request(
-            apiKey = "key",
-            voice = "InvalidVoice",
-            text = "test"
-        )
-        assertEquals("InvalidVoice", req2.voice)  // not normalized in Request
+        val req2 =
+            GeminiSpeechClient.Request(
+                apiKey = "key",
+                voice = "InvalidVoice",
+                text = "test",
+            )
+        assertEquals("InvalidVoice", req2.voice) // not normalized in Request
     }
 
     // ===== Exception Tests =====
 
     @Test
     fun httpException_includes_errorSummary() {
-        val ex = GeminiSpeechClient.HttpException(
-            code = 401,
-            errorSummary = "INVALID_ARGUMENT",
-            retryAfterSeconds = null
-        )
+        val ex =
+            GeminiSpeechClient.HttpException(
+                code = 401,
+                errorSummary = "INVALID_ARGUMENT",
+                retryAfterSeconds = null,
+            )
         assertEquals(401, ex.code)
         assertEquals("INVALID_ARGUMENT", ex.errorSummary)
         assertNull(ex.retryAfterSeconds)
@@ -185,11 +191,12 @@ class GeminiSpeechClientTest {
 
     @Test
     fun httpException_includes_retryAfter() {
-        val ex = GeminiSpeechClient.HttpException(
-            code = 429,
-            errorSummary = "RESOURCE_EXHAUSTED",
-            retryAfterSeconds = 60L
-        )
+        val ex =
+            GeminiSpeechClient.HttpException(
+                code = 429,
+                errorSummary = "RESOURCE_EXHAUSTED",
+                retryAfterSeconds = 60L,
+            )
         assertEquals(429, ex.code)
         assertEquals("RESOURCE_EXHAUSTED", ex.errorSummary)
         assertEquals(60L, ex.retryAfterSeconds)

@@ -6,10 +6,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AudioQueueTest {
+    private fun message(
+        chatId: Long,
+        id: Long,
+    ) = PlaybackItem.MessageItem("sender", "text $id", id, chatId)
 
-    private fun message(chatId: Long, id: Long) = PlaybackItem.MessageItem("sender", "text $id", id, chatId)
-
-    private fun chat(id: Long, vararg messageIds: Long): List<PlaybackItem> =
+    private fun chat(
+        id: Long,
+        vararg messageIds: Long,
+    ): List<PlaybackItem> =
         listOf<PlaybackItem>(PlaybackItem.Intro("chat $id", id)) +
             messageIds.map { message(id, it) } +
             listOf(PlaybackItem.Silence(1000))
@@ -79,7 +84,10 @@ class AudioQueueTest {
         assertEquals(true, PlaybackItem.MessageItem("s", "", 2, 1, dropped = true).dropped)
     }
 
-    private fun chatWithTitle(id: Long, vararg messageIds: Long): List<PlaybackItem> =
+    private fun chatWithTitle(
+        id: Long,
+        vararg messageIds: Long,
+    ): List<PlaybackItem> =
         ChatTitleSpeech.chatOpening(id, "chat $id", "chat $id", silent = false) +
             messageIds.map { message(id, it) } +
             listOf(PlaybackItem.Silence(1000))

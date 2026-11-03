@@ -10,7 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VoiceSettingsLogicTest {
-
     @Test
     fun `each engine shows engine picker, only its own section, then playback`() {
         assertEquals(listOf(ENGINE, SYSTEM_VOICES, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.SYSTEM))

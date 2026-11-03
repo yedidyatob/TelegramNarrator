@@ -9,16 +9,30 @@ interface SponsoredMessagesSource {
     suspend fun chatKind(chatId: Long): SponsoredChatKind?
 
     /** `getChatSponsoredMessages`, mapped (with [SponsoredAd.fetchId] = 0). */
-    suspend fun fetch(chatId: Long, kind: SponsoredChatKind): List<SponsoredAd>
+    suspend fun fetch(
+        chatId: Long,
+        kind: SponsoredChatKind,
+    ): List<SponsoredAd>
 
     /** `viewMessages` with the sponsored message id (this TDLib version has no `viewSponsoredMessage`). */
-    suspend fun view(chatId: Long, messageId: Long)
+    suspend fun view(
+        chatId: Long,
+        messageId: Long,
+    )
 
     /** `clickChatSponsoredMessage`. */
-    suspend fun click(chatId: Long, messageId: Long, isMediaClick: Boolean)
+    suspend fun click(
+        chatId: Long,
+        messageId: Long,
+        isMediaClick: Boolean,
+    )
 
     /** `reportChatSponsoredMessage`; [optionId] is empty for the first request. */
-    suspend fun report(chatId: Long, messageId: Long, optionId: ByteArray): SponsoredReportResult
+    suspend fun report(
+        chatId: Long,
+        messageId: Long,
+        optionId: ByteArray,
+    ): SponsoredReportResult
 
     /** Downloads a TDLib file and returns its local path, or null. */
     suspend fun downloadFile(fileId: Int): String?

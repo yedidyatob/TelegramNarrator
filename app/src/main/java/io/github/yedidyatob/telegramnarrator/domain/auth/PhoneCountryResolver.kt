@@ -10,25 +10,28 @@ import java.util.Locale
  * 4. nothing (null): the user picks the country.
  */
 object PhoneCountryResolver {
-
     /** What the device reports, as raw ISO 3166-1 alpha-2 strings (any case, possibly empty). */
     data class Signals(
         val simCountryIso: String?,
         val networkCountryIso: String?,
         val hasTelephony: Boolean,
-        val localeCountry: String?
+        val localeCountry: String?,
     )
 
     /**
      * @param isSupported whether a normalized region code (e.g. "IL") has a phone dial code; unsupported or
      * malformed values (e.g. "", "419", "XX") fall through to the next source.
      */
-    fun resolve(signals: Signals, isSupported: (String) -> Boolean): String? {
-        val candidates = listOf(
-            signals.simCountryIso,
-            if (signals.hasTelephony) signals.networkCountryIso else null,
-            signals.localeCountry
-        )
+    fun resolve(
+        signals: Signals,
+        isSupported: (String) -> Boolean,
+    ): String? {
+        val candidates =
+            listOf(
+                signals.simCountryIso,
+                if (signals.hasTelephony) signals.networkCountryIso else null,
+                signals.localeCountry,
+            )
         return candidates.firstNotNullOfOrNull { raw -> normalize(raw)?.takeIf(isSupported) }
     }
 

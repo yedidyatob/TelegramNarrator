@@ -7,12 +7,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingFlowTest {
-
     @Test
     fun `android 13 without the permission asks for notifications last`() {
         assertEquals(
             listOf(OnboardingStep.WELCOME, OnboardingStep.PRIVACY, OnboardingStep.VOICE, OnboardingStep.NOTIFICATIONS),
-            OnboardingFlow.steps(sdkInt = 33, notificationsGranted = false)
+            OnboardingFlow.steps(sdkInt = 33, notificationsGranted = false),
         )
     }
 
@@ -30,8 +29,18 @@ class OnboardingFlowTest {
         assertFalse(OnboardingFlow.shouldShow(completed = false, signedIn = true))
     }
 
-    private fun voice(locale: String, installed: Boolean = true, network: Boolean = false) =
-        VoiceOption(name = locale, localeTag = locale, language = locale.substringBefore('-'), quality = 400, requiresNetwork = network, installed = installed)
+    private fun voice(
+        locale: String,
+        installed: Boolean = true,
+        network: Boolean = false,
+    ) = VoiceOption(
+        name = locale,
+        localeTag = locale,
+        language = locale.substringBefore('-'),
+        quality = 400,
+        requiresNetwork = network,
+        installed = installed,
+    )
 
     @Test
     fun `hebrew voice must be installed and offline`() {

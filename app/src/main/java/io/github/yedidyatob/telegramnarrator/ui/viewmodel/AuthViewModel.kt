@@ -1,17 +1,17 @@
 package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
-import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
-import io.github.yedidyatob.telegramnarrator.domain.auth.LoginError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.yedidyatob.telegramnarrator.data.auth.DeviceCountrySignals
+import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
+import io.github.yedidyatob.telegramnarrator.domain.auth.LoginError
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneCountries
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneCountry
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneCountryResolver
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneNumberNormalizer
 import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,84 +21,87 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    deviceCountrySignals: DeviceCountrySignals
-) : ViewModel() {
+class AuthViewModel
+    @Inject
+    constructor(
+        private val authRepository: AuthRepository,
+        deviceCountrySignals: DeviceCountrySignals,
+    ) : ViewModel() {
+        /** Parses / validates the login phone field (libphonenumber). */
+        val phoneNumbers = PhoneNumberNormalizer()
 
-    /** Parses / validates the login phone field (libphonenumber). */
-    val phoneNumbers = PhoneNumberNormalizer()
+        /** Country preselected in the phone field: SIM, then network, then locale region; null = user picks. */
+        val defaultPhoneRegion: String? =
+            PhoneCountryResolver.resolve(deviceCountrySignals.read(), phoneNumbers::isSupportedRegion)
 
-    /** Country preselected in the phone field: SIM, then network, then locale region; null = user picks. */
-    val defaultPhoneRegion: String? =
-        PhoneCountryResolver.resolve(deviceCountrySignals.read(), phoneNumbers::isSupportedRegion)
+        /** Countries for the picker, built on first use (names in the device language). */
+        val phoneCountries: List<PhoneCountry> by lazy { PhoneCountries.all(phoneNumbers) }
 
-    /** Countries for the picker, built on first use (names in the device language). */
-    val phoneCountries: List<PhoneCountry> by lazy { PhoneCountries.all(phoneNumbers) }
+        private val _isLoading = MutableStateFlow(false)
+        val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+        /** Failure of the last login step (shown under the field as a localized message), null when none. */
+        private val _error = MutableStateFlow<LoginError?>(null)
+        val error: StateFlow<LoginError?> = _error.asStateFlow()
 
-    /** Failure of the last login step (shown under the field as a localized message), null when none. */
-    private val _error = MutableStateFlow<LoginError?>(null)
-    val error: StateFlow<LoginError?> = _error.asStateFlow()
+        val authState: StateFlow<AuthState> =
+            authRepository.authState
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Initializing)
 
-    val authState: StateFlow<AuthState> = authRepository.authState
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Initializing)
+        private fun loginErrorOf(e: Exception): LoginError =
+            when (e) {
+                is TdLibException -> LoginError.classify(e.code, e.tdMessage)
+                is java.io.IOException -> LoginError.NETWORK
+                else -> LoginError.UNKNOWN
+            }
 
-    private fun loginErrorOf(e: Exception): LoginError = when (e) {
-        is TdLibException -> LoginError.classify(e.code, e.tdMessage)
-        is java.io.IOException -> LoginError.NETWORK
-        else -> LoginError.UNKNOWN
-    }
+        fun onRetry() {
+            viewModelScope.launch { authRepository.retryInitialization() }
+        }
 
-    fun onRetry() {
-        viewModelScope.launch { authRepository.retryInitialization() }
-    }
+        /** [phoneNumber] is already normalized to E.164 by the phone field ([phoneNumbers]). */
+        fun onPhoneNumberEntered(phoneNumber: String) {
+            if (_isLoading.value) return
+            viewModelScope.launch {
+                _isLoading.value = true
+                _error.value = null
+                try {
+                    authRepository.setPhoneNumber(phoneNumber)
+                } catch (e: Exception) {
+                    _error.value = loginErrorOf(e)
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
 
-    /** [phoneNumber] is already normalized to E.164 by the phone field ([phoneNumbers]). */
-    fun onPhoneNumberEntered(phoneNumber: String) {
-        if (_isLoading.value) return
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                authRepository.setPhoneNumber(phoneNumber)
-            } catch (e: Exception) {
-                _error.value = loginErrorOf(e)
-            } finally {
-                _isLoading.value = false
+        fun onCodeEntered(code: String) {
+            if (_isLoading.value) return
+            viewModelScope.launch {
+                _isLoading.value = true
+                _error.value = null
+                try {
+                    authRepository.checkAuthenticationCode(code)
+                } catch (e: Exception) {
+                    _error.value = loginErrorOf(e)
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+
+        fun onPasswordEntered(password: String) {
+            if (_isLoading.value) return
+            viewModelScope.launch {
+                _isLoading.value = true
+                _error.value = null
+                try {
+                    authRepository.checkAuthenticationPassword(password)
+                } catch (e: Exception) {
+                    _error.value = loginErrorOf(e)
+                } finally {
+                    _isLoading.value = false
+                }
             }
         }
     }
-
-    fun onCodeEntered(code: String) {
-        if (_isLoading.value) return
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                authRepository.checkAuthenticationCode(code)
-            } catch (e: Exception) {
-                _error.value = loginErrorOf(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun onPasswordEntered(password: String) {
-        if (_isLoading.value) return
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                authRepository.checkAuthenticationPassword(password)
-            } catch (e: Exception) {
-                _error.value = loginErrorOf(e)
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-}

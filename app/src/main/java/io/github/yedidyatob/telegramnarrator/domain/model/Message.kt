@@ -8,5 +8,5 @@ data class Message(
     val timestamp: Long,
     val isOutgoing: Boolean,
     val voiceNoteFileId: Int? = null,
-    val contentType: MessageContentType = MessageContentType.TEXT
+    val contentType: MessageContentType = MessageContentType.TEXT,
 )

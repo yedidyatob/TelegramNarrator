@@ -11,7 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VoiceSettingsUiStateTest {
-
     private val rawKey = "AI-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789secretWXYZ"
 
     @Test
@@ -64,7 +63,7 @@ class VoiceSettingsUiStateTest {
     fun `ui state sections follow the provider`() {
         assertEquals(
             listOf(VoiceSettingsSection.ENGINE, VoiceSettingsSection.GEMINI_VOICE, VoiceSettingsSection.PLAYBACK),
-            TtsSettingsUiState(provider = SpeechProvider.GEMINI).sections
+            TtsSettingsUiState(provider = SpeechProvider.GEMINI).sections,
         )
         assertEquals(VoiceSettingsSection.SYSTEM_VOICES, TtsSettingsUiState(provider = SpeechProvider.SYSTEM).sections[1])
         // New installs start on the system voice

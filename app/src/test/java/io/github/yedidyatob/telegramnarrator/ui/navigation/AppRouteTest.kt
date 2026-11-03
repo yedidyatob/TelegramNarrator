@@ -6,7 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AppRouteTest {
-
     @Test
     fun `stays put while TDLib starts`() {
         assertNull(AppRoute.redirect(AuthState.Initializing, onboardingCompleted = false, currentRoute = AppRoute.LOGIN))
@@ -43,9 +42,15 @@ class AppRouteTest {
         assertEquals(AppRoute.OpenPlayer.NAVIGATE, AppRoute.openPlayer(auth, AppRoute.HOME))
         assertEquals(AppRoute.OpenPlayer.CONSUME, AppRoute.openPlayer(auth, AppRoute.PLAYER))
         // Cold start: wait for TDLib and the redirect to Home
-        assertEquals(AppRoute.OpenPlayer.WAIT, AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.Initializing, AppRoute.LOGIN))
+        assertEquals(
+            AppRoute.OpenPlayer.WAIT,
+            AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.Initializing, AppRoute.LOGIN),
+        )
         assertEquals(AppRoute.OpenPlayer.WAIT, AppRoute.openPlayer(auth, AppRoute.LOGIN))
         // Signed out: dropped (never opens a Player over login)
-        assertEquals(AppRoute.OpenPlayer.CONSUME, AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.WaitPhoneNumber, AppRoute.LOGIN))
+        assertEquals(
+            AppRoute.OpenPlayer.CONSUME,
+            AppRoute.openPlayer(io.github.yedidyatob.telegramnarrator.domain.model.AuthState.WaitPhoneNumber, AppRoute.LOGIN),
+        )
     }
 }

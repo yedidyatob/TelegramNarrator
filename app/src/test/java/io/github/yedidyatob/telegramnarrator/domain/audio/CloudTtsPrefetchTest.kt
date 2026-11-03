@@ -6,13 +6,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CloudTtsPrefetchTest {
-
     private fun msg(
         text: String,
         id: Long = 1L,
         dropped: Boolean = false,
         voiceNoteFileId: Int? = null,
-        contentType: MessageContentType = MessageContentType.TEXT
+        contentType: MessageContentType = MessageContentType.TEXT,
     ) = PlaybackItem.MessageItem("s", text, id, chatId = 1L, voiceNoteFileId, contentType, dropped)
 
     @Test
@@ -22,35 +21,37 @@ class CloudTtsPrefetchTest {
 
     @Test
     fun `upcomingSpeechTexts returns the next speakable bodies in order`() {
-        val items = listOf(
-            PlaybackItem.Intro("chat", 1L),
-            msg("first", id = 1),
-            msg("second", id = 2),
-            msg("third", id = 3),
-            PlaybackItem.Silence(500),
-            msg("fourth", id = 4),
-            PlaybackItem.Outro
-        )
+        val items =
+            listOf(
+                PlaybackItem.Intro("chat", 1L),
+                msg("first", id = 1),
+                msg("second", id = 2),
+                msg("third", id = 3),
+                PlaybackItem.Silence(500),
+                msg("fourth", id = 4),
+                PlaybackItem.Outro,
+            )
         assertEquals(listOf("first", "second"), CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 2))
         assertEquals(
             listOf("first", "second", "third"),
-            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 3)
+            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 3),
         )
     }
 
     @Test
     fun `skips dropped voice notes and symbol-only rows`() {
-        val items = listOf(
-            msg("keep me", id = 1),
-            msg("dropped", id = 2, dropped = true),
-            msg("voice", id = 3, voiceNoteFileId = 99),
-            msg("####", id = 4),
-            msg("also keep", id = 5),
-            msg("", id = 6, contentType = MessageContentType.PHOTO)
-        )
+        val items =
+            listOf(
+                msg("keep me", id = 1),
+                msg("dropped", id = 2, dropped = true),
+                msg("voice", id = 3, voiceNoteFileId = 99),
+                msg("####", id = 4),
+                msg("also keep", id = 5),
+                msg("", id = 6, contentType = MessageContentType.PHOTO),
+            )
         assertEquals(
             listOf("keep me", "also keep"),
-            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 5)
+            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 5),
         )
     }
 
@@ -83,16 +84,17 @@ class CloudTtsPrefetchTest {
 
     @Test
     fun `spoken chat titles are prefetched like messages, the intro ding is not`() {
-        val items = listOf(
-            msg("last of chat 1", id = 1),
-            PlaybackItem.Silence(1000),
-            PlaybackItem.Intro("🔴 חדשות", 2L),
-            PlaybackItem.ChatTitle("חדשות", 2L, "🔴 חדשות"),
-            msg("first of chat 2", id = 2)
-        )
+        val items =
+            listOf(
+                msg("last of chat 1", id = 1),
+                PlaybackItem.Silence(1000),
+                PlaybackItem.Intro("🔴 חדשות", 2L),
+                PlaybackItem.ChatTitle("חדשות", 2L, "🔴 חדשות"),
+                msg("first of chat 2", id = 2),
+            )
         assertEquals(
             listOf("last of chat 1", "חדשות", "first of chat 2"),
-            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 3)
+            CloudTtsPrefetch.upcomingSpeechTexts(items, limit = 3),
         )
         assertEquals("חדשות", CloudTtsPrefetch.speechTextFor(PlaybackItem.ChatTitle("חדשות", 2L)))
         assertEquals(null, CloudTtsPrefetch.speechTextFor(PlaybackItem.Intro("חדשות", 2L)))

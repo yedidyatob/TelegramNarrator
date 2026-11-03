@@ -9,7 +9,6 @@ import java.net.UnknownHostException
 
 /** Maps engine errors to a [FallbackReason] (#63). Pure; only status codes and machine-readable error codes. */
 object TtsFailures {
-
     /**
      * Gemini HTTP error: [code] and the body's machine-readable summary ([GeminiTts.safeErrorSummary]).
      *
@@ -23,20 +22,51 @@ object TtsFailures {
      *  404        → model or endpoint changed (the app needs an update)
      *  5xx        → server error
      */
-    fun geminiHttp(code: Int, errorSummary: String?): FallbackReason {
+    fun geminiHttp(
+        code: Int,
+        errorSummary: String?,
+    ): FallbackReason {
         val summary = errorSummary.orEmpty().lowercase()
         return when {
-            code == 401 -> FallbackReason.GEMINI_INVALID_KEY
-            code == 400 && ("api key" in summary || "api_key_invalid" in summary) -> FallbackReason.GEMINI_INVALID_KEY
-            code == 403 -> FallbackReason.GEMINI_PERMISSION_DENIED
-            code == 404 -> FallbackReason.GEMINI_ENDPOINT_CHANGED
-            code == 429 && ("quota" in summary || "resource_exhausted" in summary) -> FallbackReason.GEMINI_NO_CREDIT
-            code == 429 -> FallbackReason.GEMINI_RATE_LIMITED
-            code == 400 && ("voice" in summary || "language" in summary || "speaker" in summary) ->
+            code == 401 -> {
+                FallbackReason.GEMINI_INVALID_KEY
+            }
+
+            code == 400 && ("api key" in summary || "api_key_invalid" in summary) -> {
+                FallbackReason.GEMINI_INVALID_KEY
+            }
+
+            code == 403 -> {
+                FallbackReason.GEMINI_PERMISSION_DENIED
+            }
+
+            code == 404 -> {
+                FallbackReason.GEMINI_ENDPOINT_CHANGED
+            }
+
+            code == 429 && ("quota" in summary || "resource_exhausted" in summary) -> {
+                FallbackReason.GEMINI_NO_CREDIT
+            }
+
+            code == 429 -> {
+                FallbackReason.GEMINI_RATE_LIMITED
+            }
+
+            code == 400 && ("voice" in summary || "language" in summary || "speaker" in summary) -> {
                 FallbackReason.GEMINI_UNSUPPORTED_VOICE
-            code == 400 -> FallbackReason.GEMINI_BAD_REQUEST
-            code in 500..599 -> FallbackReason.GEMINI_SERVER_ERROR
-            else -> FallbackReason.GEMINI_FAILED
+            }
+
+            code == 400 -> {
+                FallbackReason.GEMINI_BAD_REQUEST
+            }
+
+            code in 500..599 -> {
+                FallbackReason.GEMINI_SERVER_ERROR
+            }
+
+            else -> {
+                FallbackReason.GEMINI_FAILED
+            }
         }
     }
 
@@ -44,7 +74,10 @@ object TtsFailures {
      * Transport failures (no network, timeout) anywhere in [error]'s cause chain, or null when [error] is not
      * one. [timeout] is the engine's timeout reason.
      */
-    fun transport(error: Throwable, timeout: FallbackReason): FallbackReason? {
+    fun transport(
+        error: Throwable,
+        timeout: FallbackReason,
+    ): FallbackReason? {
         var e: Throwable? = error
         var depth = 0
         while (e != null && depth++ < 8) {
@@ -59,11 +92,14 @@ object TtsFailures {
     }
 
     /** Where the user can fix [reason] (opened from the notification), or null. */
-    fun helpUrl(reason: FallbackReason): String? = when (reason) {
-        FallbackReason.GEMINI_INVALID_KEY, FallbackReason.GEMINI_NO_CREDIT,
-        FallbackReason.GEMINI_PERMISSION_DENIED -> GeminiTts.API_KEYS_URL
-        else -> null
-    }
+    fun helpUrl(reason: FallbackReason): String? =
+        when (reason) {
+            FallbackReason.GEMINI_INVALID_KEY, FallbackReason.GEMINI_NO_CREDIT,
+            FallbackReason.GEMINI_PERMISSION_DENIED,
+            -> GeminiTts.API_KEYS_URL
+
+            else -> null
+        }
 }
 
 /**
@@ -76,7 +112,10 @@ object RateLimitRetry {
     private const val BASE_DELAY_MS = 1_000L
 
     /** Delay before retry number [retry] (0-based), or null when no retry is left. */
-    fun delayMs(retry: Int, retryAfterSeconds: Long?): Long? {
+    fun delayMs(
+        retry: Int,
+        retryAfterSeconds: Long?,
+    ): Long? {
         if (retry >= MAX_RETRIES) return null
         val fromHeader = retryAfterSeconds?.takeIf { it > 0 }?.let { it * 1_000L }
         return (fromHeader ?: (BASE_DELAY_MS shl retry)).coerceAtMost(MAX_DELAY_MS)
@@ -112,7 +151,10 @@ class TtsFailureEpisodes {
  * The audio of the chunks is concatenated into one file.
  */
 object SpeechTextSplitter {
-    fun split(text: String, maxChars: Int): List<String> {
+    fun split(
+        text: String,
+        maxChars: Int,
+    ): List<String> {
         require(maxChars > 0)
         val chunks = mutableListOf<String>()
         var rest = text.trim()
@@ -127,8 +169,15 @@ object SpeechTextSplitter {
     }
 
     // Index just after the last break in the second half of the window (so chunks don't get tiny)
-    private fun lastBreak(window: String, breaks: Regex): Int? =
-        breaks.findAll(window).map { it.range.last + 1 }.filter { it >= window.length / 2 }.lastOrNull()
+    private fun lastBreak(
+        window: String,
+        breaks: Regex,
+    ): Int? =
+        breaks
+            .findAll(window)
+            .map { it.range.last + 1 }
+            .filter { it >= window.length / 2 }
+            .lastOrNull()
 
     private val PARAGRAPH = Regex("\n\\s*")
     private val SENTENCE = Regex("""[.!?…。؟]+["'”’)]*\s+""")

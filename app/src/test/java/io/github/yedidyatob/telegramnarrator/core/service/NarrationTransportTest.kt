@@ -10,7 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NarrationTransportTest {
-
     @Test
     fun `preparing lasts until the narration reports playing`() {
         assertEquals(NarrationPhase.PREPARING, NarrationTransport.phaseOf(false, false, NarrationPhase.PREPARING))
@@ -45,9 +44,12 @@ class NarrationTransportTest {
         assertEquals(Action.PREVIOUS_MESSAGE, NarrationTransport.forSeek(Player.COMMAND_SEEK_TO_PREVIOUS))
         assertEquals(Action.PREVIOUS_MESSAGE, NarrationTransport.forSeek(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM))
         // Next chat is never a seek: it is only reachable through the custom session command
-        listOf(Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
-            Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-            .forEach { assertNotEquals(Action.NEXT_CHAT, NarrationTransport.forSeek(it)) }
+        listOf(
+            Player.COMMAND_SEEK_TO_NEXT,
+            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+            Player.COMMAND_SEEK_TO_PREVIOUS,
+            Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+        ).forEach { assertNotEquals(Action.NEXT_CHAT, NarrationTransport.forSeek(it)) }
         assertNull(NarrationTransport.forSeek(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM))
     }
 }

@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TestLanguageTest {
-
     @Test
     fun `default is the device ui language when it is offered`() {
         assertEquals(TestLanguage.ENGLISH, TestLanguage.defaultFor("en"))
@@ -36,7 +35,21 @@ class TestLanguageTest {
     @Test
     fun `the list stays small and every language has its own name and sentence`() {
         assertEquals(listOf("en", "he", "ar", "ru", "es", "fr"), TestLanguage.values().map { it.code })
-        assertEquals(TestLanguage.values().size, TestLanguage.values().map { it.nameRes }.toSet().size)
-        assertEquals(TestLanguage.values().size, TestLanguage.values().map { it.sentenceRes }.toSet().size)
+        assertEquals(
+            TestLanguage.values().size,
+            TestLanguage
+                .values()
+                .map { it.nameRes }
+                .toSet()
+                .size,
+        )
+        assertEquals(
+            TestLanguage.values().size,
+            TestLanguage
+                .values()
+                .map { it.sentenceRes }
+                .toSet()
+                .size,
+        )
     }
 }

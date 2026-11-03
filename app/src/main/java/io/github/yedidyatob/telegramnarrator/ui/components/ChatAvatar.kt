@@ -13,13 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import io.github.yedidyatob.telegramnarrator.domain.avatar.AvatarPalette
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.yedidyatob.telegramnarrator.domain.avatar.AvatarPalette
 
 /**
  * Round chat photo, or Telegram-style initials on a colored gradient while the photo downloads / when the chat
@@ -32,7 +32,7 @@ fun ChatAvatar(
     photoFileId: Int?,
     loadFile: suspend (Int) -> String?,
     modifier: Modifier = Modifier,
-    size: Dp = 44.dp
+    size: Dp = 44.dp,
 ) {
     val photo = rememberTdImage(photoFileId, loadFile)
     Box(modifier.size(size).clip(CircleShape), contentAlignment = Alignment.Center) {
@@ -42,7 +42,7 @@ fun ChatAvatar(
                     bitmap = image,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(size)
+                    modifier = Modifier.size(size),
                 )
             } else {
                 InitialsAvatar(chatId, title, size)
@@ -52,26 +52,29 @@ fun ChatAvatar(
 }
 
 @Composable
-private fun InitialsAvatar(chatId: Long, title: String, size: Dp) {
+private fun InitialsAvatar(
+    chatId: Long,
+    title: String,
+    size: Dp,
+) {
     val (top, bottom) = AvatarColors.forChat(chatId)
     Box(
         Modifier
             .size(size)
             .background(Brush.verticalGradient(listOf(top, bottom))),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = AvatarInitials.of(title),
             color = Color.White,
-            style = TextStyle(fontSize = (size.value * 0.38f).sp, fontWeight = FontWeight.SemiBold)
+            style = TextStyle(fontSize = (size.value * 0.38f).sp, fontWeight = FontWeight.SemiBold),
         )
     }
 }
 
 /** Telegram's seven avatar gradients (red, orange, violet, green, cyan, blue, pink), picked by chat id. */
 internal object AvatarColors {
-    fun forChat(chatId: Long): Pair<Color, Color> =
-        AvatarPalette.forChat(chatId).let { (top, bottom) -> Color(top) to Color(bottom) }
+    fun forChat(chatId: Long): Pair<Color, Color> = AvatarPalette.forChat(chatId).let { (top, bottom) -> Color(top) to Color(bottom) }
 }
 
 /** Up to two initials of a chat title: first letters of the first two words ("Daily Tech" → "DT"). */

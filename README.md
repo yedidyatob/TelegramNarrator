@@ -46,7 +46,8 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
 
    ```
    ./gradlew assembleDebug          # debug APK in app/build/outputs/apk/debug
-   ./gradlew testDebugUnitTest      # JVM unit tests
+   ./gradlew testDebugUnitTest      # JVM unit tests (runs ktlintCheck first)
+   ./gradlew ktlintFormat           # fix Kotlin formatting (rules in .editorconfig)
    ./gradlew lintDebug              # Android lint (existing findings are in app/lint-baseline.xml)
    ./gradlew assembleRelease        # minified APK, unsigned unless a keystore is configured
    ./gradlew bundleRelease          # Play bundle: app/build/outputs/bundle/release/app-release.aab
@@ -56,7 +57,8 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
    [docs/publishing.md](docs/publishing.md).
 
    Unit tests are pure JVM tests (no device or emulator needed). CI (`.github/workflows/ci.yml`) runs
-   `testDebugUnitTest assembleDebug` on every push to `main` and every pull request.
+   `testDebugUnitTest assembleDebug` on every push to `main` and every pull request. Because `testDebugUnitTest` depends on
+   `ktlintCheck`, CI also fails on formatting violations; run `./gradlew ktlintFormat` before pushing.
 
 ### Optional: Gemini TTS (Bring-Your-Own-Key)
 

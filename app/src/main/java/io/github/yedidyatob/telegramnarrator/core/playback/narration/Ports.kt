@@ -41,14 +41,18 @@ interface SpeechPort {
         chatId: Long?,
         onStart: () -> Unit,
         onRange: (start: Int) -> Unit,
-        onDone: (completed: Boolean) -> Unit
+        onDone: (completed: Boolean) -> Unit,
     )
 
     /** Stops the system engine; the pending [speak] callback is dropped. */
     fun stop()
 
     /** Network synthesis into the disk cache (blocking; the controller calls it on its I/O dispatcher). */
-    fun synthesize(provider: SpeechProvider, text: String, chatId: Long?): SpeechSynthesisOutcome
+    fun synthesize(
+        provider: SpeechProvider,
+        text: String,
+        chatId: Long?,
+    ): SpeechSynthesisOutcome
 
     /** The chat's language (detected, else the device language), for spoken phrases like the sponsored cue. */
     fun chatLanguage(chatId: Long): String
@@ -61,8 +65,13 @@ interface SpeechPort {
 enum class Ding { CHAT_BOUNDARY, END_OF_MESSAGES }
 
 sealed interface AudioSource {
-    data class FilePath(val path: String) : AudioSource
-    data class Tone(val ding: Ding) : AudioSource
+    data class FilePath(
+        val path: String,
+    ) : AudioSource
+
+    data class Tone(
+        val ding: Ding,
+    ) : AudioSource
 }
 
 /** The single media-player slot (voice notes, synthesized speech, dings). */
@@ -72,7 +81,12 @@ interface AudioPort {
      * started (no callback then); otherwise exactly one of [onComplete] / [onError] runs later unless
      * [release] is called first.
      */
-    fun play(source: AudioSource, speed: Float, onComplete: () -> Unit, onError: () -> Unit): Boolean
+    fun play(
+        source: AudioSource,
+        speed: Float,
+        onComplete: () -> Unit,
+        onError: () -> Unit,
+    ): Boolean
 
     /** Pauses the playing file in place; false when nothing could be paused. */
     fun pause(): Boolean
@@ -101,14 +115,18 @@ fun interface ReadMarkerPort {
 interface SponsoredPort {
     /** Warms the chat's ads cache when the chat opens. */
     fun prefetch(chatId: Long)
+
     suspend fun adFor(chatId: Long): SponsoredAd?
+
     fun reportViewed(ad: SponsoredAd)
 }
 
 /** Tells the user about network-voice failures (one message per episode, #63). */
 interface TtsFailurePort {
     fun onFailure(reason: FallbackReason)
+
     fun onPrefetchFailure(reason: FallbackReason)
+
     fun onNetworkSuccess()
 }
 
@@ -118,17 +136,25 @@ interface PlaybackHost {
     fun onItemStarted(item: PlaybackItem)
 
     /** A sponsored message is about to be read: "Sponsored · title" status. */
-    fun onSponsoredStarted(ad: SponsoredAd, chatName: String)
+    fun onSponsoredStarted(
+        ad: SponsoredAd,
+        chatName: String,
+    )
 
     /** Playing / paused changed: media session state and notification. */
-    fun onStateChanged(isPlaying: Boolean, isPaused: Boolean)
+    fun onStateChanged(
+        isPlaying: Boolean,
+        isPaused: Boolean,
+    )
 
     /** Playback ended (stop, end of the queue, error): leave the foreground and stop the service. */
     fun onStopped()
 
     fun requestAudioFocus()
-    fun abandonAudioFocus()
-    fun registerNoisyReceiver()
-    fun unregisterNoisyReceiver()
 
+    fun abandonAudioFocus()
+
+    fun registerNoisyReceiver()
+
+    fun unregisterNoisyReceiver()
 }

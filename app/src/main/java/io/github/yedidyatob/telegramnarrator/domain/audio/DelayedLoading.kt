@@ -7,7 +7,9 @@ package io.github.yedidyatob.telegramnarrator.domain.audio
  * for [delayMs], so cache hits and fast loads never flash the indicator. Starting a new load supersedes the
  * previous one: a late [end] of an older load is ignored. Not thread-safe; callers synchronize.
  */
-class DelayedLoading(val delayMs: Long = DEFAULT_DELAY_MS) {
+class DelayedLoading(
+    val delayMs: Long = DEFAULT_DELAY_MS,
+) {
     private var currentToken = 0L
     private var startedAtMs: Long? = null
 

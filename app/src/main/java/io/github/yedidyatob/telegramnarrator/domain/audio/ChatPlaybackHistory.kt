@@ -32,6 +32,8 @@ class ChatPlaybackHistory {
         return listOfNotNull(before, current)
     }
 
-    private fun sameMessage(a: PlaybackItem.MessageItem, b: PlaybackItem.MessageItem) =
-        a.chatId == b.chatId && a.messageId == b.messageId
+    private fun sameMessage(
+        a: PlaybackItem.MessageItem,
+        b: PlaybackItem.MessageItem,
+    ) = a.chatId == b.chatId && a.messageId == b.messageId
 }

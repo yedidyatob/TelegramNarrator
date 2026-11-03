@@ -2,10 +2,10 @@ package io.github.yedidyatob.telegramnarrator.data.rules
 
 import android.content.Context
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelRulesConfig
 import io.github.yedidyatob.telegramnarrator.domain.cleaning.ChannelRulesEngine
-import io.github.yedidyatob.telegramnarrator.R
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,22 +14,34 @@ import javax.inject.Singleton
  * the error is logged and no rules are applied (only the generic MessageCleaner).
  */
 @Singleton
-class ChannelRulesRepository @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    companion object {
-        const val ASSET_NAME = "channel_rules.json"
-    }
-
-    val engine: ChannelRulesEngine by lazy { ChannelRulesEngine(load(), defaultLinkLabel = { context.getString(R.string.playback_link) }) }
-
-    private fun load(): ChannelRulesConfig = try {
-        val json = context.assets.open(ASSET_NAME).bufferedReader(Charsets.UTF_8).use { it.readText() }
-        ChannelRulesParser.parse(json).also {
-            Log.d("ChannelRules", "Loaded ${it.channels.size} channel presets")
+class ChannelRulesRepository
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) {
+        companion object {
+            const val ASSET_NAME = "channel_rules.json"
         }
-    } catch (e: Exception) {
-        Log.e("ChannelRules", "Could not load $ASSET_NAME, using no channel rules", e)
-        ChannelRulesConfig.EMPTY
+
+        val engine: ChannelRulesEngine by lazy {
+            ChannelRulesEngine(
+                load(),
+                defaultLinkLabel = { context.getString(R.string.playback_link) },
+            )
+        }
+
+        private fun load(): ChannelRulesConfig =
+            try {
+                val json =
+                    context.assets
+                        .open(ASSET_NAME)
+                        .bufferedReader(Charsets.UTF_8)
+                        .use { it.readText() }
+                ChannelRulesParser.parse(json).also {
+                    Log.d("ChannelRules", "Loaded ${it.channels.size} channel presets")
+                }
+            } catch (e: Exception) {
+                Log.e("ChannelRules", "Could not load $ASSET_NAME, using no channel rules", e)
+                ChannelRulesConfig.EMPTY
+            }
     }
-}

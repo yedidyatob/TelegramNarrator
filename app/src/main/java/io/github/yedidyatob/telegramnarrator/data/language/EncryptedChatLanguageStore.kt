@@ -13,27 +13,33 @@ import java.util.concurrent.ConcurrentHashMap
  * Detected chat languages (#89) in EncryptedSharedPreferences, keyed by chat id only: no titles, no text.
  * When secure storage is unavailable they are kept in memory only (never in plaintext). Wiped on logout.
  */
-class EncryptedChatLanguageStore(context: Context) : ChatLanguageStore {
+class EncryptedChatLanguageStore(
+    context: Context,
+) : ChatLanguageStore {
     private val memory = ConcurrentHashMap<Long, ChatLanguage>()
 
-    private val prefs: SharedPreferences? = try {
-        val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-        EncryptedSharedPreferences.create(
-            context,
-            FILE,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    } catch (e: Exception) {
-        android.util.Log.w("ChatLanguageStore", "Secure storage unavailable; chat languages kept in memory (${e.javaClass.simpleName})")
-        null
-    }
+    private val prefs: SharedPreferences? =
+        try {
+            val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+            EncryptedSharedPreferences.create(
+                context,
+                FILE,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("ChatLanguageStore", "Secure storage unavailable; chat languages kept in memory (${e.javaClass.simpleName})")
+            null
+        }
 
     override fun get(chatId: Long): ChatLanguage? =
         memory[chatId] ?: ChatLanguagePolicy.decode(prefs?.getString(key(chatId), null))?.also { memory[chatId] = it }
 
-    override fun put(chatId: Long, value: ChatLanguage) {
+    override fun put(
+        chatId: Long,
+        value: ChatLanguage,
+    ) {
         memory[chatId] = value
         prefs?.edit()?.putString(key(chatId), ChatLanguagePolicy.encode(value))?.apply()
     }

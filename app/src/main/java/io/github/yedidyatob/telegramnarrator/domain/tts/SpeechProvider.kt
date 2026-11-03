@@ -5,12 +5,15 @@ package io.github.yedidyatob.telegramnarrator.domain.tts
  * fallback whenever Gemini fails. GEMINI synthesizes audio that is cached on disk and played through the
  * MediaPlayer queue.
  */
-enum class SpeechProvider(val id: String) {
+enum class SpeechProvider(
+    val id: String,
+) {
     /** On-device Android text-to-speech (offline; the default and the fallback for Gemini). */
     SYSTEM("system"),
 
     /** Optional Bring-Your-Own-Key Gemini TTS. */
-    GEMINI("gemini");
+    GEMINI("gemini"),
+    ;
 
     companion object {
         /** Engine when none is stored, and of every unknown id. */

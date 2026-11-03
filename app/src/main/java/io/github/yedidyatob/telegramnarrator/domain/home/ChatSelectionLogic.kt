@@ -7,14 +7,16 @@ package io.github.yedidyatob.telegramnarrator.domain.home
  * - Later syncs: drop chats that disappeared, keep existing selections, auto-select newly appearing chats.
  */
 object ChatSelectionLogic {
-
     data class State(
         val selected: Set<Long> = emptySet(),
         val known: Set<Long> = emptySet(),
-        val initialized: Boolean = false
+        val initialized: Boolean = false,
     )
 
-    fun sync(state: State, unreadIds: List<Long>): State {
+    fun sync(
+        state: State,
+        unreadIds: List<Long>,
+    ): State {
         val ids = unreadIds.toSet()
         if (!state.initialized) {
             return State(selected = ids, known = ids, initialized = true)
@@ -23,12 +25,14 @@ object ChatSelectionLogic {
         return State(
             selected = (state.selected intersect ids) + newlyAppeared,
             known = ids,
-            initialized = true
+            initialized = true,
         )
     }
 
-    fun toggle(selected: Set<Long>, chatId: Long): Set<Long> =
-        if (chatId in selected) selected - chatId else selected + chatId
+    fun toggle(
+        selected: Set<Long>,
+        chatId: Long,
+    ): Set<Long> = if (chatId in selected) selected - chatId else selected + chatId
 
     fun selectAll(unreadIds: List<Long>): Set<Long> = unreadIds.toSet()
 

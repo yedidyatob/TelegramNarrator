@@ -90,7 +90,7 @@ fun SponsoredCard(
     onLinkClicked: (SponsoredAd, isMediaClick: Boolean) -> Unit,
     onReport: (SponsoredAd) -> Unit,
     loadFile: suspend (Int) -> String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
@@ -101,7 +101,8 @@ fun SponsoredCard(
 
     // Full text on screen while resumed -> one view report (the repository dedupes per ad per fetch)
     var textFullyVisible by remember(ad.viewKey) { mutableStateOf(false) }
-    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow
+        .collectAsState()
     val resumed = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     LaunchedEffect(ad.viewKey, textFullyVisible, resumed) {
         if (textFullyVisible && resumed) onFullyVisible(ad)
@@ -123,7 +124,7 @@ fun SponsoredCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.10f).compositeOverSurface())
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.10f).compositeOverSurface()),
     ) {
         Column(Modifier.padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.Top) {
@@ -131,9 +132,10 @@ fun SponsoredCard(
                 // English device); the ⋮ menu stays at the UI's end like every other overflow menu.
                 ProvideContentDirection(ad.title, ad.text) {
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .onGloballyPositioned { textFullyVisible = it.isFullyVisible() }
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .onGloballyPositioned { textFullyVisible = it.isFullyVisible() },
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (sponsorPhoto != null) {
@@ -141,10 +143,11 @@ fun SponsoredCard(
                                     bitmap = sponsorPhoto,
                                     contentDescription = stringResource(R.string.sponsored_sponsor_photo),
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .clickable { openLink(false) }
+                                    modifier =
+                                        Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .clickable { openLink(false) },
                                 )
                                 Spacer(Modifier.width(8.dp))
                             }
@@ -153,7 +156,7 @@ fun SponsoredCard(
                                     text = stringResource(sponsoredLabelRes(ad)),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = accent
+                                    color = accent,
                                 )
                                 if (ad.title.isNotBlank()) {
                                     Text(
@@ -161,7 +164,7 @@ fun SponsoredCard(
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = accent,
-                                        modifier = Modifier.clickable { openLink(false) }
+                                        modifier = Modifier.clickable { openLink(false) },
                                     )
                                 }
                             }
@@ -172,7 +175,7 @@ fun SponsoredCard(
                                 text = sponsoredText(ad),
                                 style = MaterialTheme.typography.bodyMedium.merge(ContentTextStyle),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
@@ -185,7 +188,10 @@ fun SponsoredCard(
                         if (ad.hasSponsorInfo) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.sponsored_menu_info)) },
-                                onClick = { menuOpen = false; showSponsorInfo = true }
+                                onClick = {
+                                    menuOpen = false
+                                    showSponsorInfo = true
+                                },
                             )
                         }
                         val aboutUrl = stringResource(R.string.sponsored_about_url)
@@ -194,12 +200,15 @@ fun SponsoredCard(
                             onClick = {
                                 menuOpen = false
                                 openUriSafely(context) { uriHandler.openUri(aboutUrl) }
-                            }
+                            },
                         )
                         if (ad.canBeReported) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.sponsored_menu_report)) },
-                                onClick = { menuOpen = false; onReport(ad) }
+                                onClick = {
+                                    menuOpen = false
+                                    onReport(ad)
+                                },
                             )
                         }
                     }
@@ -212,25 +221,28 @@ fun SponsoredCard(
                     bitmap = mediaImage,
                     contentDescription = stringResource(R.string.sponsored_media),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 180.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .then(if (media.opensLinkOnClick) Modifier.clickable { openLink(true) } else Modifier)
+                    modifier =
+                        Modifier
+                            .padding(end = 8.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = 180.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .then(if (media.opensLinkOnClick) Modifier.clickable { openLink(true) } else Modifier),
                 )
             }
             if (ad.buttonText.isNotBlank() && ad.url.isNotBlank()) {
                 Spacer(Modifier.padding(top = 8.dp))
                 FilledTonalButton(
                     onClick = { openLink(false) },
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = accent.copy(alpha = 0.18f).compositeOverSurface(),
-                        contentColor = accent
-                    ),
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .fillMaxWidth()
+                    colors =
+                        ButtonDefaults.filledTonalButtonColors(
+                            containerColor = accent.copy(alpha = 0.18f).compositeOverSurface(),
+                            contentColor = accent,
+                        ),
+                    modifier =
+                        Modifier
+                            .padding(end = 8.dp)
+                            .fillMaxWidth(),
                 ) {
                     Text(ad.buttonText)
                 }
@@ -246,12 +258,12 @@ fun SponsoredCard(
                 Text(
                     ad.sponsorInfoText,
                     style = LocalTextStyle.current.merge(ContentTextStyle),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
                 TextButton(onClick = { showSponsorInfo = false }) { Text(stringResource(R.string.sponsored_close)) }
-            }
+            },
         )
     }
 
@@ -270,7 +282,7 @@ fun SponsoredCard(
             },
             dismissButton = {
                 TextButton(onClick = { confirmMediaClick = null }) { Text(stringResource(R.string.sponsored_cancel)) }
-            }
+            },
         )
     }
 }
@@ -281,7 +293,7 @@ fun SponsoredReportDialog(
     title: String,
     options: List<SponsoredReportOption>,
     onChoose: (SponsoredReportOption) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -297,33 +309,36 @@ fun SponsoredReportDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.sponsored_cancel)) } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.sponsored_cancel)) } },
     )
 }
 
-private fun sponsoredLabelRes(ad: SponsoredAd): Int = when {
-    ad.isRecommended -> R.string.sponsored_label_recommended
-    ad.chatKind == SponsoredChatKind.BOT -> R.string.sponsored_label_ad
-    else -> R.string.sponsored_label
-}
+private fun sponsoredLabelRes(ad: SponsoredAd): Int =
+    when {
+        ad.isRecommended -> R.string.sponsored_label_recommended
+        ad.chatKind == SponsoredChatKind.BOT -> R.string.sponsored_label_ad
+        else -> R.string.sponsored_label
+    }
 
 /** Ad text with its bold / italic / underline / strikethrough / code entities. */
-private fun sponsoredText(ad: SponsoredAd): AnnotatedString = buildAnnotatedString {
-    append(ad.text)
-    ad.textSpans.forEach { span ->
-        val start = span.start.coerceIn(0, ad.text.length)
-        val end = span.end.coerceIn(start, ad.text.length)
-        if (start == end) return@forEach
-        val style = when (span.style) {
-            SponsoredTextSpan.Style.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
-            SponsoredTextSpan.Style.ITALIC -> SpanStyle(fontStyle = FontStyle.Italic)
-            SponsoredTextSpan.Style.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
-            SponsoredTextSpan.Style.STRIKETHROUGH -> SpanStyle(textDecoration = TextDecoration.LineThrough)
-            SponsoredTextSpan.Style.MONOSPACE -> SpanStyle(fontFamily = FontFamily.Monospace)
+private fun sponsoredText(ad: SponsoredAd): AnnotatedString =
+    buildAnnotatedString {
+        append(ad.text)
+        ad.textSpans.forEach { span ->
+            val start = span.start.coerceIn(0, ad.text.length)
+            val end = span.end.coerceIn(start, ad.text.length)
+            if (start == end) return@forEach
+            val style =
+                when (span.style) {
+                    SponsoredTextSpan.Style.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
+                    SponsoredTextSpan.Style.ITALIC -> SpanStyle(fontStyle = FontStyle.Italic)
+                    SponsoredTextSpan.Style.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
+                    SponsoredTextSpan.Style.STRIKETHROUGH -> SpanStyle(textDecoration = TextDecoration.LineThrough)
+                    SponsoredTextSpan.Style.MONOSPACE -> SpanStyle(fontFamily = FontFamily.Monospace)
+                }
+            addStyle(style, start, end)
         }
-        addStyle(style, start, end)
     }
-}
 
 /** True when the whole layout is inside the window (not clipped by a parent, a scroll container or the screen). */
 private fun LayoutCoordinates.isFullyVisible(): Boolean {
@@ -336,16 +351,20 @@ private fun LayoutCoordinates.isFullyVisible(): Boolean {
  * TDLib built-in accent colors 0-6 (red, orange, violet, green, cyan, blue, pink). Other ids need the
  * `updateAccentColors` palette, which this app does not track, so they use [fallback].
  */
-fun sponsoredAccentColor(accentColorId: Int, fallback: Color): Color = when (accentColorId) {
-    0 -> Color(0xFFCC5049)
-    1 -> Color(0xFFD67722)
-    2 -> Color(0xFF955CDB)
-    3 -> Color(0xFF40A920)
-    4 -> Color(0xFF309EBA)
-    5 -> Color(0xFF368AD1)
-    6 -> Color(0xFFC7508B)
-    else -> fallback
-}
+fun sponsoredAccentColor(
+    accentColorId: Int,
+    fallback: Color,
+): Color =
+    when (accentColorId) {
+        0 -> Color(0xFFCC5049)
+        1 -> Color(0xFFD67722)
+        2 -> Color(0xFF955CDB)
+        3 -> Color(0xFF40A920)
+        4 -> Color(0xFF309EBA)
+        5 -> Color(0xFF368AD1)
+        6 -> Color(0xFFC7508B)
+        else -> fallback
+    }
 
 @Composable
 private fun Color.compositeOverSurface(): Color {
@@ -355,21 +374,26 @@ private fun Color.compositeOverSurface(): Color {
         red = red * a + surface.red * (1 - a),
         green = green * a + surface.green * (1 - a),
         blue = blue * a + surface.blue * (1 - a),
-        alpha = 1f
+        alpha = 1f,
     )
 }
 
 /** Telegram packages tried, in order, for t.me / tg: links (this app is not a full Telegram client). */
-private val TELEGRAM_PACKAGES = listOf(
-    "org.telegram.messenger",
-    "org.telegram.messenger.web",
-    "org.telegram.messenger.beta",
-    "org.thunderdog.challegram",
-    "org.telegram.plus"
-)
+private val TELEGRAM_PACKAGES =
+    listOf(
+        "org.telegram.messenger",
+        "org.telegram.messenger.web",
+        "org.telegram.messenger.beta",
+        "org.thunderdog.challegram",
+        "org.telegram.plus",
+    )
 
 /** Opens the ad URL: t.me / tg: links in the Telegram app when installed, everything else in the browser. */
-private fun openSponsoredUrl(context: Context, rawUrl: String, openInBrowser: (String) -> Unit) {
+private fun openSponsoredUrl(
+    context: Context,
+    rawUrl: String,
+    openInBrowser: (String) -> Unit,
+) {
     val url = SponsoredLinkPolicy.safeUrl(rawUrl)
     if (url == null) {
         // Not https / Telegram (#68): never handed to the system
@@ -380,7 +404,7 @@ private fun openSponsoredUrl(context: Context, rawUrl: String, openInBrowser: (S
         for (pkg in TELEGRAM_PACKAGES) {
             try {
                 context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
                 return
             } catch (e: ActivityNotFoundException) {
@@ -396,7 +420,10 @@ private fun openSponsoredUrl(context: Context, rawUrl: String, openInBrowser: (S
     openUriSafely(context) { openInBrowser(fallback) }
 }
 
-private fun openUriSafely(context: Context, open: () -> Unit) {
+private fun openUriSafely(
+    context: Context,
+    open: () -> Unit,
+) {
     try {
         open()
     } catch (e: ActivityNotFoundException) {

@@ -6,7 +6,10 @@ import java.io.File
  * Append-only text log capped at [maxBytes]: when an append would pass the cap, the oldest half is dropped
  * (at a line boundary). Plain java.io so it is unit-tested; callers serialize access.
  */
-class RollingLogFile(val file: File, private val maxBytes: Int = MAX_BYTES) {
+class RollingLogFile(
+    val file: File,
+    private val maxBytes: Int = MAX_BYTES,
+) {
     fun append(line: String) {
         file.parentFile?.mkdirs()
         val bytes = (line.trimEnd('\n') + "\n").toByteArray(Charsets.UTF_8)

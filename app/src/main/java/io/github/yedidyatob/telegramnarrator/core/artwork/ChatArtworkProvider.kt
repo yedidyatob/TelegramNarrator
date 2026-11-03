@@ -31,7 +31,6 @@ import java.io.FileNotFoundException
  * access is granted per URI to the Android Auto hosts ([grantToAuto]) and Media3 reads it in-process.
  */
 class ChatArtworkProvider : ContentProvider() {
-
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface Deps {
@@ -42,29 +41,41 @@ class ChatArtworkProvider : ContentProvider() {
 
     override fun getType(uri: Uri): String = "image/png"
 
-    override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+    override fun openFile(
+        uri: Uri,
+        mode: String,
+    ): ParcelFileDescriptor {
         if (mode != "r") throw SecurityException("Read only")
         val context = context ?: throw FileNotFoundException()
         if (ArtworkUris.isPlayAllIcon(uri.pathSegments)) {
             return ParcelFileDescriptor.open(playAllIconFile(context), ParcelFileDescriptor.MODE_READ_ONLY)
         }
         val chatId = ArtworkUris.chatIdOf(uri.pathSegments) ?: throw FileNotFoundException("Unknown artwork")
-        val file = runCatching { runBlocking { artworkFile(context, chatId) } }
-            .onFailure { AutoLog.error("artwork failed chat=$chatId", it) }
-            .getOrNull() ?: throw FileNotFoundException("No artwork")
+        val file =
+            runCatching { runBlocking { artworkFile(context, chatId) } }
+                .onFailure { AutoLog.error("artwork failed chat=$chatId", it) }
+                .getOrNull() ?: throw FileNotFoundException("No artwork")
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
-    private suspend fun artworkFile(context: Context, chatId: Long): File? {
+    private suspend fun artworkFile(
+        context: Context,
+        chatId: Long,
+    ): File? {
         val chats = EntryPointAccessors.fromApplication(context, Deps::class.java).chatRepository()
         val chat = chats.getChat(chatId) ?: return null
-        val photo = chat.photoFileId?.let { id ->
-            withTimeoutOrNull(PHOTO_TIMEOUT_MS) { chats.getFilePath(id) }?.let(::File)?.takeIf { it.isFile && it.length() > 0 }
-        }
+        val photo =
+            chat.photoFileId?.let { id ->
+                withTimeoutOrNull(PHOTO_TIMEOUT_MS) { chats.getFilePath(id) }?.let(::File)?.takeIf { it.isFile && it.length() > 0 }
+            }
         return photo ?: initialsFile(context, chatId, AvatarInitials.of(chat.title))
     }
 
-    private fun initialsFile(context: Context, chatId: Long, initials: String): File {
+    private fun initialsFile(
+        context: Context,
+        chatId: Long,
+        initials: String,
+    ): File {
         val dir = File(context.cacheDir, "artwork").apply { mkdirs() }
         // Named by id and initials only: a renamed chat gets a new file, no title is stored
         val file = File(dir, "initials_${chatId}_${initials.hashCode()}.png")
@@ -73,16 +84,18 @@ class ChatArtworkProvider : ContentProvider() {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val (top, bottom) = AvatarPalette.forChat(chatId)
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = LinearGradient(0f, 0f, 0f, size.toFloat(), top.toInt(), bottom.toInt(), Shader.TileMode.CLAMP)
-        }
+        val fill =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = LinearGradient(0f, 0f, 0f, size.toFloat(), top.toInt(), bottom.toInt(), Shader.TileMode.CLAMP)
+            }
         canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), fill)
-        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.WHITE
-            textSize = size * 0.4f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-        }
+        val text =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                textSize = size * 0.4f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                textAlign = Paint.Align.CENTER
+            }
         val y = size / 2f - (text.descent() + text.ascent()) / 2f
         canvas.drawText(initials, size / 2f, y, text)
         val tmp = File(dir, file.name + ".tmp")
@@ -100,15 +113,22 @@ class ChatArtworkProvider : ContentProvider() {
         val size = SIZE_PX.toFloat()
         val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        canvas.drawRect(0f, 0f, size, size, Paint().apply {
-            shader = LinearGradient(0f, 0f, 0f, size, 0xFF3DB6EC.toInt(), 0xFF1A86C7.toInt(), Shader.TileMode.CLAMP)
-        })
-        val triangle = android.graphics.Path().apply {
-            moveTo(size * 0.38f, size * 0.28f)
-            lineTo(size * 0.74f, size * 0.5f)
-            lineTo(size * 0.38f, size * 0.72f)
-            close()
-        }
+        canvas.drawRect(
+            0f,
+            0f,
+            size,
+            size,
+            Paint().apply {
+                shader = LinearGradient(0f, 0f, 0f, size, 0xFF3DB6EC.toInt(), 0xFF1A86C7.toInt(), Shader.TileMode.CLAMP)
+            },
+        )
+        val triangle =
+            android.graphics.Path().apply {
+                moveTo(size * 0.38f, size * 0.28f)
+                lineTo(size * 0.74f, size * 0.5f)
+                lineTo(size * 0.38f, size * 0.72f)
+                close()
+            }
         canvas.drawPath(triangle, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE })
         val tmp = File(dir, file.name + ".tmp")
         tmp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -117,10 +137,31 @@ class ChatArtworkProvider : ContentProvider() {
         return file
     }
 
-    override fun query(uri: Uri, p: Array<out String>?, s: String?, a: Array<out String>?, o: String?): Cursor? = null
-    override fun insert(uri: Uri, values: ContentValues?): Uri? = null
-    override fun delete(uri: Uri, s: String?, a: Array<out String>?): Int = 0
-    override fun update(uri: Uri, v: ContentValues?, s: String?, a: Array<out String>?): Int = 0
+    override fun query(
+        uri: Uri,
+        p: Array<out String>?,
+        s: String?,
+        a: Array<out String>?,
+        o: String?,
+    ): Cursor? = null
+
+    override fun insert(
+        uri: Uri,
+        values: ContentValues?,
+    ): Uri? = null
+
+    override fun delete(
+        uri: Uri,
+        s: String?,
+        a: Array<out String>?,
+    ): Int = 0
+
+    override fun update(
+        uri: Uri,
+        v: ContentValues?,
+        s: String?,
+        a: Array<out String>?,
+    ): Int = 0
 
     companion object {
         private const val SIZE_PX = 256
@@ -128,10 +169,17 @@ class ChatArtworkProvider : ContentProvider() {
 
         fun playAllIconUri(context: Context): Uri = Uri.parse(ArtworkUris.playAllIcon(context.packageName))
 
-        fun uriFor(context: Context, chatId: Long): Uri = Uri.parse(ArtworkUris.forChat(context.packageName, chatId))
+        fun uriFor(
+            context: Context,
+            chatId: Long,
+        ): Uri = Uri.parse(ArtworkUris.forChat(context.packageName, chatId))
 
         /** Lets the Android Auto hosts read [uri] (the provider itself is not exported). */
-        fun grantToAuto(context: Context, uri: Uri, packages: Collection<String>) {
+        fun grantToAuto(
+            context: Context,
+            uri: Uri,
+            packages: Collection<String>,
+        ) {
             for (pkg in packages) {
                 runCatching { context.grantUriPermission(pkg, uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             }

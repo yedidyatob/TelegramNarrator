@@ -30,7 +30,9 @@ object ContentDirection {
                 i += Character.charCount(codePoint)
                 when (Character.getDirectionality(codePoint)) {
                     Character.DIRECTIONALITY_RIGHT_TO_LEFT,
-                    Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> rtl++
+                    Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC,
+                    -> rtl++
+
                     Character.DIRECTIONALITY_LEFT_TO_RIGHT -> ltr++
                 }
             }
@@ -48,7 +50,10 @@ object ContentDirection {
  * paddings start on the content's side. Falls back to the current (UI) direction when undecidable.
  */
 @Composable
-fun ProvideContentDirection(vararg texts: String?, content: @Composable () -> Unit) {
+fun ProvideContentDirection(
+    vararg texts: String?,
+    content: @Composable () -> Unit,
+) {
     val current = LocalLayoutDirection.current
     val direction = remember(current, *texts) { ContentDirection.of(*texts) ?: current }
     CompositionLocalProvider(LocalLayoutDirection provides direction, content = content)

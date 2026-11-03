@@ -1,9 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.home
 
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.TriStateCheckbox
-import androidx.compose.ui.state.ToggleableState
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppearanceViewModel
 import android.content.ActivityNotFoundException
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
@@ -25,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -33,6 +28,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +44,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -59,27 +56,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
 import io.github.yedidyatob.telegramnarrator.domain.home.ConnectionBanner
 import io.github.yedidyatob.telegramnarrator.domain.home.HomeContent
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredCard
 import io.github.yedidyatob.telegramnarrator.ui.components.SponsoredReportDialog
 import io.github.yedidyatob.telegramnarrator.ui.screens.player.MiniPlayer
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsSheet
+import io.github.yedidyatob.telegramnarrator.ui.text.bidiSafe
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AppearanceViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.HomeViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerViewModel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SponsoredViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +89,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     sponsoredViewModel: SponsoredViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
-    appearanceViewModel: AppearanceViewModel = hiltViewModel()
+    appearanceViewModel: AppearanceViewModel = hiltViewModel(),
 ) {
     val dynamicColor by appearanceViewModel.dynamicColor.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,7 +102,10 @@ fun HomeScreen(
     var showVoiceSettings by rememberSaveable { mutableStateOf(false) }
     var showLogoutConfirm by rememberSaveable { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
-    if (showAbout) io.github.yedidyatob.telegramnarrator.ui.components.AboutDialog(onDismiss = { showAbout = false })
+    if (showAbout) {
+        io.github.yedidyatob.telegramnarrator.ui.components
+            .AboutDialog(onDismiss = { showAbout = false })
+    }
     var menuOpen by remember { mutableStateOf(false) }
     // Official Telegram sponsored messages (Telegram API ToS 3.3)
     val playingAd by sponsoredViewModel.playingAd.collectAsStateWithLifecycle()
@@ -132,12 +135,13 @@ fun HomeScreen(
         LaunchedEffect(Unit) {
             // Run the refresh and a minimum display time in parallel; whichever takes longer wins.
             // This prevents the spinner from vanishing before the user even sees it.
-            val started = viewModel.uiState.value.isRefreshing  // already loading?
+            val started = viewModel.uiState.value.isRefreshing // already loading?
             viewModel.refresh()
-            val waitForLoad = async {
-                if (!started) viewModel.uiState.first { it.isRefreshing }  // wait for it to start
-                viewModel.uiState.first { !it.isRefreshing }               // wait for it to finish
-            }
+            val waitForLoad =
+                async {
+                    if (!started) viewModel.uiState.first { it.isRefreshing } // wait for it to start
+                    viewModel.uiState.first { !it.isRefreshing } // wait for it to finish
+                }
             val waitForMinDuration = async { delay(300) }
             waitForLoad.await()
             waitForMinDuration.await()
@@ -146,10 +150,11 @@ fun HomeScreen(
     }
 
     val selectedForPlayback = chats.filter { it.id in selectedIds }
-    val fabLabel = when {
-        selectedForPlayback.size == chats.size -> stringResource(R.string.home_btn_play_all)
-        else -> stringResource(R.string.home_btn_play_selected, selectedForPlayback.size)
-    }
+    val fabLabel =
+        when {
+            selectedForPlayback.size == chats.size -> stringResource(R.string.home_btn_play_all)
+            else -> stringResource(R.string.home_btn_play_selected, selectedForPlayback.size)
+        }
     val content = uiState.content
 
     Scaffold(
@@ -168,13 +173,13 @@ fun HomeScreen(
                             } catch (e: IllegalArgumentException) {
                                 Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
                             }
-                        }
+                        },
                     )
                     if (appearanceViewModel.dynamicColorAvailable) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.home_menu_system_colors)) },
                             trailingIcon = { Checkbox(checked = dynamicColor, onCheckedChange = null) },
-                            onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) }
+                            onClick = { appearanceViewModel.setDynamicColor(!dynamicColor) },
                         )
                     }
                     DropdownMenuItem(
@@ -182,14 +187,14 @@ fun HomeScreen(
                         onClick = {
                             menuOpen = false
                             showAbout = true
-                        }
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.home_btn_logout)) },
                         onClick = {
                             menuOpen = false
                             showLogoutConfirm = true
-                        }
+                        },
                     )
                 }
                 // A background refresh with chats on screen: a thin bar rather than replacing the list
@@ -200,7 +205,7 @@ fun HomeScreen(
                 AnimatedVisibility(
                     visible = uiState.banner != null,
                     enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                    exit = shrinkVertically() + fadeOut(),
                 ) {
                     // Keep showing the last banner while it animates out
                     var lastBanner by remember { mutableStateOf(ConnectionBanner.CONNECTING) }
@@ -215,7 +220,7 @@ fun HomeScreen(
                 ExtendedFloatingActionButton(
                     text = { Text(fabLabel) },
                     icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = null) },
-                    onClick = { onPlayAll(selectedForPlayback) }
+                    onClick = { onPlayAll(selectedForPlayback) },
                 )
             }
         },
@@ -232,13 +237,13 @@ fun HomeScreen(
                         onLinkClicked = sponsoredViewModel::onLinkClicked,
                         onReport = sponsoredViewModel::startReport,
                         loadFile = sponsoredViewModel::localFile,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
                 AnimatedVisibility(
                     visible = player.isActive,
                     enter = slideInVertically(initialOffsetY = { it }),
-                    exit = slideOutVertically(targetOffsetY = { it })
+                    exit = slideOutVertically(targetOffsetY = { it }),
                 ) {
                     MiniPlayer(
                         state = player,
@@ -246,11 +251,11 @@ fun HomeScreen(
                         onTogglePause = playerViewModel::togglePause,
                         onNextMessage = playerViewModel::nextMessage,
                         onStop = playerViewModel::stop,
-                        loadPhoto = playerViewModel::chatPhotoPath
+                        loadPhoto = playerViewModel::chatPhotoPath,
                     )
                 }
             }
-        }
+        },
     ) { innerPadding ->
         // The indicator animates in from above the box's top edge; clipToBounds() ensures it
         // never bleeds into the TopAppBar above.
@@ -258,32 +263,47 @@ fun HomeScreen(
             isRefreshing = userRefreshing,
             onRefresh = { userRefreshing = true },
             state = pullToRefreshState,
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .clipToBounds()
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .clipToBounds(),
         ) {
             AnimatedContent(
                 targetState = content,
                 contentKey = { it::class },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "home-content"
+                label = "home-content",
             ) { state ->
                 when (state) {
-                    HomeContent.Loading -> HomeLoadingSkeleton()
-                    HomeContent.Empty -> HomeEmptyState(onRefresh = viewModel::refresh)
-                    HomeContent.Offline -> HomeOfflineState()
-                    is HomeContent.Error -> HomeErrorState(detail = state.detail, onRetry = viewModel::refresh)
-                    is HomeContent.Chats -> ChatList(
-                        chats = state.chats,
-                        selectedIds = selectedIds,
-                        playingChatId = playingChatId,
-                        onToggle = viewModel::toggleChatSelection,
-                        onToggleAll = viewModel::toggleAllChatSelection,
-                        onOpen = viewModel::selectChat,
-                        onPlay = { onPlayAll(listOf(it)) },
-                        loadPhoto = viewModel::chatPhotoPath
-                    )
+                    HomeContent.Loading -> {
+                        HomeLoadingSkeleton()
+                    }
+
+                    HomeContent.Empty -> {
+                        HomeEmptyState(onRefresh = viewModel::refresh)
+                    }
+
+                    HomeContent.Offline -> {
+                        HomeOfflineState()
+                    }
+
+                    is HomeContent.Error -> {
+                        HomeErrorState(detail = state.detail, onRetry = viewModel::refresh)
+                    }
+
+                    is HomeContent.Chats -> {
+                        ChatList(
+                            chats = state.chats,
+                            selectedIds = selectedIds,
+                            playingChatId = playingChatId,
+                            onToggle = viewModel::toggleChatSelection,
+                            onToggleAll = viewModel::toggleAllChatSelection,
+                            onOpen = viewModel::selectChat,
+                            onPlay = { onPlayAll(listOf(it)) },
+                            loadPhoto = viewModel::chatPhotoPath,
+                        )
+                    }
                 }
             }
         }
@@ -305,7 +325,7 @@ fun HomeScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { showLogoutConfirm = false }) { Text(stringResource(R.string.sponsored_cancel)) }
-                }
+                },
             )
         }
 
@@ -324,7 +344,7 @@ fun HomeScreen(
                 onAdFullyVisible = sponsoredViewModel::onFullyVisible,
                 onAdLinkClicked = sponsoredViewModel::onLinkClicked,
                 onAdReport = sponsoredViewModel::startReport,
-                loadAdFile = sponsoredViewModel::localFile
+                loadAdFile = sponsoredViewModel::localFile,
             )
         }
 
@@ -333,7 +353,7 @@ fun HomeScreen(
                 title = dialog.title,
                 options = dialog.options,
                 onChoose = sponsoredViewModel::chooseReportOption,
-                onDismiss = sponsoredViewModel::dismissReport
+                onDismiss = sponsoredViewModel::dismissReport,
             )
         }
     }
@@ -349,34 +369,36 @@ internal fun ChatList(
     onToggleAll: () -> Unit,
     onOpen: (Chat) -> Unit,
     onPlay: (Chat) -> Unit,
-    loadPhoto: suspend (Int) -> String?
+    loadPhoto: suspend (Int) -> String?,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 96.dp)
+        contentPadding = PaddingValues(bottom = 96.dp),
     ) {
         item(key = "header") {
             val selectedCount = chats.count { it.id in selectedIds }
-            val toggleState = when {
-                selectedCount == 0 -> ToggleableState.Off
-                selectedCount == chats.size -> ToggleableState.On
-                else -> ToggleableState.Indeterminate
-            }
+            val toggleState =
+                when {
+                    selectedCount == 0 -> ToggleableState.Off
+                    selectedCount == chats.size -> ToggleableState.On
+                    else -> ToggleableState.Indeterminate
+                }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp, end = 8.dp, top = 4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 8.dp, top = 4.dp),
             ) {
                 TriStateCheckbox(
                     state = toggleState,
-                    onClick = onToggleAll
+                    onClick = onToggleAll,
                 )
                 Text(
                     text = bidiSafe(stringResource(R.string.home_selected_count, selectedCount, chats.size)),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -388,7 +410,7 @@ internal fun ChatList(
                 onToggleSelection = { onToggle(chat.id) },
                 onClick = { onOpen(chat) },
                 onPlayClick = { onPlay(chat) },
-                loadPhoto = loadPhoto
+                loadPhoto = loadPhoto,
             )
         }
     }
@@ -401,7 +423,7 @@ internal fun HomeTopBar(
     onOpenVoiceSettings: () -> Unit,
     menuOpen: Boolean,
     onMenuOpenChange: (Boolean) -> Unit,
-    menuItems: @Composable ColumnScope.() -> Unit = {}
+    menuItems: @Composable ColumnScope.() -> Unit = {},
 ) {
     TopAppBar(
         title = { Text(stringResource(R.string.home_title)) },
@@ -415,6 +437,6 @@ internal fun HomeTopBar(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }, content = menuItems)
             }
-        }
+        },
     )
 }

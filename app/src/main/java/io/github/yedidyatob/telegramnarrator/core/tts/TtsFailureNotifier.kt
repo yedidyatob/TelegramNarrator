@@ -27,7 +27,9 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.TtsFailures
  * that opens the page. Prefetch failures only count when the network itself is down, so prefetching the next
  * messages never produces a message per item.
  */
-class TtsFailureNotifier(private val context: Context) : TtsFailurePort {
+class TtsFailureNotifier(
+    private val context: Context,
+) : TtsFailurePort {
     private val episodes = TtsFailureEpisodes()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -46,28 +48,37 @@ class TtsFailureNotifier(private val context: Context) : TtsFailurePort {
 
     override fun onNetworkSuccess() = episodes.onNetworkSuccess()
 
-    private fun postHelpNotification(reason: FallbackReason, message: String, url: String) {
+    private fun postHelpNotification(
+        reason: FallbackReason,
+        message: String,
+        url: String,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
+        ) {
+            return
+        }
         ensureChannel()
-        val open = PendingIntent.getActivity(
-            context,
-            reason.ordinal,
-            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val open =
+            PendingIntent.getActivity(
+                context,
+                reason.ordinal,
+                Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
         val action = TtsFailureMessages.helpActionRes(reason)?.let { context.getString(it) }
         val text = if (action != null) "$message $action" else message
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.tts_alert_title))
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setContentIntent(open)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .build()
+        val notification =
+            NotificationCompat
+                .Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(context.getString(R.string.tts_alert_title))
+                .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .build()
         try {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
@@ -81,8 +92,8 @@ class TtsFailureNotifier(private val context: Context) : TtsFailurePort {
             NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.notification_channel_tts_alerts),
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ),
         )
     }
 

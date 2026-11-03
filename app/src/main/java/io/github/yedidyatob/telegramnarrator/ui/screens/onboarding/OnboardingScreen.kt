@@ -1,7 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.ui.screens.onboarding
 
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.consumeWindowInsets
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -27,9 +25,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -102,8 +102,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingStep
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
+import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingStep
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OnboardingViewModel
@@ -113,13 +113,13 @@ data class VoiceStepState(
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** null while the system engine starts. */
     val hebrewVoice: Boolean? = null,
-    val hasGeminiKey: Boolean = false
+    val hasGeminiKey: Boolean = false,
 )
 
 data class VoiceStepActions(
     val onSelect: (SpeechProvider) -> Unit = {},
     val onOpenTtsSettings: () -> Unit = {},
-    val onSaveGeminiKey: (String) -> Unit = {}
+    val onSaveGeminiKey: (String) -> Unit = {},
 )
 
 /**
@@ -127,7 +127,10 @@ data class VoiceStepActions(
  * voice engine, and (Android 13+) the notification permission. Skippable and shown once.
  */
 @Composable
-fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
+fun OnboardingScreen(
+    onFinished: () -> Unit,
+    viewModel: OnboardingViewModel = hiltViewModel(),
+) {
     val stepIndex by viewModel.stepIndex.collectAsStateWithLifecycle()
     val provider by viewModel.provider.collectAsStateWithLifecycle()
     val hebrewVoice by viewModel.hebrewVoice.collectAsStateWithLifecycle()
@@ -144,9 +147,10 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     // Back from the system TTS settings: look for a Hebrew voice again
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.recheckHebrewVoice()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) viewModel.recheckHebrewVoice()
+            }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -156,17 +160,18 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
         steps = viewModel.steps,
         stepIndex = stepIndex,
         voice = VoiceStepState(provider, hebrewVoice, hasKey),
-        voiceActions = VoiceStepActions(
-            onSelect = viewModel::selectProvider,
-            onOpenTtsSettings = {
-                try {
-                    context.startActivity(Intent(TTS_SETTINGS_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, R.string.settings_system_tts_unavailable, Toast.LENGTH_SHORT).show()
-                }
-            },
-            onSaveGeminiKey = viewModel::saveGeminiKey
-        ),
+        voiceActions =
+            VoiceStepActions(
+                onSelect = viewModel::selectProvider,
+                onOpenTtsSettings = {
+                    try {
+                        context.startActivity(Intent(TTS_SETTINGS_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(context, R.string.settings_system_tts_unavailable, Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onSaveGeminiKey = viewModel::saveGeminiKey,
+            ),
         onNext = { if (viewModel.isLastStep) finish() else viewModel.next() },
         onBack = { viewModel.back() },
         onSkip = finish,
@@ -176,7 +181,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
             } else {
                 finish()
             }
-        }
+        },
     )
 }
 
@@ -189,7 +194,7 @@ fun OnboardingContent(
     onNext: () -> Unit,
     onBack: () -> Unit,
     onSkip: () -> Unit,
-    onAllowNotifications: () -> Unit
+    onAllowNotifications: () -> Unit,
 ) {
     val step = steps[stepIndex.coerceIn(0, steps.lastIndex)]
     val isLast = stepIndex >= steps.lastIndex
@@ -201,14 +206,15 @@ fun OnboardingContent(
                 .consumeWindowInsets(padding)
                 // Edge-to-edge: the Gemini key field and the bottom buttons stay above the keyboard
                 .imePadding()
-                .fillMaxSize()
+                .fillMaxSize(),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp, end = 8.dp, top = 8.dp)
-                    .height(48.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 8.dp, top = 8.dp)
+                        .height(48.dp),
             ) {
                 StepDots(count = steps.size, current = stepIndex, modifier = Modifier.weight(1f))
                 if (!isLast) {
@@ -225,15 +231,16 @@ fun OnboardingContent(
                         (slideOutHorizontally { -it * sign / 3 } + fadeOut())
                 },
                 label = "onboarding-step",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) { index ->
                 val page = steps[index.coerceIn(0, steps.lastIndex)]
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
                 ) {
                     when (page) {
                         OnboardingStep.WELCOME -> WelcomePage()
@@ -245,9 +252,10 @@ fun OnboardingContent(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 if (stepIndex > 0) {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.onboarding_back)) }
@@ -268,33 +276,41 @@ fun OnboardingContent(
 }
 
 @Composable
-private fun StepDots(count: Int, current: Int, modifier: Modifier = Modifier) {
+private fun StepDots(
+    count: Int,
+    current: Int,
+    modifier: Modifier = Modifier,
+) {
     val description = stringResource(R.string.onboarding_step, current + 1, count)
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.clearAndSetSemantics { contentDescription = description }
+        modifier = modifier.clearAndSetSemantics { contentDescription = description },
     ) {
         repeat(count) { i ->
             val selected = i == current
             val width by animateDpAsState(if (selected) 24.dp else 8.dp, label = "dot")
             val color by animateColorAsState(
                 if (i <= current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                label = "dot-color"
+                label = "dot-color",
             )
             Box(
                 Modifier
                     .height(8.dp)
                     .width(width)
                     .clip(CircleShape)
-                    .background(color)
+                    .background(color),
             )
         }
     }
 }
 
 @Composable
-private fun PageHeader(icon: ImageVector, title: String, body: String?) {
+private fun PageHeader(
+    icon: ImageVector,
+    title: String,
+    body: String?,
+) {
     Spacer(Modifier.height(16.dp))
     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(112.dp)) {
         Box(contentAlignment = Alignment.Center) {
@@ -306,7 +322,7 @@ private fun PageHeader(icon: ImageVector, title: String, body: String?) {
         title,
         style = MaterialTheme.typography.headlineSmall,
         textAlign = TextAlign.Center,
-        modifier = Modifier.semantics { heading() }
+        modifier = Modifier.semantics { heading() },
     )
     if (body != null) {
         Spacer(Modifier.height(12.dp))
@@ -315,24 +331,33 @@ private fun PageHeader(icon: ImageVector, title: String, body: String?) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 420.dp)
+            modifier = Modifier.widthIn(max = 420.dp),
         )
     }
     Spacer(Modifier.height(24.dp))
 }
 
 @Composable
-private fun Point(icon: ImageVector, text: String) {
+private fun Point(
+    icon: ImageVector,
+    text: String,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .widthIn(max = 420.dp)
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+        modifier =
+            Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
     ) {
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(40.dp)) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
         Spacer(Modifier.width(16.dp))
@@ -345,7 +370,7 @@ private fun WelcomePage() {
     PageHeader(
         Icons.Rounded.Headphones,
         stringResource(R.string.onboarding_welcome_title),
-        stringResource(R.string.onboarding_welcome_body)
+        stringResource(R.string.onboarding_welcome_body),
     )
     Point(Icons.Rounded.PlayCircle, stringResource(R.string.onboarding_welcome_point_listen))
     Point(Icons.Rounded.SkipNext, stringResource(R.string.onboarding_welcome_point_control))
@@ -359,12 +384,12 @@ private fun PrivacyPage() {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth()
+        modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
     ) {
         Text(
             stringResource(R.string.login_unofficial_notice),
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         )
     }
     Spacer(Modifier.height(12.dp))
@@ -376,21 +401,24 @@ private fun PrivacyPage() {
 }
 
 @Composable
-private fun VoicePage(state: VoiceStepState, actions: VoiceStepActions) {
+private fun VoicePage(
+    state: VoiceStepState,
+    actions: VoiceStepActions,
+) {
     PageHeader(
         Icons.Rounded.RecordVoiceOver,
         stringResource(R.string.onboarding_voice_title),
-        stringResource(R.string.onboarding_voice_body)
+        stringResource(R.string.onboarding_voice_body),
     )
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().selectableGroup()
+        modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().selectableGroup(),
     ) {
         VoiceOptionCard(
             selected = state.provider == SpeechProvider.SYSTEM,
             title = stringResource(R.string.onboarding_voice_system_title),
             description = stringResource(R.string.onboarding_voice_system_desc),
-            onSelect = { actions.onSelect(SpeechProvider.SYSTEM) }
+            onSelect = { actions.onSelect(SpeechProvider.SYSTEM) },
         ) {
             HebrewVoiceStatus(state.hebrewVoice, actions.onOpenTtsSettings)
         }
@@ -398,7 +426,7 @@ private fun VoicePage(state: VoiceStepState, actions: VoiceStepActions) {
             selected = state.provider == SpeechProvider.GEMINI,
             title = stringResource(R.string.onboarding_voice_gemini_title),
             description = stringResource(R.string.onboarding_voice_gemini_desc),
-            onSelect = { actions.onSelect(SpeechProvider.GEMINI) }
+            onSelect = { actions.onSelect(SpeechProvider.GEMINI) },
         ) {
             GeminiKeyEntry(state.hasGeminiKey, actions.onSaveGeminiKey)
         }
@@ -411,23 +439,32 @@ private fun VoiceOptionCard(
     title: String,
     description: String,
     onSelect: () -> Unit,
-    extra: (@Composable () -> Unit)? = null
+    extra: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-        ),
-        modifier = Modifier.fillMaxWidth()
+        color =
+            if (selected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(
+                    alpha = 0.55f,
+                )
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
+        border =
+            BorderStroke(
+                if (selected) 2.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+            ),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column {
             Row(
                 verticalAlignment = Alignment.Top,
-                modifier = Modifier
-                    .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
-                    .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                modifier =
+                    Modifier
+                        .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
+                        .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
             ) {
                 RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(12.dp))
                 Column(Modifier.weight(1f).padding(top = 10.dp)) {
@@ -446,20 +483,23 @@ private fun VoiceOptionCard(
 }
 
 @Composable
-private fun HebrewVoiceStatus(hebrewVoice: Boolean?, onOpenTtsSettings: () -> Unit) {
+private fun HebrewVoiceStatus(
+    hebrewVoice: Boolean?,
+    onOpenTtsSettings: () -> Unit,
+) {
     if (hebrewVoice == null) return
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             if (hebrewVoice) Icons.Rounded.CheckCircle else Icons.Rounded.WarningAmber,
             contentDescription = null,
             tint = if (hebrewVoice) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
             stringResource(if (hebrewVoice) R.string.onboarding_voice_hebrew_ok else R.string.onboarding_voice_hebrew_missing),
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
     if (!hebrewVoice) {
@@ -467,20 +507,29 @@ private fun HebrewVoiceStatus(hebrewVoice: Boolean?, onOpenTtsSettings: () -> Un
     }
 }
 
-private class ApiKeyVisualTransformation(private val mask: Char = '•') : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        return TransformedText(
+private class ApiKeyVisualTransformation(
+    private val mask: Char = '•',
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText =
+        TransformedText(
             AnnotatedString(mask.toString().repeat(text.text.length)),
-            OffsetMapping.Identity
+            OffsetMapping.Identity,
         )
-    }
 }
 
 @Composable
-private fun GeminiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
+private fun GeminiKeyEntry(
+    hasKey: Boolean,
+    onSave: (String) -> Unit,
+) {
     if (hasKey) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Rounded.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(18.dp),
+            )
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.onboarding_voice_gemini_saved), style = MaterialTheme.typography.bodySmall)
         }
@@ -511,19 +560,22 @@ private fun GeminiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
                     }) {
                         Icon(
                             Icons.Rounded.ContentPaste,
-                            contentDescription = stringResource(R.string.settings_gemini_paste_key)
+                            contentDescription = stringResource(R.string.settings_gemini_paste_key),
                         )
                     }
                 }
                 IconButton(onClick = { visible = !visible }) {
                     Icon(
                         if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                        contentDescription = stringResource(if (visible) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key)
+                        contentDescription =
+                            stringResource(
+                                if (visible) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key,
+                            ),
                     )
                 }
             }
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
         val getKeyA11y = stringResource(R.string.settings_gemini_get_key_a11y)
@@ -537,7 +589,7 @@ private fun GeminiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
                     Toast.makeText(context, R.string.settings_gemini_get_key_no_browser, Toast.LENGTH_SHORT).show()
                 }
             },
-            modifier = Modifier.semantics { contentDescription = getKeyA11y }
+            modifier = Modifier.semantics { contentDescription = getKeyA11y },
         ) { Text(stringResource(R.string.settings_gemini_get_key)) }
         Spacer(Modifier.weight(1f))
         Button(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text(stringResource(R.string.settings_gemini_save_key)) }
@@ -545,7 +597,7 @@ private fun GeminiKeyEntry(hasKey: Boolean, onSave: (String) -> Unit) {
     Text(
         stringResource(R.string.onboarding_voice_gemini_later),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -554,7 +606,7 @@ private fun NotificationsPage() {
     PageHeader(
         Icons.Rounded.NotificationsActive,
         stringResource(R.string.onboarding_notifications_title),
-        stringResource(R.string.onboarding_notifications_body)
+        stringResource(R.string.onboarding_notifications_body),
     )
 }
 

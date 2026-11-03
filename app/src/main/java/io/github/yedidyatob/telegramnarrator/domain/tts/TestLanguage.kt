@@ -1,13 +1,16 @@
 package io.github.yedidyatob.telegramnarrator.domain.tts
 
 /** Languages offered for the "Test voice" sample (kept small on purpose). */
-enum class TestLanguage(val code: String) {
+enum class TestLanguage(
+    val code: String,
+) {
     ENGLISH("en"),
     HEBREW("he"),
     ARABIC("ar"),
     RUSSIAN("ru"),
     SPANISH("es"),
-    FRENCH("fr");
+    FRENCH("fr"),
+    ;
 
     companion object {
         val FALLBACK = ENGLISH

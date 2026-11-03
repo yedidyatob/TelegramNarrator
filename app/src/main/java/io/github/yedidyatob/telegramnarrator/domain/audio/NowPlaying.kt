@@ -4,7 +4,10 @@ import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 
 /** 1-based position in a run, e.g. message 3 of 12 or chat 2 of 5. */
-data class PlaybackPosition(val index: Int, val count: Int) {
+data class PlaybackPosition(
+    val index: Int,
+    val count: Int,
+) {
     init {
         require(count > 0) { "count must be positive" }
         require(index in 1..count) { "index $index outside 1..$count" }
@@ -33,7 +36,7 @@ data class NowPlaying(
     val chatPosition: PlaybackPosition? = null,
     val messagePosition: PlaybackPosition? = null,
     val messageCount: Int = 0,
-    val engine: SpeechProvider? = null
+    val engine: SpeechProvider? = null,
 ) {
     /**
      * The current message's sender when it adds something to the chat title: null in channels and private
@@ -52,7 +55,7 @@ data class NowPlaying(
             val sender: String?,
             val text: String,
             val contentType: MessageContentType,
-            val isVoiceNote: Boolean
+            val isVoiceNote: Boolean,
         ) : Content
 
         /** The chat's official sponsored message (the ad itself is in PlaybackManager.sponsoredAd). */

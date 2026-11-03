@@ -11,7 +11,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class DiskAudioCacheTest {
-
     @get:Rule val tmp = TemporaryFolder()
 
     @Test

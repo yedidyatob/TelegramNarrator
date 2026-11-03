@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatTitleSpeechTest {
-
     @Test
     fun `plain titles are spoken as-is`() {
         assertEquals("אבו עלי אקספרס", ChatTitleSpeech.speakableTitle("אבו עלי אקספרס"))
@@ -63,9 +62,9 @@ class ChatTitleSpeechTest {
         assertEquals(
             listOf(
                 PlaybackItem.Intro("🔴 חדשות", 7L, silent = false),
-                PlaybackItem.ChatTitle("חדשות", 7L, "🔴 חדשות")
+                PlaybackItem.ChatTitle("חדשות", 7L, "🔴 חדשות"),
             ),
-            items
+            items,
         )
     }
 

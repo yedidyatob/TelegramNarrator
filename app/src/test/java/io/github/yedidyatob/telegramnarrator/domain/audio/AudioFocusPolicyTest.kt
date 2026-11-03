@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AudioFocusPolicyTest {
-
     private val policy = AudioFocusPolicy()
 
     @Test fun `transient loss pauses and gain resumes`() {

@@ -8,7 +8,10 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 enum class EngineLabel { SYSTEM, GEMINI, ORIGINAL_AUDIO }
 
 /** @param isFallback the system voice is speaking because the chosen online engine failed for this item */
-data class EngineIndicator(val label: EngineLabel, val isFallback: Boolean = false)
+data class EngineIndicator(
+    val label: EngineLabel,
+    val isFallback: Boolean = false,
+)
 
 /** Everything the Player screen and the mini player show. */
 data class PlayerUiState(
@@ -21,7 +24,7 @@ data class PlayerUiState(
     val sponsoredAd: SponsoredAd? = null,
     val engine: EngineIndicator? = null,
     /** The service's status line, shown while nothing is known yet (e.g. "Preparing your unread messages…"). */
-    val status: String? = null
+    val status: String? = null,
 ) {
     val canGoPrevious: Boolean
         get() = isActive && (nowPlaying?.content is NowPlaying.Content.Message || nowPlaying?.content is NowPlaying.Content.Sponsored)
@@ -34,12 +37,13 @@ data class PlayerUiState(
             nowPlaying: NowPlaying?,
             playingAd: SponsoredAd?,
             selectedEngine: SpeechProvider,
-            status: String?
+            status: String?,
         ): PlayerUiState {
             if (!isPlaying) return PlayerUiState(status = status)
-            val ad = playingAd?.takeIf {
-                nowPlaying?.content is NowPlaying.Content.Sponsored && it.chatId == nowPlaying.chatId
-            }
+            val ad =
+                playingAd?.takeIf {
+                    nowPlaying?.content is NowPlaying.Content.Sponsored && it.chatId == nowPlaying.chatId
+                }
             return PlayerUiState(
                 isActive = true,
                 isPaused = isPaused,
@@ -48,21 +52,25 @@ data class PlayerUiState(
                 nowPlaying = nowPlaying,
                 sponsoredAd = ad,
                 engine = engineIndicator(nowPlaying, selectedEngine),
-                status = status
+                status = status,
             )
         }
 
-        fun engineIndicator(nowPlaying: NowPlaying?, selected: SpeechProvider): EngineIndicator? {
+        fun engineIndicator(
+            nowPlaying: NowPlaying?,
+            selected: SpeechProvider,
+        ): EngineIndicator? {
             nowPlaying ?: return null
             val content = nowPlaying.content
             if (content is NowPlaying.Content.Message && content.isVoiceNote) return EngineIndicator(EngineLabel.ORIGINAL_AUDIO)
             val active = nowPlaying.engine ?: selected
             return EngineIndicator(
-                label = when (active) {
-                    SpeechProvider.SYSTEM -> EngineLabel.SYSTEM
-                    SpeechProvider.GEMINI -> EngineLabel.GEMINI
-                },
-                isFallback = active == SpeechProvider.SYSTEM && selected != SpeechProvider.SYSTEM
+                label =
+                    when (active) {
+                        SpeechProvider.SYSTEM -> EngineLabel.SYSTEM
+                        SpeechProvider.GEMINI -> EngineLabel.GEMINI
+                    },
+                isFallback = active == SpeechProvider.SYSTEM && selected != SpeechProvider.SYSTEM,
             )
         }
     }
