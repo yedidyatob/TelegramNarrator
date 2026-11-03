@@ -19,7 +19,6 @@ class GeminiKeyStore @Inject constructor(
     private companion object {
         const val FILE = "gemini_tts_secure"
         const val KEY_API = "api_key"
-        const val LEGACY_PLAINTEXT_FILE = FILE + "_fallback"
     }
 
     /**
@@ -40,11 +39,6 @@ class GeminiKeyStore @Inject constructor(
     } catch (e: Exception) {
         android.util.Log.w("GeminiKeyStore", "Secure storage unavailable; the API key will not be saved (${e.javaClass.simpleName})")
         null
-    }
-
-    init {
-        // Older builds fell back to a plaintext file; remove any key they may have left there (#67)
-        runCatching { context.deleteSharedPreferences(LEGACY_PLAINTEXT_FILE) }
     }
 
     /** Returns the trimmed key, or null when none is saved. Never log the return value. */

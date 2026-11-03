@@ -30,14 +30,9 @@ class TdLibAuthRepository @Inject constructor(
     private companion object {
         const val TAG = "AuthRepository"
         const val TDLIB_DIR = "tdlib"
-        /** TDLib's binlog in the database directory (`td_test.binlog` only on the test DC). */
-        const val BINLOG_FILE = "td.binlog"
         const val SECURE_STORAGE_UNAVAILABLE =
             "Secure storage is not available right now, so the Telegram database cannot be opened. Please retry."
     }
-
-    /** Set when a legacy database could not be re-keyed: the next WaitTdlibParameters shows the error (#66). */
-    @Volatile private var rekeyFailed = false
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -63,12 +58,6 @@ class TdLibAuthRepository @Inject constructor(
                     _authState.value = AuthState.Error(ApiCredentials.MISSING_MESSAGE, StartupFailure.MISSING_CREDENTIALS)
                     return
                 }
-                if (rekeyFailed) {
-                    // TDLib was closed after a failed re-key: wait for the user's retry instead of reopening
-                    rekeyFailed = false
-                    _authState.value = AuthState.Error(SECURE_STORAGE_UNAVAILABLE, StartupFailure.SECURE_STORAGE_UNAVAILABLE)
-                    return
-                }
                 val failure = openDatabase(apiId)
                 when (failure) {
                     null -> AuthState.Initializing
@@ -92,74 +81,28 @@ class TdLibAuthRepository @Inject constructor(
     }
 
     /**
-     * Sends `setTdlibParameters` with the Keystore-protected database key (issue #15), migrating an
-     * unencrypted database from older installs and resetting a database whose key was lost.
+     * Sends `setTdlibParameters` with the Keystore-protected database key (issue #15). Without that key nothing
+     * is opened (#66: never an unencrypted database); the user sees the secure-storage error and can retry.
+     * A database the key cannot open (e.g. the Keystore key was lost) is deleted and created again, encrypted;
+     * the user logs in again.
      * @return an error message for the login screen, or null on success.
      */
     private suspend fun openDatabase(apiId: Int): String? {
         val databaseDir = File(filesDir, TDLIB_DIR)
-        val appKey = keyStore.getOrCreateKey()
-        val keyAvailable = appKey != null
-        val order = DatabaseEncryptionPolicy.openOrder(
-            databaseExists = File(databaseDir, BINLOG_FILE).exists(),
-            markedEncrypted = keyStore.markedEncrypted,
-            appKeyAvailable = keyAvailable
-        )
-        for (choice in order) {
-            when (val result = trySetParameters(apiId, databaseDir, keyFor(choice, appKey))) {
-                OpenResult.Ok -> {
-                    onDatabaseOpened(choice, appKey)
-                    return null
-                }
-                OpenResult.WrongKey -> Log.w(TAG, "TDLib rejected the database key ($choice)")
-                is OpenResult.Failed -> return result.message
-            }
+        val appKey = keyStore.getOrCreateKey() ?: return SECURE_STORAGE_UNAVAILABLE
+        when (val result = trySetParameters(apiId, databaseDir, appKey)) {
+            OpenResult.Ok -> return null
+            is OpenResult.Failed -> return result.message
+            OpenResult.WrongKey -> Unit
         }
-        if (!DatabaseEncryptionPolicy.mayResetAfterWrongKey(keyAvailable)) {
-            return SECURE_STORAGE_UNAVAILABLE
-        }
-        // The key that encrypted the database is gone (e.g. Keystore entry lost): the local database
-        // cannot be read anymore. Start over with an empty encrypted database; the user logs in again.
-        Log.w(TAG, "No key opens the TDLib database; resetting it (re-login required)")
+        Log.w(TAG, "The key does not open the TDLib database; resetting it (re-login required)")
         databaseDir.deleteRecursively()
-        val choice = DatabaseEncryptionPolicy.keyAfterReset(keyAvailable) ?: return SECURE_STORAGE_UNAVAILABLE
-        return when (val result = trySetParameters(apiId, databaseDir, keyFor(choice, appKey))) {
-            OpenResult.Ok -> {
-                onDatabaseOpened(choice, appKey)
-                null
-            }
+        return when (val result = trySetParameters(apiId, databaseDir, appKey)) {
+            OpenResult.Ok -> null
             OpenResult.WrongKey -> "Could not open the Telegram database"
             is OpenResult.Failed -> result.message
         }
     }
-
-    private suspend fun onDatabaseOpened(choice: DatabaseEncryptionPolicy.KeyChoice, appKey: ByteArray?) {
-        if (choice == DatabaseEncryptionPolicy.KeyChoice.APP_KEY) {
-            if (!keyStore.markedEncrypted) keyStore.markedEncrypted = true
-            return
-        }
-        if (!DatabaseEncryptionPolicy.needsRekey(choice, appKey != null)) {
-            keyStore.markedEncrypted = false
-            return
-        }
-        try {
-            client.send<TdApi.Ok>(TdApi.SetDatabaseEncryptionKey(appKey))
-            keyStore.markedEncrypted = true
-            Log.i(TAG, "TDLib database re-encrypted with the Keystore-protected key")
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not re-encrypt the TDLib database (${e.javaClass.simpleName}); closing it")
-            keyStore.markedEncrypted = false
-            if (!DatabaseEncryptionPolicy.mayUseAfterFailedRekey()) {
-                // Fail closed (#66): never keep using the unencrypted database. Close TDLib; the next
-                // WaitTdlibParameters shows the secure-storage error and Retry tries the migration again.
-                rekeyFailed = true
-                runCatching { client.send<TdApi.Ok>(TdApi.Close()) }
-            }
-        }
-    }
-
-    private fun keyFor(choice: DatabaseEncryptionPolicy.KeyChoice, appKey: ByteArray?): ByteArray? =
-        if (choice == DatabaseEncryptionPolicy.KeyChoice.APP_KEY) appKey else null
 
     private sealed class OpenResult {
         object Ok : OpenResult()
@@ -167,7 +110,7 @@ class TdLibAuthRepository @Inject constructor(
         class Failed(val message: String) : OpenResult()
     }
 
-    private suspend fun trySetParameters(apiId: Int, databaseDir: File, key: ByteArray?): OpenResult = try {
+    private suspend fun trySetParameters(apiId: Int, databaseDir: File, key: ByteArray): OpenResult = try {
         client.send<TdApi.Ok>(TdApi.SetTdlibParameters(
             false,                                          // useTestDc
             databaseDir.absolutePath,                       // databaseDirectory
