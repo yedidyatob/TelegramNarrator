@@ -52,7 +52,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── gemini/       GeminiTts (voices, cache key, helpers)
-│   └── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
+│   └── security/     DatabaseEncryptionPolicy (wrong-key detection), WrappedKeyCodec
 ├── data/      Implementations that touch TDLib, Android or the network
 │   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send(), latest connection state
 │   ├── connection/TdLibConnectionMonitor  UpdateConnectionState → ConnectionStatus
@@ -87,10 +87,10 @@ number with or without the trunk prefix, or a pasted `+…` number (which select
 locales (dial code + digits read as one phone number).
 `TdLibAuthRepository` sends `setTdlibParameters` with `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` from
 `BuildConfig` (injected from `local.properties`, or from Actions secrets in CI), a database directory in
-`filesDir/tdlib`, and the database encryption key from `TdLibDatabaseKeyStore`. `DatabaseEncryptionPolicy`
-decides the order of keys to try: a database from before encryption is opened with the empty key once and
-re-keyed with `setDatabaseEncryptionKey`. If no key opens it, the database is reset and the user logs in again;
-it is never reset while the Keystore is unavailable. `AppNavigation` in `MainActivity` switches between the
+`filesDir/tdlib`, and the database encryption key from `TdLibDatabaseKeyStore`. Only that key is
+used: without it nothing is opened (secure-storage error, Retry). If TDLib rejects it as the wrong key
+(`DatabaseEncryptionPolicy.isWrongKeyError`), the database is reset and the user logs in again.
+`AppNavigation` in `MainActivity` switches between the
 `onboarding`, `login`, `home` and `player` routes based on the auth state (`AppRoute.redirect`).
 
 **Onboarding (#20).** Shown once, before the login, to users who are not signed in (someone already signed in, e.g.
