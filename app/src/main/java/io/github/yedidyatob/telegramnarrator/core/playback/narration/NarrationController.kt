@@ -100,9 +100,6 @@ class NarrationController(
     /** Saved resume offset of a paused system-TTS message (tests / diagnostics). */
     internal fun resumeOffset(): Int? = resumePoint?.offset
 
-    /** Snapshot of the queue (tests / diagnostics). */
-    internal fun queueSnapshot(): List<PlaybackItem> = audioQueue.snapshot()
-
     // ---- Commands (any thread) ----------------------------------------------------------------------
 
     /** Starts reading [chatIds] (or restarts with them while already playing). */

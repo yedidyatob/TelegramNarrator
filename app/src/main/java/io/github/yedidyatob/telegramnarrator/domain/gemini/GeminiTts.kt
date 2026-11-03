@@ -41,8 +41,6 @@ object GeminiTts {
         return digest.joinToString("") { b -> "%02x".format(b) }
     }
 
-    fun isWithinApiLimit(text: String): Boolean = text.length <= MAX_INPUT_CHARS
-
     /** Keys shorter than this are shown fully masked so the hint can never reveal most of the key. */
     private const val MIN_KEY_LENGTH_FOR_HINT = 16
 

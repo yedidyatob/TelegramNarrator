@@ -27,28 +27,6 @@
     </issue>
 
     <issue
-        id="UnusedResources"
-        message="The resource `R.string.login_btn_login` appears to be unused"
-        errorLine1="    &lt;string name=&quot;login_btn_login&quot;>Login&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="13"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.home_unread_suffix` appears to be unused"
-        errorLine1="    &lt;string name=&quot;home_unread_suffix&quot;>messages&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="25"
-            column="13"/>
-    </issue>
-
-    <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
         errorLine1="    &lt;string name=&quot;login_status_initializing&quot;>Initializing Telegram...&lt;/string>"

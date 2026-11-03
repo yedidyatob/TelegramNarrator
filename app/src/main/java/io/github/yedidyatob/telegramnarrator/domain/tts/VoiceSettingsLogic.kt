@@ -29,13 +29,6 @@ object VoiceSettingsLogic {
     )
 
     /**
-     * Whether the System section shows its loading row instead of the pickers. Only that section waits for
-     * the system TTS engine; the rest of the sheet works immediately.
-     */
-    fun systemSectionLoading(provider: SpeechProvider, systemTtsReady: Boolean): Boolean =
-        provider == SpeechProvider.SYSTEM && !systemTtsReady
-
-    /**
      * "Test voice" for System TTS needs an initialized engine and no sample still waiting to start; tests never
      * interrupt the reading.
      */

@@ -40,8 +40,6 @@ class GeminiSpeechSynthesizer @Inject constructor(
 
     fun isGeminiEnabled(): Boolean = preferences.settings.value.provider == SpeechProvider.GEMINI
 
-    fun shouldPreferGemini(): Boolean = isGeminiEnabled() && keyStore.hasApiKey()
-
     /** A cached file that turned out to be unplayable is dropped so the next attempt re-fetches it. */
     fun discard(file: File) = cache.remove(file)
 

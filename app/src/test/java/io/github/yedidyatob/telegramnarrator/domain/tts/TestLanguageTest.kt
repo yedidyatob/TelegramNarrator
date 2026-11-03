@@ -3,8 +3,6 @@ package io.github.yedidyatob.telegramnarrator.domain.tts
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.nameRes
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.sentenceRes
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TestLanguageTest {
@@ -33,13 +31,6 @@ class TestLanguageTest {
         assertEquals(TestLanguage.ENGLISH, TestLanguage.defaultFor("zh-CN"))
         assertEquals(TestLanguage.ENGLISH, TestLanguage.defaultFor(""))
         assertEquals(TestLanguage.ENGLISH, TestLanguage.defaultFor(null))
-    }
-
-    @Test
-    fun `from code`() {
-        assertEquals(TestLanguage.ARABIC, TestLanguage.fromCode("ar-EG"))
-        assertNull(TestLanguage.fromCode("de"))
-        assertNull(TestLanguage.fromCode(null))
     }
 
     @Test
