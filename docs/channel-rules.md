@@ -22,6 +22,8 @@ For every unread message of a chat, in the order they are played:
    links (`readLinks` / `linkLabel`) -> `stripSymbols` -> `numberedLists`.
 3. The generic `MessageCleaner` (also used for chat titles and sponsored messages):
    - any URL that is still left is removed; markdown markers are stripped;
+   - `<` `>` `≤` `≥` `«` `»` `‹` `›`, arrows made of them (`->`, `=>`, `<-`, `<=`) and `&lt;` / `&gt;` are
+     replaced by a space (never read aloud);
    - repeated punctuation is collapsed: `!!!` -> `!`, `???` -> `?`, `....` / `. . .` / `…` -> `.`,
      `----` / `====` / `~~~~` / `••••` runs -> a space, a standalone `##` / `###` run is removed
      (`##tag` -> `#tag`); single punctuation and meaningful symbols (`.,?!:;`, `"` / `'` in רע"מ / צה"ל,

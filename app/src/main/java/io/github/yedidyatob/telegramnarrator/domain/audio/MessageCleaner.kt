@@ -45,6 +45,9 @@ object MessageCleaner {
         val urlMatcher = URL_PATTERN.matcher(cleaned)
         cleaned = urlMatcher.replaceAll(java.util.regex.Matcher.quoteReplacement(linkLabel))
 
+        // Angle brackets, guillemets and arrows ("<", "≥", "«", "->", "=>", "&lt;") are never read aloud
+        cleaned = ANGLE_SYMBOLS.replace(cleaned, " ")
+
         // Remove Markdown characters
         cleaned = stripMarkdown(cleaned)
 
@@ -68,6 +71,9 @@ object MessageCleaner {
         return cleaned.trim()
     }
 
+    // "<", ">", "≤", "≥", "«", "»", "‹", "›" (with the "-" / "=" of an arrow like "->", "<=", "=>") and the HTML
+    // entities "&lt;" / "&gt;": replaced by a space so the words around them don't merge
+    private val ANGLE_SYMBOLS = Regex("[-=]*[<>≤≥«»‹›]+[-=]*|&(?:lt|gt);", RegexOption.IGNORE_CASE)
     // "!!!" -> "!", "???" -> "?" (mixed "?!" is kept: it is intonation)
     private val REPEATED_BANG_OR_QUESTION = Regex("([!?])\\1+")
     // "...." / "…" -> "." (a pause, never "dot dot dot")
