@@ -1,6 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.ui.components
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,6 +26,7 @@ import io.github.yedidyatob.telegramnarrator.R
  * Play. Playback starts afterwards whether or not the permission was granted: the foreground service
  * works without it, only the notification is hidden.
  */
+@SuppressLint("InlinedApi") // the request is only made on Android 13+, see the SDK check below
 @Composable
 fun <T> rememberNotificationPermissionGate(onPlay: (T) -> Unit): (T) -> Unit {
     val context = LocalContext.current

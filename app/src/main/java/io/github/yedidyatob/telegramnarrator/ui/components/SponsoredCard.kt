@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredAd
@@ -404,7 +405,7 @@ private fun openSponsoredUrl(
         for (pkg in TELEGRAM_PACKAGES) {
             try {
                 context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    Intent(Intent.ACTION_VIEW, url.toUri()).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
                 return
             } catch (e: ActivityNotFoundException) {

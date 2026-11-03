@@ -136,7 +136,11 @@
     <string name="home_more_options">אפשרויות נוספות</string>
     <string name="home_logout_title">להתנתק?</string>
     <string name="home_logout_body">תתנתקו מטלגרם במכשיר הזה. הגדרות הקול יישמרו.</string>
-    <string name="home_selected_count">נבחרו %1$d מתוך %2$d</string>
+    <plurals name="home_selected_count">
+        <item quantity="one">נבחר %1$d מתוך %2$d</item>
+        <item quantity="two">נבחרו %1$d מתוך %2$d</item>
+        <item quantity="other">נבחרו %1$d מתוך %2$d</item>
+    </plurals>
     <string name="home_chat_playing">מוקרא עכשיו</string>
     <string name="home_sheet_loading">ההודעות נטענות…</string>
     <string name="home_sheet_empty">אין הודעות שלא נקראו להצגה</string>
@@ -147,8 +151,11 @@
     <string name="home_play_chat">השמעת ההודעות שלא נקראו ב-%1$s</string>
     <string name="home_select_chat">בחירת %1$s</string>
     <string name="home_btn_play_selected">השמעת הנבחרים (%1$d)</string>
-    <string name="home_sheet_showing_partial">מוצגות %1$d מתוך %2$d שלא נקראו</string>
-    <string name="home_sheet_showing_all">%1$d הודעות שלא נקראו</string>
+    <plurals name="home_sheet_showing_partial">
+        <item quantity="one">מוצגת %1$d מתוך %2$d שלא נקראו</item>
+        <item quantity="two">מוצגות %1$d מתוך %2$d שלא נקראו</item>
+        <item quantity="other">מוצגות %1$d מתוך %2$d שלא נקראו</item>
+    </plurals>
     <string name="home_mark_chat_read">סימון כנקרא</string>
     <string name="home_mark_chat_read_cd">סימון הצ׳אט הזה כנקרא בטלגרם</string>
     <plurals name="home_unread_messages">

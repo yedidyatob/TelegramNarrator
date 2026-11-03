@@ -2,6 +2,7 @@ package io.github.yedidyatob.telegramnarrator.data.repository
 
 import android.util.Log
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,6 +48,8 @@ class TdLibUserCache
                 val user = client.send(TdApi.GetUser(userId))
                 users.update { it + (userId to user) }
                 user
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("UserCache", "Failed to fetch user $userId", e)
                 null

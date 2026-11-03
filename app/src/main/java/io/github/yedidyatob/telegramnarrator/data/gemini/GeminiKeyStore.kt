@@ -1,10 +1,10 @@
 package io.github.yedidyatob.telegramnarrator.data.gemini
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.yedidyatob.telegramnarrator.data.security.encryptedPrefsOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,26 +28,7 @@ class GeminiKeyStore
          * (#67, never in plaintext) and Gemini stays unavailable until the device's secure storage works.
          */
         private val prefs: SharedPreferences? =
-            try {
-                val masterKey =
-                    MasterKey
-                        .Builder(context)
-                        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                        .build()
-                EncryptedSharedPreferences.create(
-                    context,
-                    FILE,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-                )
-            } catch (e: Exception) {
-                android.util.Log.w(
-                    "GeminiKeyStore",
-                    "Secure storage unavailable; the API key will not be saved (${e.javaClass.simpleName})",
-                )
-                null
-            }
+            encryptedPrefsOrNull(context, FILE, "GeminiKeyStore", "the API key will not be saved")
 
         /** Returns the trimmed key, or null when none is saved. Never log the return value. */
         fun getApiKey(): String? {
@@ -61,10 +42,12 @@ class GeminiKeyStore
         fun setApiKey(key: String?): Boolean {
             val store = prefs ?: return false
             val trimmed = key?.trim().orEmpty()
-            return store.edit().run {
-                if (trimmed.isEmpty()) remove(KEY_API) else putString(KEY_API, trimmed)
-                commit()
-            }
+
+            // Not edit {}: commit()'s result is reported to the user
+            @SuppressLint("UseKtx")
+            val editor = store.edit()
+            if (trimmed.isEmpty()) editor.remove(KEY_API) else editor.putString(KEY_API, trimmed)
+            return editor.commit()
         }
 
         fun clear() = setApiKey(null)

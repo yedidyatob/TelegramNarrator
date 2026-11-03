@@ -9,6 +9,7 @@ import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredMessagesS
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredReportOption
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredReportResult
 import io.github.yedidyatob.telegramnarrator.domain.sponsored.SponsoredTextSpan
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import org.drinkless.tdlib.TdApi
 import javax.inject.Inject
@@ -162,6 +163,8 @@ class TdLibSponsoredMessagesSource
             // forceRead=false: this must not mark any ordinary message as read.
             try {
                 client.send(TdApi.OpenChat(chatId))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "OpenChat failed for $chatId (continuing with ViewMessages)", e)
             }

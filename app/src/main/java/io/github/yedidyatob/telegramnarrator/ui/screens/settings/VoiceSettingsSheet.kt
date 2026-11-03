@@ -94,6 +94,8 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceQuality
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsLogic
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection
+import io.github.yedidyatob.telegramnarrator.ui.components.GeminiApiKeyField
+import io.github.yedidyatob.telegramnarrator.ui.components.GetGeminiKeyButton
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
@@ -335,43 +337,6 @@ private fun SystemVoicePicker(
  * "Get an API key" link under the key field: opens the Gemini API keys page in the browser (that page handles
  * sign-up / login). A text button with a 48dp minimum touch target; TalkBack hears that it opens the browser.
  */
-@Composable
-private fun GetGeminiKeyLink() {
-    val context = LocalContext.current
-    val opensInBrowser = stringResource(R.string.settings_gemini_get_key_a11y)
-    val noBrowser = stringResource(R.string.settings_gemini_get_key_no_browser)
-    TextButton(
-        onClick = {
-            try {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(GeminiTts.API_KEYS_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            } catch (e: ActivityNotFoundException) {
-                Toast.makeText(context, noBrowser, Toast.LENGTH_SHORT).show()
-            }
-        },
-        modifier =
-            Modifier
-                .heightIn(min = 48.dp)
-                .semantics { contentDescription = opensInBrowser },
-    ) {
-        Text(stringResource(R.string.settings_gemini_get_key))
-        Spacer(Modifier.size(4.dp))
-        // Decorative: the button's content description already says it opens the browser
-        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-    }
-}
-
-private class ApiKeyVisualTransformation(
-    private val mask: Char = '•',
-) : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText =
-        TransformedText(
-            AnnotatedString(mask.toString().repeat(text.text.length)),
-            OffsetMapping.Identity,
-        )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GeminiSection(
@@ -384,45 +349,8 @@ private fun GeminiSection(
         val enabled = !isPlaying
         // The typed key lives only here (not in the ViewModel / UI state) and is not saved in instance state
         var keyDraft by remember { mutableStateOf("") }
-        var showKey by remember { mutableStateOf(false) }
-        val clipboardManager = LocalClipboardManager.current
-        OutlinedTextField(
-            value = keyDraft,
-            onValueChange = { keyDraft = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.settings_gemini_api_key)) },
-            placeholder = { Text(stringResource(R.string.settings_gemini_api_key_hint)) },
-            visualTransformation = if (showKey) VisualTransformation.None else ApiKeyVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false),
-            trailingIcon = {
-                Row {
-                    if (keyDraft.isBlank() && enabled) {
-                        IconButton(onClick = {
-                            clipboardManager.getText()?.text?.let { pastedText ->
-                                keyDraft = pastedText
-                            }
-                        }) {
-                            Icon(
-                                Icons.Filled.ContentPaste,
-                                contentDescription = stringResource(R.string.settings_gemini_paste_key),
-                            )
-                        }
-                    }
-                    IconButton(onClick = { showKey = !showKey }) {
-                        Icon(
-                            if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription =
-                                stringResource(
-                                    if (showKey) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key,
-                                ),
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            enabled = enabled,
-        )
-        GetGeminiKeyLink()
+        GeminiApiKeyField(value = keyDraft, onValueChange = { keyDraft = it }, enabled = enabled)
+        GetGeminiKeyButton()
         Text(
             if (gemini.keyHint != null) {
                 stringResource(R.string.settings_gemini_key_saved, gemini.keyHint)
@@ -441,7 +369,6 @@ private fun GeminiSection(
                 onClick = {
                     actions.onSaveGeminiKey(keyDraft)
                     keyDraft = ""
-                    showKey = false
                 },
                 enabled = enabled && keyDraft.isNotBlank(),
             ) { Text(stringResource(R.string.settings_gemini_save_key)) }

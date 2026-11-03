@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -91,15 +92,16 @@ fun ChatPreviewSheet(
                                     }
 
                                     chat.unreadCount > messages.size -> {
-                                        stringResource(
-                                            R.string.home_sheet_showing_partial,
+                                        pluralStringResource(
+                                            R.plurals.home_sheet_showing_partial,
+                                            messages.size,
                                             messages.size,
                                             chat.unreadCount,
                                         )
                                     }
 
                                     else -> {
-                                        stringResource(R.string.home_sheet_showing_all, messages.size)
+                                        pluralStringResource(R.plurals.home_unread_messages, messages.size, messages.size)
                                     }
                                 },
                             ),

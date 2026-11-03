@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- values-he (not the legacy "iw") resolves on every supported version (minSdk 26) -->
+    <issue id="LocaleFolder">
+        <ignore path="src/main/res/values-he" />
+    </issue>
+    <!-- AAPT does not find the adaptive launcher icons in an unversioned mipmap-anydpi folder -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

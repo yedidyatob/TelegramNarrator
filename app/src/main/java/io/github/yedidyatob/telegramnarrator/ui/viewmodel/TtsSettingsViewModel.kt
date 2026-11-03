@@ -315,6 +315,5 @@ class TtsSettingsViewModel
 
         override fun onCleared() {
             stopTestPlayer()
-            super.onCleared()
         }
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.audio.LanguageDetector
@@ -294,7 +295,7 @@ class TtsManager
             val prefs = context.getSharedPreferences(HINT_PREFS, Context.MODE_PRIVATE)
             val hinted = prefs.getStringSet(KEY_HINTED, emptySet()).orEmpty()
             if (language.language in hinted) return
-            prefs.edit().putStringSet(KEY_HINTED, hinted + language.language).apply()
+            prefs.edit { putStringSet(KEY_HINTED, hinted + language.language) }
             val name = language.getDisplayLanguage(Locale.getDefault())
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 android.widget.Toast

@@ -10,6 +10,7 @@ import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.domain.model.StartupFailure
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
 import io.github.yedidyatob.telegramnarrator.domain.security.DatabaseEncryptionPolicy
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -176,6 +177,8 @@ class TdLibAuthRepository
                     Log.e(TAG, "Failed to set TDLib parameters", e)
                     OpenResult.Failed(e.message ?: "Could not initialize Telegram")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to set TDLib parameters", e)
                 OpenResult.Failed(e.message ?: "Could not initialize Telegram")

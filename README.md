@@ -48,7 +48,7 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
    ./gradlew assembleDebug          # debug APK in app/build/outputs/apk/debug
    ./gradlew testDebugUnitTest      # JVM unit tests (runs ktlintCheck first)
    ./gradlew ktlintFormat           # fix Kotlin formatting (rules in .editorconfig)
-   ./gradlew lintDebug              # Android lint (existing findings are in app/lint-baseline.xml)
+   ./gradlew lintDebug              # Android lint (path-scoped ignores in app/lint.xml)
    ./gradlew assembleRelease        # minified APK, unsigned unless a keystore is configured
    ./gradlew bundleRelease          # Play bundle: app/build/outputs/bundle/release/app-release.aab
    ```

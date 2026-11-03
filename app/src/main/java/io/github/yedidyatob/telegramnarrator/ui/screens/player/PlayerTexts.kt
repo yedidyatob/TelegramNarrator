@@ -2,6 +2,7 @@ package io.github.yedidyatob.telegramnarrator.ui.screens.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.text.BidiFormatter
 import io.github.yedidyatob.telegramnarrator.R
@@ -45,7 +46,7 @@ internal fun miniPlayerSubtitle(state: PlayerUiState): String {
 @Composable
 internal fun chatOpeningText(messageCount: Int): String =
     if (messageCount > 0) {
-        bidiSafe(LocalContext.current.resources.getQuantityString(R.plurals.home_unread_messages, messageCount, messageCount))
+        bidiSafe(pluralStringResource(R.plurals.home_unread_messages, messageCount, messageCount))
     } else {
         stringResource(R.string.home_player_starting)
     }
