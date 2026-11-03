@@ -156,4 +156,29 @@ class MessageCleanerTest {
         assertEquals(text, MessageCleaner.clean(text))
         assertEquals("1.5 - 2.5", MessageCleaner.clean("1.5 - 2.5"))
     }
+
+    @Test
+    fun `angle brackets and guillemets are not read aloud`() {
+        assertEquals("a b", MessageCleaner.clean("a<b"))
+        assertEquals("5 3 and 2 9", MessageCleaner.clean("5 > 3 and 2<9"))
+        assertEquals("x y z w", MessageCleaner.clean("x ≤ y ≥ z≥w"))
+        assertEquals("ציטוט", MessageCleaner.clean("«ציטוט»"))
+        assertEquals("one two", MessageCleaner.clean("‹one› two"))
+        assertEquals("tag", MessageCleaner.clean("<tag>"))
+    }
+
+    @Test
+    fun `arrows are removed as a whole`() {
+        assertEquals("Tel Aviv Haifa", MessageCleaner.clean("Tel Aviv -> Haifa"))
+        assertEquals("a b c", MessageCleaner.clean("a=>b <- c"))
+        assertEquals("before after", MessageCleaner.clean("before ==> after"))
+        // A plain dash is still kept
+        assertEquals("2020-2024", MessageCleaner.clean("2020-2024"))
+    }
+
+    @Test
+    fun `html entities for angle brackets are removed`() {
+        assertEquals("a b c", MessageCleaner.clean("a &lt; b &GT; c"))
+        assertEquals("AT&T", MessageCleaner.clean("AT&T"))
+    }
 }
