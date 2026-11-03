@@ -20,7 +20,7 @@ class SpeechProviderTest {
     @Test
     fun fromId_fallsBackToSystem() {
         assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromId("gemini"))
-        for (id in listOf("edge", "unknown", "openai", "", null)) assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromId(id))
+        for (id in listOf("unknown", "openai", "", null)) assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromId(id))
     }
 
     @Test
@@ -28,11 +28,6 @@ class SpeechProviderTest {
         assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored("system", legacyOpenAiEnabled = false))
         assertEquals(SpeechProvider.GEMINI, SpeechProvider.fromStored("gemini", legacyOpenAiEnabled = false))
         assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored("system", legacyOpenAiEnabled = true))
-    }
-
-    @Test
-    fun fromStored_removedEdgeEngineFallsBackToSystem() {
-        assertEquals(SpeechProvider.SYSTEM, SpeechProvider.fromStored("edge", legacyOpenAiEnabled = false))
     }
 
     @Test

@@ -13,7 +13,7 @@ enum class SpeechProvider(val id: String) {
     GEMINI("gemini");
 
     companion object {
-        /** Engine when none is stored, and of every unknown or removed id (e.g. the former "edge" engine). */
+        /** Engine when none is stored, and of every unknown id. */
         val DEFAULT = SYSTEM
 
         fun fromIdOrNull(id: String?): SpeechProvider? = entries.firstOrNull { it.id == id }
@@ -22,8 +22,8 @@ enum class SpeechProvider(val id: String) {
 
         /**
          * Reads the stored choice. Legacy builds stored "openai" or an `openai_enabled` flag; both are migrated
-         * to [GEMINI] so existing BYOK users keep the paid-engine slot. Unknown ids (including the removed
-         * "edge") fall back to [SYSTEM].
+         * to [GEMINI] so existing BYOK users keep the paid-engine slot. Unknown ids fall back to
+         * [SYSTEM].
          */
         fun fromStored(id: String?, legacyOpenAiEnabled: Boolean): SpeechProvider {
             if (id == "openai") return GEMINI

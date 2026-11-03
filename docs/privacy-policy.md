@@ -68,8 +68,7 @@ developer does not choose them, receives nothing about them and earns nothing fr
 ### 3. Speech synthesis (text-to-speech)
 
 You choose the voice engine in the first-run introduction and, at any time, in the app's voice settings. The default is the
-**System** voice (earlier versions also offered a Microsoft Edge voice; it was removed, and installs that used it
-now use the System voice). If Gemini cannot be reached, that message is read with the System voice.
+**System** voice. If Gemini cannot be reached, that message is read with the System voice.
 
 | Engine | What leaves your device | Recipient |
 |---|---|---|

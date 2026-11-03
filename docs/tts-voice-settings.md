@@ -65,10 +65,7 @@ The choice is stored as `provider` (`system` / `gemini`) in `tts_settings`. Buil
 stored an `openai_enabled` flag; it is migrated to `provider = gemini` on first read.
 
 **No stored choice, or an unknown id** (`TtsPreferences`, `SpeechProvider.fromStored`): **System**
-(`SpeechProvider.DEFAULT`). This includes `edge`, the Microsoft Edge engine that earlier versions had (removed for
-reliability and privacy). When the stored file holds anything the current version would not write (a migrated
-provider id, the old `edge_gender` / `edge_custom_voice` / `edge_voice` keys), `TtsPreferences` rewrites it on
-startup, so no stale keys stay behind. Logout also wipes any leftover `cacheDir/edge_tts` audio (`SpeechCaches`).
+(`SpeechProvider.DEFAULT`).
 
 ## System TTS
 

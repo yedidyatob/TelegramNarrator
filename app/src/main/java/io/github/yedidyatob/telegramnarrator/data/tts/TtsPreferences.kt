@@ -17,9 +17,7 @@ import javax.inject.Singleton
  * Persists the user's [TtsSettings] in SharedPreferences. (SharedPreferences rather than DataStore:
  * TtsManager needs the values synchronously while it initializes the engine.)
  *
- * No stored engine, or the removed "edge" engine: [SpeechProvider.DEFAULT] (System). When the stored data differs
- * from what is read (a migrated provider id or keys of removed settings, e.g. the former Edge voice keys), the
- * resolved settings are written back right away, so no stale keys stay behind.
+ * No stored engine, or an unknown one: [SpeechProvider.DEFAULT] (System).
  *
  * Migration: a stored provider id of "openai" and the legacy `openai_enabled` flag are both migrated to
  * "gemini" so existing BYOK users keep the paid-engine slot. The legacy `openai_model` key is dropped on next
@@ -43,7 +41,7 @@ class TtsPreferences @Inject constructor(
 
     private val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    private val _settings = MutableStateFlow(read().also(::persistIfMigrated))
+    private val _settings = MutableStateFlow(read())
     val settings: StateFlow<TtsSettings> = _settings.asStateFlow()
 
     /** Applies [transform] to the current settings, saves and publishes the result. */
@@ -72,13 +70,6 @@ class TtsPreferences @Inject constructor(
                 voice = GeminiTts.normalizeVoice(prefs.getString(KEY_GEMINI_VOICE, GeminiTts.DEFAULT_VOICE))
             )
         )
-    }
-
-    /** Rewrites the file when it holds anything [write] would not write back (see the class doc). */
-    private fun persistIfMigrated(settings: TtsSettings) {
-        val known = setOf(KEY_ENGINE, KEY_RATE, KEY_MARK_AS_READ, KEY_PROVIDER, KEY_GEMINI_VOICE)
-        val stale = prefs.all.keys.any { it !in known && !it.startsWith(VOICE_PREFIX) }
-        if (stale || prefs.getString(KEY_PROVIDER, null) != settings.provider.id) write(settings)
     }
 
     private fun write(settings: TtsSettings) {
