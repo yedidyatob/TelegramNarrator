@@ -72,7 +72,10 @@ class AutoBrowseTreeTest {
     @Test
     fun `unpaged requests from a legacy browser return everything without overflow`() {
         assertEquals(0 until 5, AutoBrowseTree.pageRange(5, 0, Int.MAX_VALUE))
-        assertEquals(5 until 5, AutoBrowseTree.pageRange(5, 1, Int.MAX_VALUE))
+        // Empty IntRanges are all equal, so check the bounds: the page starts at the end, not at 0.
+        val pastEnd = AutoBrowseTree.pageRange(5, 1, Int.MAX_VALUE)
+        assertEquals(5, pastEnd.first)
+        assertTrue(pastEnd.isEmpty())
         assertEquals(2 until 4, AutoBrowseTree.pageRange(5, 1, 2))
         assertEquals(4 until 5, AutoBrowseTree.pageRange(5, 2, 2))
         assertEquals(0 until 5, AutoBrowseTree.pageRange(5, -1, 0))

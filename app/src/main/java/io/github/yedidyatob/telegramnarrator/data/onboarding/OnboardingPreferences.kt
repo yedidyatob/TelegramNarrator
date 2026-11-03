@@ -1,6 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.data.onboarding
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,7 @@ class OnboardingPreferences
 
         fun markCompleted() {
             if (_completed.value) return
-            prefs.edit().putBoolean(KEY_COMPLETED, true).apply()
+            prefs.edit { putBoolean(KEY_COMPLETED, true) }
             _completed.value = true
         }
     }

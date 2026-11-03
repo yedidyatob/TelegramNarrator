@@ -2,6 +2,7 @@ package io.github.yedidyatob.telegramnarrator.data.appearance
 
 import android.content.Context
 import android.os.Build
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,7 @@ class AppearancePreferences
 
         fun setDynamicColor(enabled: Boolean) {
             if (!dynamicColorAvailable) return
-            prefs.edit().putBoolean(KEY_DYNAMIC_COLOR, enabled).apply()
+            prefs.edit { putBoolean(KEY_DYNAMIC_COLOR, enabled) }
             _dynamicColor.value = enabled
         }
     }

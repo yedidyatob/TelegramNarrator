@@ -2,8 +2,8 @@ package io.github.yedidyatob.telegramnarrator.data.language
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
+import io.github.yedidyatob.telegramnarrator.data.security.encryptedPrefsOrNull
 import io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguage
 import io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguagePolicy
 import io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageStore
@@ -19,19 +19,7 @@ class EncryptedChatLanguageStore(
     private val memory = ConcurrentHashMap<Long, ChatLanguage>()
 
     private val prefs: SharedPreferences? =
-        try {
-            val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-            EncryptedSharedPreferences.create(
-                context,
-                FILE,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
-        } catch (e: Exception) {
-            android.util.Log.w("ChatLanguageStore", "Secure storage unavailable; chat languages kept in memory (${e.javaClass.simpleName})")
-            null
-        }
+        encryptedPrefsOrNull(context, FILE, "ChatLanguageStore", "chat languages kept in memory")
 
     override fun get(chatId: Long): ChatLanguage? =
         memory[chatId] ?: ChatLanguagePolicy.decode(prefs?.getString(key(chatId), null))?.also { memory[chatId] = it }
@@ -41,17 +29,17 @@ class EncryptedChatLanguageStore(
         value: ChatLanguage,
     ) {
         memory[chatId] = value
-        prefs?.edit()?.putString(key(chatId), ChatLanguagePolicy.encode(value))?.apply()
+        prefs?.edit { putString(key(chatId), ChatLanguagePolicy.encode(value)) }
     }
 
     override fun remove(chatId: Long) {
         memory.remove(chatId)
-        prefs?.edit()?.remove(key(chatId))?.apply()
+        prefs?.edit { remove(key(chatId)) }
     }
 
     override fun clear() {
         memory.clear()
-        prefs?.edit()?.clear()?.commit()
+        prefs?.edit { clear() }
     }
 
     private fun key(chatId: Long) = chatId.toString()

@@ -12,6 +12,7 @@ import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneCountryResolver
 import io.github.yedidyatob.telegramnarrator.domain.auth.PhoneNumberNormalizer
 import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +68,8 @@ class AuthViewModel
                 _error.value = null
                 try {
                     authRepository.setPhoneNumber(phoneNumber)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     _error.value = loginErrorOf(e)
                 } finally {
@@ -82,6 +85,8 @@ class AuthViewModel
                 _error.value = null
                 try {
                     authRepository.checkAuthenticationCode(code)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     _error.value = loginErrorOf(e)
                 } finally {
@@ -97,6 +102,8 @@ class AuthViewModel
                 _error.value = null
                 try {
                     authRepository.checkAuthenticationPassword(password)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     _error.value = loginErrorOf(e)
                 } finally {

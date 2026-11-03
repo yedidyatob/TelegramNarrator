@@ -1,6 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.data.tts
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
@@ -68,13 +69,14 @@ class TtsPreferences
         }
 
         private fun write(settings: TtsSettings) {
-            val editor = prefs.edit().clear()
-            settings.enginePackage?.let { editor.putString(KEY_ENGINE, it) }
-            editor.putFloat(KEY_RATE, settings.speechRate)
-            settings.markAsReadOverride?.let { editor.putBoolean(KEY_MARK_AS_READ, it) }
-            editor.putString(KEY_PROVIDER, settings.provider.id)
-            editor.putString(KEY_GEMINI_VOICE, GeminiTts.normalizeVoice(settings.gemini.voice))
-            settings.voices.forEach { (language, name) -> editor.putString(VOICE_PREFIX + language, name) }
-            editor.apply()
+            prefs.edit {
+                clear()
+                settings.enginePackage?.let { putString(KEY_ENGINE, it) }
+                putFloat(KEY_RATE, settings.speechRate)
+                settings.markAsReadOverride?.let { putBoolean(KEY_MARK_AS_READ, it) }
+                putString(KEY_PROVIDER, settings.provider.id)
+                putString(KEY_GEMINI_VOICE, GeminiTts.normalizeVoice(settings.gemini.voice))
+                settings.voices.forEach { (language, name) -> putString(VOICE_PREFIX + language, name) }
+            }
         }
     }

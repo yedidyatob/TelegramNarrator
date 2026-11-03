@@ -144,6 +144,8 @@ class HomeViewModel
                 _isLoading.value = true
                 try {
                     authRepository.logOut()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     // Typical when the client is already closing
                 } finally {
@@ -246,6 +248,8 @@ class HomeViewModel
                     chatRepository.markChatAsRead(chat.id, messages.map { it.id })
                     selectChat(null)
                     refresh()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     // Leave the sheet open; the user can retry
                 }

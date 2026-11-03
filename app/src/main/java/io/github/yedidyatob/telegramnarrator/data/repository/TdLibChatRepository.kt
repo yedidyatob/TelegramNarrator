@@ -7,6 +7,7 @@ import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,8 @@ class TdLibChatRepository(
                     is TdApi.AuthorizationStateReady -> {
                         try {
                             loadChats()
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             // Home retries (and shows the error) on its own
                         }
@@ -92,6 +95,8 @@ class TdLibChatRepository(
         cache[chatId]?.let { return it }
         return try {
             fetchChat(chatId)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             null
         }
@@ -214,6 +219,8 @@ class TdLibChatRepository(
             // must not block ViewMessages.
             try {
                 client.send<TdApi.Ok>(TdApi.OpenChat(chatId))
+            } catch (e: CancellationException) {
+                throw e
             } catch (openError: Exception) {
                 Log.w("ChatRepository", "OpenChat failed for $chatId (continuing with ViewMessages)", openError)
             }
@@ -228,9 +235,13 @@ class TdLibChatRepository(
                     "ChatRepository",
                     "After mark-read chat=$chatId unread=${refreshed.unreadCount} lastRead=${refreshed.lastReadInboxMessageId}",
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (refreshError: Exception) {
                 Log.w("ChatRepository", "Marked read but could not refresh chat $chatId", refreshError)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("ChatRepository", "Failed to mark chat as read: $chatId", e)
         }

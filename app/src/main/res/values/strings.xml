@@ -34,8 +34,8 @@
     <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with the optional Gemini voice their text is sent to Google to be read aloud.</string>
     <string name="login_privacy_policy">Privacy policy</string>
     <string name="link_open_failed">No app found to open the link</string>
-    <string name="login_status_initializing">Initializing Telegram...</string>
-    <string name="login_status_redirecting">Redirecting...</string>
+    <string name="login_status_initializing">Initializing Telegram…</string>
+    <string name="login_status_redirecting">Redirecting…</string>
     <string name="error_unknown">Something went wrong. Try again.</string>
     <!-- Login step failures (mapped from TDLib errors; never TDLib's raw text) -->
     <string name="login_error_phone_invalid">Telegram doesn\'t recognize this phone number. Check it and try again.</string>
@@ -71,7 +71,10 @@
     <string name="home_more_options">More options</string>
     <string name="home_logout_title">Log out?</string>
     <string name="home_logout_body">You\'ll be signed out of Telegram on this device. Your voice settings stay.</string>
-    <string name="home_selected_count">%1$d of %2$d selected</string>
+    <plurals name="home_selected_count">
+        <item quantity="one">%1$d of %2$d selected</item>
+        <item quantity="other">%1$d of %2$d selected</item>
+    </plurals>
     <string name="home_chat_playing">Reading now</string>
     <string name="home_sheet_loading">Loading messages…</string>
     <string name="home_sheet_empty">No unread messages to show</string>
@@ -82,8 +85,10 @@
     <string name="home_play_chat">Play unread messages of %1$s</string>
     <string name="home_select_chat">Select %1$s</string>
     <string name="home_btn_play_selected">Play selected (%1$d)</string>
-    <string name="home_sheet_showing_partial">Showing %1$d of %2$d unread</string>
-    <string name="home_sheet_showing_all">%1$d unread messages</string>
+    <plurals name="home_sheet_showing_partial">
+        <item quantity="one">Showing %1$d of %2$d unread</item>
+        <item quantity="other">Showing %1$d of %2$d unread</item>
+    </plurals>
     <string name="home_mark_chat_read">Mark as read</string>
     <string name="home_mark_chat_read_cd">Mark this chat as read in Telegram</string>
     <plurals name="home_unread_messages">

@@ -105,6 +105,8 @@ import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.onboarding.OnboardingStep
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
+import io.github.yedidyatob.telegramnarrator.ui.components.GeminiApiKeyField
+import io.github.yedidyatob.telegramnarrator.ui.components.GetGeminiKeyButton
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OnboardingViewModel
 
@@ -507,16 +509,6 @@ private fun HebrewVoiceStatus(
     }
 }
 
-private class ApiKeyVisualTransformation(
-    private val mask: Char = '•',
-) : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText =
-        TransformedText(
-            AnnotatedString(mask.toString().repeat(text.text.length)),
-            OffsetMapping.Identity,
-        )
-}
-
 @Composable
 private fun GeminiKeyEntry(
     hasKey: Boolean,
@@ -537,60 +529,9 @@ private fun GeminiKeyEntry(
     }
     // Not saveable on purpose: the key must not end up in the saved instance state
     var key by remember { mutableStateOf("") }
-    var visible by remember { mutableStateOf(false) }
-    val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
-    OutlinedTextField(
-        value = key,
-        onValueChange = { key = it },
-        label = { Text(stringResource(R.string.settings_gemini_api_key)) },
-        placeholder = { Text(stringResource(R.string.settings_gemini_api_key_hint)) },
-        singleLine = true,
-        visualTransformation = if (visible) VisualTransformation.None else ApiKeyVisualTransformation(),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrect = false, imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { onSave(key) }),
-        trailingIcon = {
-            Row {
-                if (key.isBlank()) {
-                    IconButton(onClick = {
-                        clipboardManager.getText()?.text?.let { pastedText ->
-                            key = pastedText
-                        }
-                    }) {
-                        Icon(
-                            Icons.Rounded.ContentPaste,
-                            contentDescription = stringResource(R.string.settings_gemini_paste_key),
-                        )
-                    }
-                }
-                IconButton(onClick = { visible = !visible }) {
-                    Icon(
-                        if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                        contentDescription =
-                            stringResource(
-                                if (visible) R.string.settings_gemini_hide_key else R.string.settings_gemini_show_key,
-                            ),
-                    )
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    GeminiApiKeyField(value = key, onValueChange = { key = it }, onDone = { onSave(key) })
     Row(verticalAlignment = Alignment.CenterVertically) {
-        val getKeyA11y = stringResource(R.string.settings_gemini_get_key_a11y)
-        TextButton(
-            onClick = {
-                try {
-                    uriHandler.openUri(GeminiTts.API_KEYS_URL)
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, R.string.settings_gemini_get_key_no_browser, Toast.LENGTH_SHORT).show()
-                } catch (e: IllegalArgumentException) {
-                    Toast.makeText(context, R.string.settings_gemini_get_key_no_browser, Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.semantics { contentDescription = getKeyA11y },
-        ) { Text(stringResource(R.string.settings_gemini_get_key)) }
+        GetGeminiKeyButton()
         Spacer(Modifier.weight(1f))
         Button(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text(stringResource(R.string.settings_gemini_save_key)) }
     }

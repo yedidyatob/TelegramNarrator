@@ -153,8 +153,6 @@ android {
         // The UI is English-only on purpose (only the spoken phrases are translated to Hebrew, in values-he)
         disable += "MissingTranslation"
         abortOnError = true
-        // Existing findings are tracked in the baseline; new ones fail the build. Burn it down over time (#22).
-        baseline = file("lint-baseline.xml")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

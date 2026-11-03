@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
@@ -395,7 +396,7 @@ internal fun ChatList(
                     onClick = onToggleAll,
                 )
                 Text(
-                    text = bidiSafe(stringResource(R.string.home_selected_count, selectedCount, chats.size)),
+                    text = bidiSafe(pluralStringResource(R.plurals.home_selected_count, selectedCount, selectedCount, chats.size)),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),

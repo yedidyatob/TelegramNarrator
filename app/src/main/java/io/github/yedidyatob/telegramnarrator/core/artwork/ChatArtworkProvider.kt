@@ -12,6 +12,8 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import androidx.core.graphics.createBitmap
+import androidx.core.net.toUri
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -81,7 +83,7 @@ class ChatArtworkProvider : ContentProvider() {
         val file = File(dir, "initials_${chatId}_${initials.hashCode()}.png")
         if (file.isFile) return file
         val size = SIZE_PX
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val (top, bottom) = AvatarPalette.forChat(chatId)
         val fill =
@@ -111,7 +113,7 @@ class ChatArtworkProvider : ContentProvider() {
         val file = File(dir, "play_all_v1.png")
         if (file.isFile) return file
         val size = SIZE_PX.toFloat()
-        val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(SIZE_PX, SIZE_PX)
         val canvas = Canvas(bitmap)
         canvas.drawRect(
             0f,
@@ -167,12 +169,12 @@ class ChatArtworkProvider : ContentProvider() {
         private const val SIZE_PX = 256
         private const val PHOTO_TIMEOUT_MS = 8_000L
 
-        fun playAllIconUri(context: Context): Uri = Uri.parse(ArtworkUris.playAllIcon(context.packageName))
+        fun playAllIconUri(context: Context): Uri = ArtworkUris.playAllIcon(context.packageName).toUri()
 
         fun uriFor(
             context: Context,
             chatId: Long,
-        ): Uri = Uri.parse(ArtworkUris.forChat(context.packageName, chatId))
+        ): Uri = ArtworkUris.forChat(context.packageName, chatId).toUri()
 
         /** Lets the Android Auto hosts read [uri] (the provider itself is not exported). */
         fun grantToAuto(

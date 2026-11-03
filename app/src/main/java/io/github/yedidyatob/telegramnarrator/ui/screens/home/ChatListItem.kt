@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -52,8 +53,7 @@ fun ChatListItem(
 ) {
     val selectDescription = stringResource(R.string.home_select_chat, chat.title)
     val unreadDescription =
-        LocalContext.current.resources
-            .getQuantityString(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
+        pluralStringResource(R.plurals.home_unread_messages, chat.unreadCount, chat.unreadCount)
     val openLabel = stringResource(R.string.home_open_chat_preview)
     val playLabel = stringResource(R.string.home_play_chat, chat.title)
 

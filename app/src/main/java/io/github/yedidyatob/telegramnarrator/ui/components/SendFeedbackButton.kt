@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.feedback.FeedbackEmail
@@ -43,7 +44,7 @@ private fun sendFeedback(context: Context) {
             ),
         )
     val intent =
-        Intent(Intent.ACTION_SENDTO, Uri.parse(FeedbackEmail.mailto(subject, body) { Uri.encode(it) }))
+        Intent(Intent.ACTION_SENDTO, FeedbackEmail.mailto(subject, body) { Uri.encode(it) }.toUri())
             .putExtra(Intent.EXTRA_EMAIL, arrayOf(FeedbackEmail.ADDRESS))
             .putExtra(Intent.EXTRA_SUBJECT, subject)
             .putExtra(Intent.EXTRA_TEXT, body)

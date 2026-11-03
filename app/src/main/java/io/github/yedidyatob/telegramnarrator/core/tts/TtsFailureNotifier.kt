@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.playback.narration.TtsFailurePort
 import io.github.yedidyatob.telegramnarrator.domain.tts.FallbackReason
@@ -63,7 +64,7 @@ class TtsFailureNotifier(
             PendingIntent.getActivity(
                 context,
                 reason.ordinal,
-                Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         val action = TtsFailureMessages.helpActionRes(reason)?.let { context.getString(it) }
