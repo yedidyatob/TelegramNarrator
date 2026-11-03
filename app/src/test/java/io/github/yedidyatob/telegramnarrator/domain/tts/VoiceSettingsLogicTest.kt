@@ -34,13 +34,6 @@ class VoiceSettingsLogicTest {
     }
 
     @Test
-    fun `only the system section waits for the system tts engine`() {
-        assertTrue(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = false))
-        assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = true))
-        assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.GEMINI, systemTtsReady = false))
-    }
-
-    @Test
     fun `system test voice needs a ready engine and no reading`() {
         assertTrue(VoiceSettingsLogic.canTestSystem(isPlaying = false, systemTtsReady = true))
         assertFalse(VoiceSettingsLogic.canTestSystem(isPlaying = true, systemTtsReady = true))

@@ -97,7 +97,6 @@ class HomeViewModel @Inject constructor(
 
     val isPlaying: StateFlow<Boolean> = playbackManager.isPlaying
     val isPaused: StateFlow<Boolean> = playbackManager.isPaused
-    val playStatus: StateFlow<String?> = playbackManager.currentStatus
     val nowPlaying: StateFlow<NowPlaying?> = playbackManager.nowPlaying
     /** The current message's audio is still being fetched / synthesized (shown after a short delay). */
     val isPreparingAudio: StateFlow<Boolean> = playbackManager.isPreparingAudio
@@ -238,11 +237,5 @@ class HomeViewModel @Inject constructor(
                 // Leave the sheet open; the user can retry
             }
         }
-    }
-
-    /** Chats that Play All / the FAB should narrate (intersection of unread × selected). */
-    fun selectedChatsForPlayback(): List<Chat> {
-        val selected = selectedChatIds.value
-        return unreadChats.value.filter { it.id in selected }
     }
 }

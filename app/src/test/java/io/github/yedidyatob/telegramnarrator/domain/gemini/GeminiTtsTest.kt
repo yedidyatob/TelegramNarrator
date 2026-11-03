@@ -118,22 +118,6 @@ class GeminiTtsTest {
         assertEquals("••••", GeminiTts.maskKey(key15))
     }
 
-    // ===== Input Limit Tests =====
-
-    @Test
-    fun isWithinApiLimit_acceptsUnder4000Chars() {
-        assertTrue(GeminiTts.isWithinApiLimit(""))
-        assertTrue(GeminiTts.isWithinApiLimit("Hello"))
-        assertTrue(GeminiTts.isWithinApiLimit("x".repeat(3999)))
-        assertTrue(GeminiTts.isWithinApiLimit("x".repeat(4000)))
-    }
-
-    @Test
-    fun isWithinApiLimit_rejectsOver4000Chars() {
-        assertFalse(GeminiTts.isWithinApiLimit("x".repeat(4001)))
-        assertFalse(GeminiTts.isWithinApiLimit("x".repeat(5000)))
-    }
-
     // ===== Constants Tests =====
 
     @Test

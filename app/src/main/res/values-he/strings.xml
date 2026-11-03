@@ -101,7 +101,6 @@
     <string name="login_btn_retry">ניסיון חוזר</string>
     <string name="login_title_password">הזינו את סיסמת האימות הדו-שלבי</string>
     <string name="login_label_password">סיסמה</string>
-    <string name="login_btn_login">התחברות</string>
     <string name="login_btn_unlock">ביטול נעילה</string>
     <string name="link_open_failed">לא נמצאה אפליקציה לפתיחת הקישור</string>
     <string name="login_status_initializing">טלגרם מופעלת…</string>
@@ -142,7 +141,6 @@
     <string name="home_sheet_loading">ההודעות נטענות…</string>
     <string name="home_sheet_empty">אין הודעות שלא נקראו להצגה</string>
     <string name="home_sheet_play">השמעה</string>
-    <string name="home_unread_suffix">הודעות</string>
     <string name="home_now_playing">מתנגן עכשיו</string>
     <string name="home_player_starting">מתחילים…</string>
     <string name="home_preparing_audio">השמע בהכנה…</string>
@@ -219,8 +217,6 @@
     <string name="settings_test_language">שפת הבדיקה: %1$s</string>
     <string name="settings_voice_testing">דוגמת הקול נטענת</string>
     <string name="settings_voice_selected">נבחר</string>
-    <string name="settings_state_expanded">מורחב</string>
-    <string name="settings_state_collapsed">מכווץ</string>
     <string name="settings_section_engine">מנוע</string>
     <string name="settings_engine_system">מערכת</string>
     <string name="settings_engine_system_desc">בטלפון, עובד בלי אינטרנט</string>

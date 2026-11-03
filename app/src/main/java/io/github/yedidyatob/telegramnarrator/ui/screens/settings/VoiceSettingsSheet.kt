@@ -667,11 +667,6 @@ private fun LoadingRow(text: String) {
 }
 
 @Composable
-private fun FieldLabel(@StringRes text: Int) {
-    Text(stringResource(text), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
 private fun HelperText(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

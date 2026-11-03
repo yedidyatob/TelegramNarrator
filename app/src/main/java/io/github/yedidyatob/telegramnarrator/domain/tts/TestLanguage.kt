@@ -21,8 +21,5 @@ enum class TestLanguage(val code: String) {
             val code = TtsVoiceLogic.normalizeLanguage(uiLanguage)
             return values().firstOrNull { it.code == code } ?: FALLBACK
         }
-
-        fun fromCode(code: String?): TestLanguage? =
-            code?.let { c -> values().firstOrNull { it.code == TtsVoiceLogic.normalizeLanguage(c) } }
     }
 }

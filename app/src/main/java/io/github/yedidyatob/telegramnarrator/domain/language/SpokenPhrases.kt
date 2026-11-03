@@ -16,9 +16,6 @@ object SpokenPhrases {
         "pt" to "Recomendado", "tr" to "Önerilen", "fa" to "پیشنهادی", "nl" to "Aanbevolen", "pl" to "Polecane"
     )
 
-    /** Languages with their own spoken phrases (others use English). */
-    val LANGUAGES: Set<String> get() = SPONSORED.keys
-
     /** "Sponsored" / "Recommended" before an official sponsored message, in [language] (else English). */
     fun sponsoredCue(language: String, recommended: Boolean): String {
         val table = if (recommended) RECOMMENDED else SPONSORED

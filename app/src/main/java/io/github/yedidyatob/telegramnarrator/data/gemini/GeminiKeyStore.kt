@@ -47,9 +47,6 @@ class GeminiKeyStore @Inject constructor(
         runCatching { context.deleteSharedPreferences(LEGACY_PLAINTEXT_FILE) }
     }
 
-    /** Whether a key can be stored securely on this device right now. */
-    val isSecureStorageAvailable: Boolean get() = prefs != null
-
     /** Returns the trimmed key, or null when none is saved. Never log the return value. */
     fun getApiKey(): String? {
         val key = prefs?.getString(KEY_API, null)?.trim().orEmpty()

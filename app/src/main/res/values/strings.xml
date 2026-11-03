@@ -29,7 +29,6 @@
     <string name="login_btn_retry">Retry</string>
     <string name="login_title_password">Enter your 2FA password</string>
     <string name="login_label_password">Password</string>
-    <string name="login_btn_login">Login</string>
     <string name="login_btn_unlock">Unlock</string>
     <!-- Telegram API Terms of Service 2.2 / 2.3: say that the app is unofficial and built on the Telegram API -->
     <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with the optional Gemini voice their text is sent to Google to be read aloud.</string>
@@ -77,7 +76,6 @@
     <string name="home_sheet_loading">Loading messages…</string>
     <string name="home_sheet_empty">No unread messages to show</string>
     <string name="home_sheet_play">Play</string>
-    <string name="home_unread_suffix">messages</string>
     <string name="home_now_playing">Now playing</string>
     <string name="home_player_starting">Starting…</string>
     <string name="home_preparing_audio">Preparing audio…</string>
@@ -177,8 +175,6 @@
     <string name="settings_test_language">Test language: %1$s</string>
     <string name="settings_voice_testing">Loading the voice sample</string>
     <string name="settings_voice_selected">Selected</string>
-    <string name="settings_state_expanded">Expanded</string>
-    <string name="settings_state_collapsed">Collapsed</string>
 
     <!-- 1. Engine -->
     <string name="settings_section_engine">Engine</string>
