@@ -92,24 +92,20 @@ Video: record 20-30 s showing Play all → screen off / home → notification an
 
 ## App access (instructions for reviewers)
 
-The app is unusable without a Telegram login, and Telegram sends the login code to the account's other Telegram
-sessions or by SMS, so a reviewer cannot use a phone number you give them unless they can receive that code.
-Options (pick one before submitting):
+Telegram sends the login code to the account's other sessions or by SMS, so reviewers use the built-in
+**demo login** instead (`data/demo/`): phone **+999 000 0000**, code **12345**. +999 is an unassigned country
+code, so it can never be a real account. It never touches TDLib, the network or the Telegram database: a few
+invented channels (English and Hebrew) are kept in memory, *Play all* reads them with the System voice (background
+/ screen-off playback and media controls work as usual), marking as read only changes the in-memory list, and
+*Log out* returns to the normal login. Works in release builds.
 
-1. **Demo account**: a separate Telegram account on a spare number. Give the number in *App access*, and
-   explain that the login code is sent to the account; this usually only works if you can relay the code, so
-   Google may come back with questions.
-2. **Reviewer's own account**: "Requires a Telegram account. Install Telegram, create an account (free), then log
-   in to this app with the same phone number; the code arrives in the Telegram app. Have a few unread messages,
-   tap Play all." Add a link to a demo video.
+Paste into Play Console → *App access* → "All or some functionality is restricted" → instructions:
 
-Suggested text (option 2):
-
-> The app reads unread Telegram messages aloud and requires logging in with an existing Telegram account (free,
-> created in the official Telegram app). Enter the phone number of that account; Telegram sends the login code to
-> the Telegram app on the same phone. Make sure some chats have unread messages, then tap "Play all". The default
-> voice is the phone's offline System text-to-speech; the optional Gemini voice can be chosen in the first-run
-> introduction or in Voice settings → Engine. Demo video: [VIDEO LINK]
+> Username / phone: +999 000 0000
+> Password / code: 12345
+> On the login screen enter the phone number +999 000 0000, tap "Send Code", then enter the code 12345 and tap "Verify Code". This opens a
+> demo mode with sample channels (no Telegram account or network needed); tap "Play all" to hear them read aloud
+> with the phone's text-to-speech, also with the screen off. Real use requires the user's own Telegram account.
 
 ## Store listing draft
 
