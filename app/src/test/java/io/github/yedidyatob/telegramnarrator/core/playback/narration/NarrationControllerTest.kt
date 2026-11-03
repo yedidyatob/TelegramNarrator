@@ -222,8 +222,8 @@ class NarrationControllerTest {
         val c = started(msg1)
         speech.last.onStart(); speech.last.rangeAt("six"); advanceUntilIdle()
         c.userPause(); advanceUntilIdle()
-        speech.provider = SpeechProvider.EDGE
-        speech.settings = "edge"
+        speech.provider = SpeechProvider.GEMINI
+        speech.settings = "gemini"
         val spokenBefore = speech.utterances.size
         c.userResume(); advanceUntilIdle()
         assertEquals(listOf(text1), speech.synthesized)
@@ -318,7 +318,7 @@ class NarrationControllerTest {
 
     @Test
     fun `network voice pauses the file in place and resumes it without re-synthesizing`() = runTest {
-        speech.provider = SpeechProvider.EDGE
+        speech.provider = SpeechProvider.GEMINI
         val c = started(msg1, msg2)
         assertEquals(listOf(text1, "second message here"), speech.synthesized.distinct())
         val synthesizedBefore = speech.synthesized.size
@@ -335,10 +335,10 @@ class NarrationControllerTest {
 
     @Test
     fun `network failure falls back to system tts, which also resumes mid-message`() = runTest {
-        speech.provider = SpeechProvider.EDGE
-        speech.outcome = { SpeechSynthesisOutcome.Fallback(FallbackReason.EDGE_UNAVAILABLE) }
+        speech.provider = SpeechProvider.GEMINI
+        speech.outcome = { SpeechSynthesisOutcome.Fallback(FallbackReason.GEMINI_SERVER_ERROR) }
         val c = started(msg1)
-        assertEquals(listOf(FallbackReason.EDGE_UNAVAILABLE), failures.failures.take(1))
+        assertEquals(listOf(FallbackReason.GEMINI_SERVER_ERROR), failures.failures.take(1))
         assertEquals(text1, speech.last.text)
         speech.last.onStart(); speech.last.rangeAt("six"); advanceUntilIdle()
         c.userPause(); advanceUntilIdle()

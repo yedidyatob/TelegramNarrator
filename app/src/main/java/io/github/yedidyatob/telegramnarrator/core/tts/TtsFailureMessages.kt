@@ -13,8 +13,6 @@ object TtsFailureMessages {
         FallbackReason.GEMINI_PERMISSION_DENIED -> R.string.tts_fallback_gemini_permission_denied
         FallbackReason.GEMINI_UNSUPPORTED_VOICE -> R.string.tts_fallback_gemini_unsupported_voice
         FallbackReason.GEMINI_ENDPOINT_CHANGED -> R.string.tts_fallback_gemini_endpoint_changed
-        FallbackReason.EDGE_BLOCKED -> R.string.tts_fallback_edge_blocked
-        FallbackReason.EDGE_UNSUPPORTED_VOICE -> R.string.tts_fallback_edge_unsupported_voice
         FallbackReason.GEMINI_INVALID_KEY -> R.string.tts_fallback_gemini_invalid_key
         FallbackReason.GEMINI_NO_CREDIT -> R.string.tts_fallback_gemini_no_credit
         FallbackReason.GEMINI_RATE_LIMITED -> R.string.tts_fallback_gemini_rate_limited
@@ -23,10 +21,6 @@ object TtsFailureMessages {
         FallbackReason.GEMINI_TIMEOUT -> R.string.tts_fallback_gemini_timeout
         FallbackReason.GEMINI_NO_AUDIO -> R.string.tts_fallback_gemini_no_audio
         FallbackReason.GEMINI_FAILED -> R.string.tts_fallback_gemini_failed
-        FallbackReason.EDGE_THROTTLED -> R.string.tts_fallback_edge_throttled
-        FallbackReason.EDGE_UNAVAILABLE -> R.string.tts_fallback_edge_unavailable
-        FallbackReason.EDGE_TIMEOUT -> R.string.tts_fallback_edge_timeout
-        FallbackReason.EDGE_FAILED -> R.string.tts_fallback_edge_failed
         FallbackReason.NO_NETWORK -> R.string.tts_fallback_no_network
         FallbackReason.UNPLAYABLE -> R.string.tts_fallback_unplayable
     }

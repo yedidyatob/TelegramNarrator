@@ -8,7 +8,7 @@ import android.os.PowerManager
  *
  * The media-playback foreground service keeps the process alive and exempts it from Doze / battery-saver network
  * restrictions, and the audio server keeps the CPU awake while sound is actually coming out. Between items it is
- * not: synthesizing the next message over the network (Edge / Gemini), downloading a voice note through TDLib,
+ * not: synthesizing the next message over the network (Gemini), downloading a voice note through TDLib,
  * fetching a sponsored message and the short waits between items run with no audio playing, and with the screen
  * off the CPU can suspend there, so the next message starts late or never (seen with OEM battery optimization).
  * This is the same reason ExoPlayer offers `WAKE_MODE_NETWORK`.

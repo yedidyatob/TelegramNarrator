@@ -1,7 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
@@ -63,21 +61,13 @@ class VoiceSettingsUiStateTest {
     }
 
     @Test
-    fun `edge ui state mirrors gender and custom voice`() {
-        val edge = EdgeVoiceUiState.from(EdgeTtsOptions(EdgeVoiceGender.FEMALE, "en-GB-SoniaNeural"))
-        assertEquals(EdgeVoiceGender.FEMALE, edge.gender)
-        assertEquals("en-GB-SoniaNeural", edge.customVoice)
-        assertFalse(edge.testing)
-    }
-
-    @Test
     fun `ui state sections follow the provider`() {
         assertEquals(
-            listOf(VoiceSettingsSection.ENGINE, VoiceSettingsSection.EDGE_VOICE, VoiceSettingsSection.PLAYBACK),
-            TtsSettingsUiState(provider = SpeechProvider.EDGE).sections
+            listOf(VoiceSettingsSection.ENGINE, VoiceSettingsSection.GEMINI_VOICE, VoiceSettingsSection.PLAYBACK),
+            TtsSettingsUiState(provider = SpeechProvider.GEMINI).sections
         )
         assertEquals(VoiceSettingsSection.SYSTEM_VOICES, TtsSettingsUiState(provider = SpeechProvider.SYSTEM).sections[1])
-        // New installs start on Edge
-        assertEquals(VoiceSettingsSection.EDGE_VOICE, TtsSettingsUiState().sections[1])
+        // New installs start on the system voice
+        assertEquals(VoiceSettingsSection.SYSTEM_VOICES, TtsSettingsUiState().sections[1])
     }
 }

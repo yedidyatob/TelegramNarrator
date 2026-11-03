@@ -17,7 +17,6 @@ secureStorage = "1.1.0"
 mlkitLanguageId = "17.0.6" # com.google.mlkit:language-id (bundled model, on-device, #89) # androidx.security:security-crypto
 tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
 media3 = "1.11.1"
-okhttp = "4.12.0" # WebSocket client for the experimental Edge TTS engine
 libphonenumber = "9.0.41" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
 
 ksp = "2.3.12"
@@ -46,8 +45,6 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
-# Networking (experimental Edge TTS WebSocket)
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 # Phone number parsing / validation (login)
 libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }

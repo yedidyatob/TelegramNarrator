@@ -32,7 +32,7 @@
     <string name="login_btn_login">Login</string>
     <string name="login_btn_unlock">Unlock</string>
     <!-- Telegram API Terms of Service 2.2 / 2.3: say that the app is unofficial and built on the Telegram API -->
-    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with an online voice (Edge, the default, or OpenAI) their text is sent to that service to be read aloud.</string>
+    <string name="login_unofficial_notice">Unofficial app built on the Telegram API. Not made, endorsed or supported by Telegram. Your messages are stored only on this device; with the optional Gemini voice their text is sent to Google to be read aloud.</string>
     <string name="login_privacy_policy">Privacy policy</string>
     <string name="link_open_failed">No app found to open the link</string>
     <string name="login_status_initializing">Initializing Telegram...</string>
@@ -106,7 +106,6 @@
     <string name="player_chat_opening">Starting this chat</string>
     <string name="mini_player_message">%1$s · %2$d of %3$d</string>
     <string name="player_engine_system">System voice</string>
-    <string name="player_engine_edge">Edge voice</string>
     <string name="player_engine_gemini">Gemini voice</string>
     <string name="player_engine_original">Original audio</string>
     <string name="player_engine_fallback">%1$s (fallback)</string>
@@ -125,15 +124,12 @@
     <string name="onboarding_welcome_point_languages">Each chat is read in its own language, with a matching voice</string>
     <string name="onboarding_privacy_title">Unofficial app and your privacy</string>
     <string name="onboarding_privacy_point_device">Your login, messages and settings are stored only on this device</string>
-    <string name="onboarding_privacy_point_voice">By default the Edge voice reads your messages: their text and chat names are sent to Microsoft. You can pick the offline system voice in the next step.</string>
     <string name="onboarding_privacy_point_read">A message is marked as read in Telegram only after it was read aloud or skipped</string>
     <string name="onboarding_privacy_point_ads">Channels can include Telegram\'s official sponsored messages</string>
     <string name="onboarding_voice_title">Choose a voice</string>
     <string name="onboarding_voice_body">You can change it any time in Voice settings.</string>
     <string name="onboarding_voice_system_title">System voice</string>
     <string name="onboarding_voice_system_desc">The text-to-speech engine of your phone. Free and offline: nothing leaves the device.</string>
-    <string name="onboarding_voice_edge_title">Edge voice</string>
-    <string name="onboarding_voice_edge_desc">Free natural voices from an unofficial Microsoft service. Needs internet: the text of your messages and the chat names are sent to Microsoft. If it\'s unavailable, the system voice reads.</string>
     <string name="onboarding_voice_gemini_title">Gemini voice</string>
     <string name="onboarding_voice_gemini_desc">Natural voices with your own Gemini API key, billed to you. Message text is sent to Google.</string>
     <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
@@ -188,8 +184,6 @@
     <string name="settings_section_engine">Engine</string>
     <string name="settings_engine_system">System</string>
     <string name="settings_engine_system_desc">On your phone, works offline</string>
-    <string name="settings_engine_edge">Edge</string>
-    <string name="settings_engine_edge_desc">Free natural voices, needs internet</string>
     <string name="settings_engine_gemini">Gemini</string>
     <string name="settings_engine_gemini_desc">Your own key, paid</string>
 
@@ -208,21 +202,6 @@
     <string name="settings_system_open_tts">Open system TTS settings</string>
     <string name="settings_system_tts_unavailable">Could not open the system text-to-speech settings</string>
 
-    <!-- 2b. Edge voice -->
-    <string name="settings_section_edge">Edge voice</string>
-    <string name="settings_edge_gender">Voice</string>
-    <string name="settings_edge_gender_male">Male</string>
-    <string name="settings_edge_gender_female">Female</string>
-    <string name="settings_edge_custom_active">Custom voice %1$s reads every message. Clear it under Advanced to use Male / Female.</string>
-    <string name="settings_edge_info">Unofficial Microsoft service, free, needs internet: the text of each message and the chat name are sent to Microsoft to be spoken. Falls back to the system voice if unavailable.</string>
-    <string name="settings_edge_advanced">Advanced</string>
-    <string name="settings_edge_custom_voice">Custom Edge voice</string>
-    <string name="settings_edge_custom_voice_hint">e.g. en-GB-SoniaNeural</string>
-    <string name="settings_edge_custom_voice_desc" tools:ignore="TypographyDashes">Any Edge voice short name (edge-tts --list-voices). Overrides Male / Female for every message.</string>
-    <string name="settings_edge_custom_voice_invalid">Not a valid Edge voice name (expected something like en-US-AriaNeural)</string>
-    <string name="settings_edge_custom_voice_use">Use voice</string>
-    <string name="settings_edge_custom_voice_clear">Clear</string>
-    <string name="settings_edge_test_failed">Edge voice test failed (no network, or the unofficial service changed). Playback will use the system voice.</string>
 
     <!-- 2c. Gemini voice -->
     <string name="settings_section_gemini">Gemini voice</string>
@@ -258,8 +237,6 @@
     <string name="tts_fallback_gemini_permission_denied">Your Gemini key isn\'t allowed to use text-to-speech (API not enabled or key restricted). Check it in Google AI Studio. Using the system voice.</string>
     <string name="tts_fallback_gemini_unsupported_voice">This Gemini voice or language isn\'t supported. Pick another voice in Voice settings. Using the system voice.</string>
     <string name="tts_fallback_gemini_endpoint_changed">Gemini changed its service. Update Narri. Using the system voice.</string>
-    <string name="tts_fallback_edge_blocked">Microsoft changed the Edge voice service. Update Narri. Using the system voice for a minute.</string>
-    <string name="tts_fallback_edge_unsupported_voice">This Edge voice returned no audio (voice or language not supported). Pick another voice. Using the system voice for a minute.</string>
     <string name="gemini_key_secure_storage_unavailable">Secure storage isn\'t available on this device right now, so the key was not saved. Try again later.</string>
     <string name="tts_fallback_unplayable">Couldn\'t play the downloaded audio. Using the system voice.</string>
     <string name="tts_fallback_gemini_no_key">Gemini needs an API key. Add it in Voice settings. Using the system voice.</string>
@@ -271,10 +248,6 @@
     <string name="tts_fallback_gemini_timeout">Gemini didn\'t answer in time. Using the system voice.</string>
     <string name="tts_fallback_gemini_no_audio">Gemini returned no audio for this message. Using the system voice.</string>
     <string name="tts_fallback_gemini_failed">Gemini voice failed. Using the system voice.</string>
-    <string name="tts_fallback_edge_throttled">Edge voices are busy (too many requests). Using the system voice for a minute.</string>
-    <string name="tts_fallback_edge_unavailable">Edge voices are unavailable right now. Using the system voice for a minute.</string>
-    <string name="tts_fallback_edge_timeout">Edge voices didn\'t answer in time. Using the system voice for a minute.</string>
-    <string name="tts_fallback_edge_failed">Edge voice failed. Using the system voice for a minute.</string>
     <string name="tts_fallback_no_network">No internet connection. Using the system voice until it\'s back.</string>
     <!-- Notification for failures the user can fix on the Gemini website (tap opens the page) -->
     <string name="notification_channel_tts_alerts">Voice problems</string>

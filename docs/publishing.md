@@ -116,9 +116,9 @@ keytool -printcert -jarfile app/build/outputs/bundle/release/app-release.aab
 
 Release builds use R8 (`isMinifyEnabled`), resource shrinking and `debuggable false`. Keep rules are in
 [`app/proguard-rules.pro`](../app/proguard-rules.pro): all of `org.drinkless.tdlib` is kept for TDLib's JNI;
-Hilt, OkHttp and AndroidX ship their own consumer rules. `Log.v/d/i` calls are stripped from release builds.
+Hilt and AndroidX ship their own consumer rules. `Log.v/d/i` calls are stripped from release builds.
 Before uploading, install a minified build once and smoke-test login, the unread list and playback with each
-engine (System, Edge, OpenAI):
+engine (System, Gemini):
 
 ```bash
 TN_RELEASE_DEBUG_SIGNING=true ./gradlew installRelease   # without a real keystore configured

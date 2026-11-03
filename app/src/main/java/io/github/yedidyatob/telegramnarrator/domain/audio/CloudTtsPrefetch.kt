@@ -1,7 +1,7 @@
 package io.github.yedidyatob.telegramnarrator.domain.audio
 
 /**
- * Prefetch helpers for cloud TTS engines (OpenAI / Edge). While the current synthesized message plays,
+ * Prefetch helpers for cloud TTS engines (Gemini). While the current synthesized message plays,
  * the next [COUNT] speakable queue items are synthesized into the existing disk cache so playback
  * does not wait on a full network round-trip per item.
  *

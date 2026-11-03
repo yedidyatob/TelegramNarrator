@@ -41,16 +41,6 @@ object TtsFailures {
     }
 
     /**
-     * Edge WebSocket handshake rejected with HTTP [code]. A 403 that survives the clock-skew retry means
-     * Microsoft changed the service's token scheme / endpoint (needs an app update).
-     */
-    fun edgeHandshake(code: Int): FallbackReason = when (code) {
-        429 -> FallbackReason.EDGE_THROTTLED
-        403 -> FallbackReason.EDGE_BLOCKED
-        else -> FallbackReason.EDGE_UNAVAILABLE
-    }
-
-    /**
      * Transport failures (no network, timeout) anywhere in [error]'s cause chain, or null when [error] is not
      * one. [timeout] is the engine's timeout reason.
      */
@@ -119,7 +109,7 @@ class TtsFailureEpisodes {
 /**
  * Splits text for the [io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts.MAX_INPUT_CHARS] input
  * limit: at paragraph or sentence ends when possible, then at spaces, and only as a last resort mid-word.
- * Also used for Edge TTS chunking. The audio of the chunks is concatenated into one file.
+ * The audio of the chunks is concatenated into one file.
  */
 object SpeechTextSplitter {
     fun split(text: String, maxChars: Int): List<String> {

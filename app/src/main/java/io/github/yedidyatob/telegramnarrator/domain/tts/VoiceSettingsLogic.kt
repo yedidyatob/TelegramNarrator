@@ -8,9 +8,6 @@ enum class VoiceSettingsSection {
     /** System TTS: speech engine + one voice per language (only for [SpeechProvider.SYSTEM]). */
     SYSTEM_VOICES,
 
-    /** Edge: Male / Female, Advanced custom voice (only for [SpeechProvider.EDGE]). */
-    EDGE_VOICE,
-
     /** Gemini: key, voice (only for [SpeechProvider.GEMINI]). */
     GEMINI_VOICE,
 
@@ -26,7 +23,6 @@ object VoiceSettingsLogic {
         VoiceSettingsSection.ENGINE,
         when (provider) {
             SpeechProvider.SYSTEM -> VoiceSettingsSection.SYSTEM_VOICES
-            SpeechProvider.EDGE -> VoiceSettingsSection.EDGE_VOICE
             SpeechProvider.GEMINI -> VoiceSettingsSection.GEMINI_VOICE
         },
         VoiceSettingsSection.PLAYBACK
@@ -46,13 +42,7 @@ object VoiceSettingsLogic {
     fun canTestSystem(isPlaying: Boolean, systemTtsReady: Boolean, testing: Boolean = false): Boolean =
         !isPlaying && systemTtsReady && !testing
 
-    /** "Test voice" for Edge: not while reading, not while a sample is already being fetched. */
-    fun canTestEdge(isPlaying: Boolean, testing: Boolean): Boolean = !isPlaying && !testing
-
     /** "Test voice" for Gemini additionally needs a saved key (the request is billed to it). */
     fun canTestGemini(isPlaying: Boolean, testing: Boolean, hasKey: Boolean): Boolean =
         !isPlaying && !testing && hasKey
-
-    /** Male / Female is ignored (and the toggle disabled) while an Advanced custom Edge voice is set. */
-    fun edgeGenderEnabled(isPlaying: Boolean, customVoice: String?): Boolean = !isPlaying && customVoice == null
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Unofficial-app notice (Telegram API Terms of Service 2.2 / 2.3) -->
-    <string name="login_unofficial_notice">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram. ההודעות שלך נשמרות רק במכשיר; עם קול מקוון (Edge, ברירת המחדל, או OpenAI) הטקסט שלהן נשלח לשירות הזה כדי להקריא אותו.</string>
+    <string name="login_unofficial_notice">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram. ההודעות שלך נשמרות רק במכשיר; עם קול Gemini האופציונלי הטקסט שלהן נשלח ל־Google כדי להקריא אותו.</string>
     <string name="login_privacy_policy">מדיניות פרטיות</string>
     <string name="settings_about_unofficial">אפליקציה לא רשמית שמבוססת על ה־API של Telegram. היא לא פותחה, לא אושרה ולא נתמכת על ידי Telegram.</string>
     <string name="settings_gemini_paste_key">הדבק מפתח</string>
@@ -45,8 +45,6 @@
     <string name="tts_fallback_gemini_permission_denied">למפתח Gemini שלך אין הרשאה להמרת טקסט לדיבור (ה-API לא מופעל או שהמפתח מוגבל). בדקו אותו ב-Google AI Studio. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_unsupported_voice">הקול או השפה של Gemini אינם נתמכים. בחרו קול אחר בהגדרות הקול. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_endpoint_changed">Gemini שינה את השירות שלו. עדכנו את Narri. משתמשים בקול המערכת.</string>
-    <string name="tts_fallback_edge_blocked">Microsoft שינתה את שירות הקולות של Edge. עדכנו את Narri. משתמשים בקול המערכת לדקה.</string>
-    <string name="tts_fallback_edge_unsupported_voice">קול Edge הזה לא החזיר שמע (הקול או השפה אינם נתמכים). בחרו קול אחר. משתמשים בקול המערכת לדקה.</string>
     <string name="gemini_key_secure_storage_unavailable">האחסון המאובטח אינו זמין במכשיר כרגע, ולכן המפתח לא נשמר. נסו שוב מאוחר יותר.</string>
     <string name="tts_fallback_unplayable">לא ניתן להשמיע את השמע שהורד. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_no_key">ל-Gemini דרוש מפתח API. הוסיפו אותו בהגדרות הקול. משתמשים בקול המערכת.</string>
@@ -58,10 +56,6 @@
     <string name="tts_fallback_gemini_timeout">Gemini לא ענה בזמן. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_no_audio">Gemini לא החזיר שמע להודעה הזו. משתמשים בקול המערכת.</string>
     <string name="tts_fallback_gemini_failed">קול Gemini נכשל. משתמשים בקול המערכת.</string>
-    <string name="tts_fallback_edge_throttled">קולות Edge עמוסים (יותר מדי בקשות). משתמשים בקול המערכת לדקה.</string>
-    <string name="tts_fallback_edge_unavailable">קולות Edge אינם זמינים כרגע. משתמשים בקול המערכת לדקה.</string>
-    <string name="tts_fallback_edge_timeout">קולות Edge לא ענו בזמן. משתמשים בקול המערכת לדקה.</string>
-    <string name="tts_fallback_edge_failed">קול Edge נכשל. משתמשים בקול המערכת לדקה.</string>
     <string name="tts_fallback_no_network">אין חיבור לאינטרנט. משתמשים בקול המערכת עד שהחיבור יחזור.</string>
     <string name="home_menu_about">אודות</string>
     <string name="about_version">גרסה %1$s</string>
@@ -175,7 +169,6 @@
     <string name="player_chat_opening">מתחילים את הצ׳אט</string>
     <string name="mini_player_message">%1$s · %2$d מתוך %3$d</string>
     <string name="player_engine_system">קול המערכת</string>
-    <string name="player_engine_edge">קול Edge</string>
     <string name="player_engine_gemini">קול Gemini</string>
     <string name="player_engine_original">השמע המקורי</string>
     <string name="player_engine_fallback">%1$s (חלופי)</string>
@@ -192,15 +185,12 @@
     <string name="onboarding_welcome_point_languages">כל צ׳אט מוקרא בשפה שלו, בקול המתאים</string>
     <string name="onboarding_privacy_title">אפליקציה לא רשמית והפרטיות שלכם</string>
     <string name="onboarding_privacy_point_device">פרטי ההתחברות, ההודעות וההגדרות נשמרים רק במכשיר הזה</string>
-    <string name="onboarding_privacy_point_voice">כברירת מחדל קול Edge מקריא את ההודעות: הטקסט שלהן ושמות הצ׳אטים נשלחים ל-Microsoft. בשלב הבא אפשר לבחור את קול המערכת, שעובד בלי אינטרנט.</string>
     <string name="onboarding_privacy_point_read">הודעה מסומנת כנקראה בטלגרם רק אחרי שהוקראה או שדילגתם עליה</string>
     <string name="onboarding_privacy_point_ads">ערוצים עשויים לכלול הודעות ממומנות רשמיות של טלגרם</string>
     <string name="onboarding_voice_title">בחירת קול</string>
     <string name="onboarding_voice_body">אפשר לשנות בכל עת בהגדרות הקול.</string>
     <string name="onboarding_voice_system_title">קול המערכת</string>
     <string name="onboarding_voice_system_desc">מנוע המרת הטקסט לדיבור של הטלפון. חינמי ועובד בלי אינטרנט: שום דבר לא יוצא מהמכשיר.</string>
-    <string name="onboarding_voice_edge_title">קול Edge</string>
-    <string name="onboarding_voice_edge_desc">קולות טבעיים בחינם משירות לא רשמי של Microsoft. דורש אינטרנט: טקסט ההודעות ושמות הצ׳אטים נשלחים ל-Microsoft. אם השירות לא זמין, קול המערכת מקריא.</string>
     <string name="onboarding_voice_gemini_title">קול Gemini</string>
     <string name="onboarding_voice_gemini_desc">קולות טבעיים עם מפתח Gemini API משלכם, בחיוב שלכם. טקסט ההודעות נשלח ל-Google.</string>
     <string name="onboarding_voice_hebrew_ok">מותקן קול בעברית</string>
@@ -234,8 +224,6 @@
     <string name="settings_section_engine">מנוע</string>
     <string name="settings_engine_system">מערכת</string>
     <string name="settings_engine_system_desc">בטלפון, עובד בלי אינטרנט</string>
-    <string name="settings_engine_edge">Edge</string>
-    <string name="settings_engine_edge_desc">קולות טבעיים בחינם, דורש אינטרנט</string>
     <string name="settings_engine_gemini">Gemini</string>
     <string name="settings_engine_gemini_desc">מפתח משלכם, בתשלום</string>
     <string name="settings_section_system">קול המערכת</string>
@@ -251,20 +239,6 @@
     <string name="settings_system_offline_note">מוצגים רק קולות שעובדים בלי אינטרנט. אפשר להתקין עוד בהגדרות המערכת.</string>
     <string name="settings_system_open_tts">פתיחת הגדרות המרת טקסט לדיבור</string>
     <string name="settings_system_tts_unavailable">לא ניתן היה לפתוח את הגדרות המרת הטקסט לדיבור</string>
-    <string name="settings_section_edge">קול Edge</string>
-    <string name="settings_edge_gender">קול</string>
-    <string name="settings_edge_gender_male">גבר</string>
-    <string name="settings_edge_gender_female">אישה</string>
-    <string name="settings_edge_custom_active">הקול המותאם %1$s מקריא כל הודעה. נקו אותו בקטע ׳מתקדם׳ כדי להשתמש בגבר / אישה.</string>
-    <string name="settings_edge_info">שירות לא רשמי של Microsoft, חינמי, דורש אינטרנט: הטקסט של כל הודעה ושם הצ׳אט נשלחים ל-Microsoft להקראה. אם השירות לא זמין, קול המערכת מקריא.</string>
-    <string name="settings_edge_advanced">מתקדם</string>
-    <string name="settings_edge_custom_voice">קול Edge מותאם</string>
-    <string name="settings_edge_custom_voice_hint">לדוגמה en-GB-SoniaNeural</string>
-    <string name="settings_edge_custom_voice_desc" tools:ignore="TypographyDashes">כל שם קצר של קול Edge (edge-tts --list-voices). גובר על גבר / אישה בכל הודעה.</string>
-    <string name="settings_edge_custom_voice_invalid">זה לא שם תקין של קול Edge (צפוי משהו כמו en-US-AriaNeural)</string>
-    <string name="settings_edge_custom_voice_use">שימוש בקול</string>
-    <string name="settings_edge_custom_voice_clear">ניקוי</string>
-    <string name="settings_edge_test_failed">בדיקת קול Edge נכשלה (אין רשת, או שהשירות הלא רשמי השתנה). ההשמעה תשתמש בקול המערכת.</string>
     <string name="settings_section_gemini">קול Gemini</string>
     <string name="settings_gemini_api_key">מפתח API</string>
     <string name="settings_gemini_api_key_hint">AIza…</string>

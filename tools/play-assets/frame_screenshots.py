@@ -18,7 +18,7 @@ CAPTIONS = {
         "02-player": "Every message read aloud in a natural voice",
         "03-up-next": "See what's next and jump ahead",
         "04-home-playing": "Keep browsing while it reads",
-        "05-voice-settings": "Offline system voice or natural online voices",
+        "05-voice-settings": "Your phone's own voices, offline",
         "06-about": "Unofficial, private, and open about it",
     },
     "he": {
@@ -26,7 +26,7 @@ CAPTIONS = {
         "02-player": "כל הודעה מוקראת בקול טבעי",
         "03-up-next": "רואים מה הבא וקופצים קדימה",
         "04-home-playing": "ממשיכים לגלוש בזמן ההקראה",
-        "05-voice-settings": "קול המערכת בלי אינטרנט, או קולות טבעיים ברשת",
+        "05-voice-settings": "הקולות של הטלפון, בלי אינטרנט",
         "06-about": "לא רשמי, פרטי ושקוף",
     },
 }

@@ -21,10 +21,6 @@ updates:
           - "com.google.devtools.ksp*"
       test-libs:
         patterns: ["junit*", "androidx.test*", "org.robolectric*", "io.mockk*", "app.cash.turbine*"]
-    ignore:
-      # OkHttp 5.x changes artifacts/APIs (Edge / Gemini clients); upgrade deliberately, not via Dependabot
-      - dependency-name: "com.squareup.okhttp3:*"
-        versions: [">= 5.0.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

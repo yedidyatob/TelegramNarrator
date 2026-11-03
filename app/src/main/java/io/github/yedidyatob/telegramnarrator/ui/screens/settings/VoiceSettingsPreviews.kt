@@ -4,14 +4,11 @@ import android.content.res.Configuration
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.EngineOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
-import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.ui.theme.TelegramNarratorTheme
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
@@ -69,41 +66,6 @@ private fun VoiceSettingsDebugMarkAsReadPreview() {
 @Composable
 private fun VoiceSettingsSystemLoadingPreview() {
     PreviewSheet(TtsSettingsUiState(provider = SpeechProvider.SYSTEM, system = SystemVoiceUiState(loading = true)))
-}
-
-@Preview(name = "Edge", showBackground = true, heightDp = 900)
-@Composable
-private fun VoiceSettingsEdgePreview() {
-    PreviewSheet(
-        TtsSettingsUiState(
-            provider = SpeechProvider.EDGE,
-            system = SystemVoiceUiState(loading = true), // never shown for Edge
-            edge = EdgeVoiceUiState(gender = EdgeVoiceGender.FEMALE)
-        )
-    )
-}
-
-@Preview(name = "Edge (testing in French)", showBackground = true, heightDp = 900)
-@Composable
-private fun VoiceSettingsEdgeTestingPreview() {
-    PreviewSheet(
-        TtsSettingsUiState(
-            provider = SpeechProvider.EDGE,
-            edge = EdgeVoiceUiState(gender = EdgeVoiceGender.MALE, testing = true),
-            testLanguage = TestLanguage.FRENCH
-        )
-    )
-}
-
-@Preview(name = "Edge + custom voice", showBackground = true, heightDp = 1000)
-@Composable
-private fun VoiceSettingsEdgeCustomPreview() {
-    PreviewSheet(
-        TtsSettingsUiState(
-            provider = SpeechProvider.EDGE,
-            edge = EdgeVoiceUiState(gender = EdgeVoiceGender.MALE, customVoice = "en-GB-SoniaNeural")
-        )
-    )
 }
 
 @Preview(name = "Gemini", showBackground = true, heightDp = 1000)

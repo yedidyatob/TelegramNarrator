@@ -65,7 +65,6 @@ class PlayerUiStateTest {
 
     @Test
     fun `engine indicator follows the engine that speaks`() {
-        assertEquals(EngineIndicator(EngineLabel.EDGE), state(selected = SpeechProvider.EDGE).engine)
         assertEquals(EngineIndicator(EngineLabel.GEMINI), state(nowPlaying = message(engine = SpeechProvider.GEMINI), selected = SpeechProvider.GEMINI).engine)
         assertEquals(EngineIndicator(EngineLabel.SYSTEM), state().engine)
     }
@@ -74,7 +73,7 @@ class PlayerUiStateTest {
     fun `system voice standing in for an online engine is a fallback`() {
         assertEquals(
             EngineIndicator(EngineLabel.SYSTEM, isFallback = true),
-            state(nowPlaying = message(engine = SpeechProvider.SYSTEM), selected = SpeechProvider.EDGE).engine
+            state(nowPlaying = message(engine = SpeechProvider.SYSTEM), selected = SpeechProvider.GEMINI).engine
         )
     }
 

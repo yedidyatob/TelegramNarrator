@@ -197,9 +197,6 @@ dependencies {
     // TDLib
     implementation(libs.tdlib)
 
-    // Experimental Edge TTS (WebSocket)
-    implementation(libs.okhttp)
-
     // Login phone field: country dial codes, trunk prefix and length rules (pure Java, works in JVM unit tests)
     implementation(libs.libphonenumber)
 
