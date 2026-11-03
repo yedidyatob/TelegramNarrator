@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hiltAndroid)
+    alias(libs.plugins.ktlint)
 }
 
 // local.properties is git-ignored: Telegram API credentials and (optionally) the release keystore live there.
@@ -251,3 +252,9 @@ if (project.hasProperty("screenshots")) {
         variant.sources.res?.addStaticSourceDirectory(iwRes.absolutePath)
     }
 }
+
+// Formatting is checked as part of the unit tests CI already runs; fix locally with `./gradlew ktlintFormat`.
+ktlint {
+    version.set(libs.versions.ktlint)
+}
+tasks.matching { it.name == "testDebugUnitTest" }.configureEach { dependsOn("ktlintCheck") }
