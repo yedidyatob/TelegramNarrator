@@ -24,7 +24,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # Inject Telegram API credentials from repo Actions secrets so the debug APK
       # can log in. Without them BuildConfig fields stay empty and the login screen errors.
