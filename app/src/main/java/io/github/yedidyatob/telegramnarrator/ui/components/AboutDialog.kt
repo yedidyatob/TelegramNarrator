@@ -30,7 +30,7 @@ fun AboutDialog(
             Column {
                 Text(stringResource(R.string.about_version, info.version), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(R.string.about_build_type, info.buildType), style = MaterialTheme.typography.bodyMedium)
-                info.ciBuild?.let { Text(stringResource(R.string.about_ci_build, it), style = MaterialTheme.typography.bodyMedium) }
+                info.buildLine?.let { Text(stringResource(R.string.about_ci_build, it), style = MaterialTheme.typography.bodyMedium) }
                 Text(stringResource(R.string.settings_about_unofficial), style = MaterialTheme.typography.bodySmall)
                 PrivacyPolicyLink()
                 ShareDebugLogButton()
