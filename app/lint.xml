@@ -8,4 +8,6 @@
     <issue id="ObsoleteSdkInt">
         <ignore path="src/main/res/mipmap-anydpi-v26" />
     </issue>
+    <!-- targetSdk 36 is what Google Play requires (since Aug 31, 2026); move to 37 before Play requires it (Aug 2027) -->
+    <issue id="OldTargetApi" severity="ignore" />
 </lint>

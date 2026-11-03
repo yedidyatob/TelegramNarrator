@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 kotlin = "2.4.21"
 coreKtx = "1.19.1"
 splashscreen = "1.2.0"
@@ -17,9 +17,9 @@ secureStorage = "1.1.0"
 mlkitLanguageId = "17.0.6" # com.google.mlkit:language-id (bundled model, on-device, #89) # androidx.security:security-crypto
 tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
 media3 = "1.11.1"
-libphonenumber = "9.0.41" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
+libphonenumber = "9.0.42" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
 
-ksp = "2.3.12"
+ksp = "2.3.13"
 robolectric = "4.17" # JVM Android runtime for the Play screenshot tests (tools/play-assets)
 roborazzi = "1.77.0" # Roborazzi: captures the Robolectric screenshots
 json = "20260814" # org.json for JVM unit tests (Android's org.json is a stub there)

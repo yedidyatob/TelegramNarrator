@@ -9,7 +9,7 @@ Storage", a use-case layer; the Onboarding and Player screens came later with #2
 
 | | |
 |---|---|
-| Platform | Android, `minSdk` 26, `targetSdk`/`compileSdk` 36; `applicationId` `io.github.yedidyatob.telegramnarrator` |
+| Platform | Android, `minSdk` 26, `targetSdk` 36, `compileSdk` 37; `applicationId` `io.github.yedidyatob.telegramnarrator` |
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
