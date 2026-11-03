@@ -144,7 +144,8 @@ Play usually picks it up from the AAB automatically.
    - *Contact email*: telegram.narrator.app@gmail.com.
    - *Ads*: **Yes**: Telegram's official sponsored messages in channels and bot chats (required by Telegram API
      ToS 3.3; see [play-data-safety.md](play-data-safety.md#store-listing-draft)).
-   - *App access*: login is required; see the reviewer note in [play-data-safety.md](play-data-safety.md#app-access-instructions-for-reviewers).
+   - *App access*: login is required; give the demo login (phone **+999 000 0000**, code **12345**, opens sample
+     channels without Telegram). Paste-ready text in [play-data-safety.md](play-data-safety.md#app-access-instructions-for-reviewers).
    - *Content rating*, *Target audience*, *Data safety*: copy from [play-data-safety.md](play-data-safety.md).
    - *Foreground service permissions*: declare **Media playback** (text in
      [play-data-safety.md](play-data-safety.md#foreground-service-declaration)). You need a short video showing

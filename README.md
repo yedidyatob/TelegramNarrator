@@ -151,6 +151,9 @@ Data safety answers). The remaining manual steps (upload keystore, hosting the p
 closed test) and the open Telegram API terms item (sponsored messages in channels) are listed in
 [docs/publishing.md](docs/publishing.md) and [docs/play-data-safety.md](docs/play-data-safety.md).
 
+Demo login for Play review (no Telegram account needed): phone `+999 000 0000`, code `12345` opens sample
+channels kept in memory; *Log out* leaves it.
+
 ## TDLib / 16 KB page size
 
 Native TDLib comes from the JitPack artifact [`com.github.tdlibx:td:1.8.56`](https://github.com/tdlibx/td)

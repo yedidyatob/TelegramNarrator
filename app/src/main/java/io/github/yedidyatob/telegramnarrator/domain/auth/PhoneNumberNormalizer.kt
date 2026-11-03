@@ -67,6 +67,8 @@ class PhoneNumberNormalizer(
     ): Result {
         val sanitized = sanitize(input)
         if (sanitized.isEmpty() || sanitized == "+") return Result.Invalid(Reason.EMPTY)
+        // Play review demo login (+999 is unassigned, so libphonenumber would reject it)
+        if (sanitized == DEMO_PHONE) return Result.Valid(DEMO_PHONE, null)
         val international = sanitized.startsWith("+")
         if (!international && selectedRegion == null) return Result.Invalid(Reason.NO_COUNTRY)
         val number =
@@ -196,6 +198,8 @@ class PhoneNumberNormalizer(
         }
 
     companion object {
+        /** Same as `DemoLogin.PHONE` (domain does not depend on data). */
+        const val DEMO_PHONE = "+9990000000"
         private const val UNKNOWN_REGION = "ZZ"
         private const val NON_GEO_REGION = "001"
         private const val MAX_E164_DIGITS = 15
