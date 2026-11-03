@@ -12,7 +12,7 @@ import java.io.File
 // behind these interfaces, so the playback logic is plain Kotlin and unit tested with fakes. Callbacks may
 // arrive on any thread; the controller moves them onto its own single thread.
 
-/** Speaking text: the system engine and the network engines (Gemini / Edge). */
+/** Speaking text: the system engine and the network engines (Gemini). */
 interface SpeechPort {
     /** The engine the user selected. */
     val provider: SpeechProvider

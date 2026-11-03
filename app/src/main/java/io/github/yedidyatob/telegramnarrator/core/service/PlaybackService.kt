@@ -17,7 +17,6 @@ import io.github.yedidyatob.telegramnarrator.core.playback.narration.MarkMessage
 import io.github.yedidyatob.telegramnarrator.core.playback.narration.NarrationController
 import io.github.yedidyatob.telegramnarrator.core.playback.narration.PlaybackHost
 import io.github.yedidyatob.telegramnarrator.core.tts.TtsFailureNotifier
-import io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.data.rules.ChannelRulesRepository
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
@@ -57,7 +56,6 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var channelRules: ChannelRulesRepository
     @Inject lateinit var geminiSpeech: GeminiSpeechSynthesizer
-    @Inject lateinit var edgeSpeech: EdgeSpeechSynthesizer
     @Inject lateinit var ttsPreferences: TtsPreferences
     @Inject lateinit var sponsoredMessages: SponsoredMessagesRepository
     @Inject lateinit var chatLanguages: io.github.yedidyatob.telegramnarrator.domain.language.ChatLanguageResolver
@@ -147,7 +145,7 @@ class PlaybackService : MediaLibraryService(), PlaybackHost {
                 { getString(R.string.playback_unknown_chat) },
                 { chatId, isPrivate, texts -> chatLanguages.resolve(chatId, isPrivate, texts) }
             )::invoke,
-            speech = EngineSpeechPort(ttsManager, ttsPreferences, geminiSpeech, edgeSpeech, chatLanguages),
+            speech = EngineSpeechPort(ttsManager, ttsPreferences, geminiSpeech, chatLanguages),
             audio = MediaPlayerAudioPort(this),
             voiceNotes = { chatRepository.getVoiceFilePath(it) },
             readMarker = MarkMessagesRead(chatRepository, backgroundScope),

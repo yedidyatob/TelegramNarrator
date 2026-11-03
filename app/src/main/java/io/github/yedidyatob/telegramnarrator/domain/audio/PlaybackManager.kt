@@ -59,7 +59,7 @@ class PlaybackManager @Inject constructor() {
     private val _isPreparingAudio = MutableStateFlow(false)
 
     /**
-     * True while the current message's audio is being fetched / synthesized (Edge, OpenAI, a voice note
+     * True while the current message's audio is being fetched / synthesized (Gemini, a voice note
      * download, or the system engine not having started the utterance yet). Only turns true after
      * [DelayedLoading.DEFAULT_DELAY_MS], so cache hits never flash it.
      */

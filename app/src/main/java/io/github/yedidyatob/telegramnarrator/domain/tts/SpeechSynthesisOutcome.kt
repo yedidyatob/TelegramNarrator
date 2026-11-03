@@ -2,11 +2,11 @@ package io.github.yedidyatob.telegramnarrator.domain.tts
 
 import java.io.File
 
-/** Result of asking a network TTS engine (Gemini / Edge) for a message's audio. */
+/** Result of asking a network TTS engine (Gemini) for a message's audio. */
 sealed class SpeechSynthesisOutcome {
     /**
      * Audio is ready on disk. [playbackSpeed] is applied by the MediaPlayer (1.0 when the engine caches
-     * at normal speed, like Gemini; Edge also caches at normal speed and applies rate at playback).
+     * at normal speed, like Gemini).
      */
     data class Ready(val file: File, val fromCache: Boolean, val playbackSpeed: Float = 1f) : SpeechSynthesisOutcome()
 
@@ -45,18 +45,6 @@ enum class FallbackReason {
     GEMINI_NO_AUDIO,
     GEMINI_FAILED,
 
-    // ---- Edge -----------------------------------------------------------------------------------
-    /** Edge WebSocket handshake HTTP 429. */
-    EDGE_THROTTLED,
-    /** Edge handshake refused (other HTTP codes, 5xx). */
-    EDGE_UNAVAILABLE,
-    /** Handshake 403 even after the clock-skew retry: the service changed; the app needs an update. */
-    EDGE_BLOCKED,
-    /** Connected, but no audio for this voice (unsupported voice / language). */
-    EDGE_UNSUPPORTED_VOICE,
-    EDGE_TIMEOUT,
-    EDGE_FAILED,
-
     // ---- Shared ---------------------------------------------------------------------------------
     /** No connection at all (DNS / connect failed), any engine. */
     NO_NETWORK,
@@ -65,6 +53,6 @@ enum class FallbackReason {
 
     /** Failures caused by the network or the service being down (not by this message or the account). */
     val isConnectivity: Boolean
-        get() = this == NO_NETWORK || this == GEMINI_TIMEOUT || this == EDGE_TIMEOUT ||
-            this == GEMINI_SERVER_ERROR || this == EDGE_UNAVAILABLE
+        get() = this == NO_NETWORK || this == GEMINI_TIMEOUT ||
+            this == GEMINI_SERVER_ERROR
 }

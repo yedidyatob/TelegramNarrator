@@ -8,7 +8,7 @@ fun interface SpeechCacheWiper {
 }
 
 object SpeechCaches {
-    /** Edge, Gemini, and the former OpenAI engine's directory (may remain from older installs). */
+    /** Gemini's, and the former Edge and OpenAI engines' directories (may remain from older installs). */
     val DIRECTORIES = listOf("edge_tts", "gemini_tts", "openai_tts")
 
     /** Deletes every speech cache under [cacheDir]; returns whether all of them are gone. */

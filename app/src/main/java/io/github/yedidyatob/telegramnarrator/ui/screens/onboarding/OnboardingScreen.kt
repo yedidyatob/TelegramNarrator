@@ -45,7 +45,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Headphones
@@ -238,7 +237,7 @@ fun OnboardingContent(
                 ) {
                     when (page) {
                         OnboardingStep.WELCOME -> WelcomePage()
-                        OnboardingStep.PRIVACY -> PrivacyPage(edgeSelected = voice.provider == SpeechProvider.EDGE)
+                        OnboardingStep.PRIVACY -> PrivacyPage()
                         OnboardingStep.VOICE -> VoicePage(voice, voiceActions)
                         OnboardingStep.NOTIFICATIONS -> NotificationsPage()
                     }
@@ -354,7 +353,7 @@ private fun WelcomePage() {
 }
 
 @Composable
-private fun PrivacyPage(edgeSelected: Boolean) {
+private fun PrivacyPage() {
     PageHeader(Icons.Rounded.Lock, stringResource(R.string.onboarding_privacy_title), null)
     // Telegram API ToS 2.2 / 2.3: the app is unofficial and built on the Telegram API
     Surface(
@@ -370,8 +369,6 @@ private fun PrivacyPage(edgeSelected: Boolean) {
     }
     Spacer(Modifier.height(12.dp))
     Point(Icons.Rounded.PhoneAndroid, stringResource(R.string.onboarding_privacy_point_device))
-    // The default engine of a new install sends text to Microsoft: say so before the voice step
-    if (edgeSelected) Point(Icons.Rounded.Cloud, stringResource(R.string.onboarding_privacy_point_voice))
     Point(Icons.Rounded.DoneAll, stringResource(R.string.onboarding_privacy_point_read))
     Point(Icons.Rounded.Campaign, stringResource(R.string.onboarding_privacy_point_ads))
     Spacer(Modifier.height(8.dp))
@@ -389,13 +386,6 @@ private fun VoicePage(state: VoiceStepState, actions: VoiceStepActions) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().selectableGroup()
     ) {
-        // Edge first: the default engine (preselected on a new install)
-        VoiceOptionCard(
-            selected = state.provider == SpeechProvider.EDGE,
-            title = stringResource(R.string.onboarding_voice_edge_title),
-            description = stringResource(R.string.onboarding_voice_edge_desc),
-            onSelect = { actions.onSelect(SpeechProvider.EDGE) }
-        )
         VoiceOptionCard(
             selected = state.provider == SpeechProvider.SYSTEM,
             title = stringResource(R.string.onboarding_voice_system_title),

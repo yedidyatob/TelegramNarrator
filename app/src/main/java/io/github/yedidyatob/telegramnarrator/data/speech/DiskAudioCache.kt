@@ -4,7 +4,7 @@ import java.io.File
 
 /**
  * Small on-disk cache of synthesized speech (MP3 files named `<key>.mp3`), shared by the network TTS
- * engines (OpenAI, Edge). Writes are atomic (temp file + rename). When [maxBytes] is finite, the least
+ * engines (Gemini). Writes are atomic (temp file + rename). When [maxBytes] is finite, the least
  * recently used files are deleted after each write until the cache fits again.
  *
  * Plain java.io only, so it is unit tested on the JVM.

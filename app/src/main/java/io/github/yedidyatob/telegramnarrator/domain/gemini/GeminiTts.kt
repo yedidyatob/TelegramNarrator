@@ -4,7 +4,7 @@ import java.security.MessageDigest
 
 /**
  * Pure helpers for the optional Bring-Your-Own-Key Gemini TTS engine.
- * Edge TTS stays the default until the user selects Gemini as the engine and pastes a key.
+ * System TTS stays the default until the user selects Gemini as the engine and pastes a key.
  */
 object GeminiTts {
     /** Where users create a key ("Get an API key" link in Voice settings). */

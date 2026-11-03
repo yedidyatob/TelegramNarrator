@@ -1,7 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTtsOptions
 import io.github.yedidyatob.telegramnarrator.domain.tts.EngineOption
@@ -34,19 +32,6 @@ data class SystemVoiceUiState(
     val testing: Boolean = false
 )
 
-/** Edge section. A non-null [customVoice] (Advanced) overrides [gender]. */
-data class EdgeVoiceUiState(
-    val gender: EdgeVoiceGender = EdgeVoiceGender.DEFAULT,
-    val customVoice: String? = null,
-    /** True while the Test voice sample is being fetched. */
-    val testing: Boolean = false
-) {
-    companion object {
-        fun from(options: EdgeTtsOptions, testing: Boolean = false) =
-            EdgeVoiceUiState(gender = options.gender, customVoice = options.customVoice, testing = testing)
-    }
-}
-
 /**
  * Gemini section. Holds only whether a key is saved and its masked hint: the raw API key never enters UI
  * state (it stays in GeminiKeyStore; the text the user is typing lives only in the key field's local state).
@@ -74,10 +59,9 @@ data class GeminiVoiceUiState(
 }
 
 data class TtsSettingsUiState(
-    /** Engine that speaks messages (Edge is the default for new installs). */
+    /** Engine that speaks messages (System TTS by default). */
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     val system: SystemVoiceUiState = SystemVoiceUiState(),
-    val edge: EdgeVoiceUiState = EdgeVoiceUiState(),
     val gemini: GeminiVoiceUiState = GeminiVoiceUiState(),
     val speechRate: Float = TtsVoiceLogic.DEFAULT_RATE,
     /** Mark played messages as read in Telegram (always true in release builds). */

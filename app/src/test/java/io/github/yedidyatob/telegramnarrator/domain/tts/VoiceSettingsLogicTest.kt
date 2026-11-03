@@ -1,6 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.domain.tts
 
-import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.EDGE_VOICE
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.ENGINE
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.GEMINI_VOICE
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection.PLAYBACK
@@ -15,20 +14,17 @@ class VoiceSettingsLogicTest {
     @Test
     fun `each engine shows engine picker, only its own section, then playback`() {
         assertEquals(listOf(ENGINE, SYSTEM_VOICES, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.SYSTEM))
-        assertEquals(listOf(ENGINE, EDGE_VOICE, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.EDGE))
         assertEquals(listOf(ENGINE, GEMINI_VOICE, PLAYBACK), VoiceSettingsLogic.visibleSections(SpeechProvider.GEMINI))
     }
 
     @Test
-    fun `edge and gemini never show the system engine and voice pickers`() {
-        for (provider in listOf(SpeechProvider.EDGE, SpeechProvider.GEMINI)) {
-            assertFalse(SYSTEM_VOICES in VoiceSettingsLogic.visibleSections(provider))
-        }
+    fun `gemini never shows the system engine and voice pickers`() {
+        assertFalse(SYSTEM_VOICES in VoiceSettingsLogic.visibleSections(SpeechProvider.GEMINI))
     }
 
     @Test
     fun `exactly one engine section is visible and engine plus playback are always visible`() {
-        val engineSections = setOf(SYSTEM_VOICES, EDGE_VOICE, GEMINI_VOICE)
+        val engineSections = setOf(SYSTEM_VOICES, GEMINI_VOICE)
         for (provider in SpeechProvider.values()) {
             val sections = VoiceSettingsLogic.visibleSections(provider)
             assertEquals(1, sections.count { it in engineSections })
@@ -41,7 +37,6 @@ class VoiceSettingsLogicTest {
     fun `only the system section waits for the system tts engine`() {
         assertTrue(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = false))
         assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.SYSTEM, systemTtsReady = true))
-        assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.EDGE, systemTtsReady = false))
         assertFalse(VoiceSettingsLogic.systemSectionLoading(SpeechProvider.GEMINI, systemTtsReady = false))
     }
 
@@ -55,24 +50,10 @@ class VoiceSettingsLogicTest {
     }
 
     @Test
-    fun `edge test voice is disabled while reading or while a sample is loading`() {
-        assertTrue(VoiceSettingsLogic.canTestEdge(isPlaying = false, testing = false))
-        assertFalse(VoiceSettingsLogic.canTestEdge(isPlaying = true, testing = false))
-        assertFalse(VoiceSettingsLogic.canTestEdge(isPlaying = false, testing = true))
-    }
-
-    @Test
     fun `gemini test voice requires a saved key`() {
         assertTrue(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = false, hasKey = true))
         assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = false, hasKey = false))
         assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = true, testing = false, hasKey = true))
         assertFalse(VoiceSettingsLogic.canTestGemini(isPlaying = false, testing = true, hasKey = true))
-    }
-
-    @Test
-    fun `a custom edge voice disables the male female toggle`() {
-        assertTrue(VoiceSettingsLogic.edgeGenderEnabled(isPlaying = false, customVoice = null))
-        assertFalse(VoiceSettingsLogic.edgeGenderEnabled(isPlaying = false, customVoice = "en-GB-SoniaNeural"))
-        assertFalse(VoiceSettingsLogic.edgeGenderEnabled(isPlaying = true, customVoice = null))
     }
 }

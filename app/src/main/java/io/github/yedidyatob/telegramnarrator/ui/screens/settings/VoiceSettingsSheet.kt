@@ -85,7 +85,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import io.github.yedidyatob.telegramnarrator.R
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
@@ -94,7 +93,6 @@ import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceQuality
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsLogic
 import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceSettingsSection
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.GeminiVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.TtsSettingsUiState
@@ -105,7 +103,7 @@ import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 
 /**
- * Voice settings bottom sheet: **Engine** (System | Edge | Gemini), then only the selected engine's own section,
+ * Voice settings bottom sheet: **Engine** (System | Gemini), then only the selected engine's own section,
  * then **Playback** (speech rate; mark as read in debug builds only). See docs/tts-voice-settings.md.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,9 +126,6 @@ fun VoiceSettingsSheet(
             onSelectSystemEngine = viewModel::selectEngine,
             onSelectSystemVoice = viewModel::selectVoice,
             onTestSystem = viewModel::testSystemVoice,
-            onSelectEdgeGender = viewModel::setEdgeGender,
-            onSetEdgeCustomVoice = viewModel::setEdgeCustomVoice,
-            onTestEdge = viewModel::testEdgeVoice,
             onSaveGeminiKey = viewModel::saveGeminiApiKey,
             onRemoveGeminiKey = viewModel::removeGeminiApiKey,
             onSelectGeminiVoice = viewModel::setGeminiVoice,
@@ -156,10 +151,6 @@ class VoiceSettingsActions(
     val onSelectSystemEngine: (String?) -> Unit = {},
     val onSelectSystemVoice: (language: String, voiceName: String?) -> Unit = { _, _ -> },
     val onTestSystem: () -> Unit = {},
-    val onSelectEdgeGender: (EdgeVoiceGender) -> Unit = {},
-    /** Returns false when the name is not a valid Edge voice; blank clears the custom voice. */
-    val onSetEdgeCustomVoice: (String?) -> Boolean = { true },
-    val onTestEdge: () -> Unit = {},
     val onSaveGeminiKey: (String) -> Unit = {},
     val onRemoveGeminiKey: () -> Unit = {},
     val onSelectGeminiVoice: (String) -> Unit = {},
@@ -203,7 +194,6 @@ fun VoiceSettingsContent(
             when (section) {
                 VoiceSettingsSection.ENGINE -> EngineSection(state.provider, isPlaying, actions.onSelectProvider)
                 VoiceSettingsSection.SYSTEM_VOICES -> SystemSection(state.system, state.testLanguage, isPlaying, actions)
-                VoiceSettingsSection.EDGE_VOICE -> EdgeSection(state.edge, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.GEMINI_VOICE -> GeminiSection(state.gemini, state.testLanguage, isPlaying, actions)
                 VoiceSettingsSection.PLAYBACK -> PlaybackSection(
                     speechRate = state.speechRate,
@@ -315,100 +305,6 @@ private fun SystemVoicePicker(group: VoiceGroup, enabled: Boolean, onSelect: (St
         selected = group.selectedVoice,
         onSelect = { onSelect(group.language, it) }
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EdgeSection(edge: EdgeVoiceUiState, testLanguage: TestLanguage, isPlaying: Boolean, actions: VoiceSettingsActions) {
-    SettingsSection(R.string.settings_section_edge) {
-        FieldLabel(R.string.settings_edge_gender)
-        val genderEnabled = VoiceSettingsLogic.edgeGenderEnabled(isPlaying, edge.customVoice)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().heightIn(min = MIN_TOUCH)) {
-            EDGE_GENDERS.forEachIndexed { index, (gender, label) ->
-                SegmentedButton(
-                    selected = edge.gender == gender,
-                    onClick = { actions.onSelectEdgeGender(gender) },
-                    shape = SegmentedButtonDefaults.itemShape(index, EDGE_GENDERS.size),
-                    enabled = genderEnabled
-                ) { Text(stringResource(label)) }
-            }
-        }
-        if (edge.customVoice != null) {
-            HelperText(
-                stringResource(R.string.settings_edge_custom_active, edge.customVoice!!)
-            )
-        }
-        TestVoiceRow(
-            language = testLanguage,
-            onSelectLanguage = actions.onSelectTestLanguage,
-            isPlaying = isPlaying,
-            enabled = VoiceSettingsLogic.canTestEdge(isPlaying, edge.testing),
-            testing = edge.testing,
-            onTest = actions.onTestEdge
-        )
-        HelperText(stringResource(R.string.settings_edge_info))
-        EdgeAdvanced(edge.customVoice, enabled = !isPlaying, onSetCustomVoice = actions.onSetEdgeCustomVoice)
-    }
-}
-
-/** Collapsed "Advanced" expander with the custom Edge voice name; auto-expanded while a custom voice is set. */
-@Composable
-private fun EdgeAdvanced(customVoice: String?, enabled: Boolean, onSetCustomVoice: (String?) -> Boolean) {
-    var expanded by rememberSaveable { mutableStateOf(customVoice != null) }
-    LaunchedEffect(customVoice) { if (customVoice != null) expanded = true }
-    val stateText = stringResource(if (expanded) R.string.settings_state_expanded else R.string.settings_state_collapsed)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = MIN_TOUCH)
-            .clickable(role = Role.Button) { expanded = !expanded }
-            .semantics { stateDescription = stateText },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            stringResource(R.string.settings_edge_advanced),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null)
-    }
-    AnimatedVisibility(visible = expanded) {
-        Column {
-            var draft by remember(customVoice) { mutableStateOf(customVoice.orEmpty()) }
-            var invalid by remember(customVoice) { mutableStateOf(false) }
-            OutlinedTextField(
-                value = draft,
-                onValueChange = {
-                    draft = it
-                    invalid = false
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.settings_edge_custom_voice)) },
-                placeholder = { Text(stringResource(R.string.settings_edge_custom_voice_hint)) },
-                supportingText = {
-                    Text(
-                        stringResource(
-                            if (invalid) R.string.settings_edge_custom_voice_invalid
-                            else R.string.settings_edge_custom_voice_desc
-                        )
-                    )
-                },
-                isError = invalid,
-                singleLine = true,
-                enabled = enabled
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { invalid = !onSetCustomVoice(draft.trim()) },
-                    enabled = enabled && draft.isNotBlank() && draft.trim() != customVoice
-                ) { Text(stringResource(R.string.settings_edge_custom_voice_use)) }
-                OutlinedButton(
-                    onClick = { onSetCustomVoice(null) },
-                    enabled = enabled && customVoice != null
-                ) { Text(stringResource(R.string.settings_edge_custom_voice_clear)) }
-            }
-        }
-    }
 }
 
 /**
@@ -790,15 +686,8 @@ private fun qualityText(voice: VoiceOption): String = when (TtsVoiceLogic.qualit
 private val MIN_TOUCH = 48.dp
 
 private val ENGINE_ROWS = listOf(
-    // Edge first: the default engine of new installs
-    Triple(SpeechProvider.EDGE, R.string.settings_engine_edge, R.string.settings_engine_edge_desc),
     Triple(SpeechProvider.SYSTEM, R.string.settings_engine_system, R.string.settings_engine_system_desc),
     Triple(SpeechProvider.GEMINI, R.string.settings_engine_gemini, R.string.settings_engine_gemini_desc)
-)
-
-private val EDGE_GENDERS = listOf(
-    EdgeVoiceGender.MALE to R.string.settings_edge_gender_male,
-    EdgeVoiceGender.FEMALE to R.string.settings_edge_gender_female
 )
 
 // There is no Settings.ACTION_* constant for the system text-to-speech settings; this is the action string

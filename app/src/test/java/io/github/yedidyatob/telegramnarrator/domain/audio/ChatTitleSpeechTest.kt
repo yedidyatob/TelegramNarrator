@@ -1,7 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.domain.audio
 
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTtsOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -57,15 +55,6 @@ class ChatTitleSpeechTest {
         assertEquals(LanguageDetector.ENGLISH, LanguageDetector.detect(ChatTitleSpeech.speakableTitle("📰 BBC News")!!))
         assertEquals(LanguageDetector.RUSSIAN, LanguageDetector.detect(ChatTitleSpeech.speakableTitle("Новости ⚡")!!))
         assertEquals(LanguageDetector.ARABIC, LanguageDetector.detect(ChatTitleSpeech.speakableTitle("أخبار")!!))
-    }
-
-    @Test
-    fun `Edge picks the Hebrew voice for Hebrew titles and the multilingual voice otherwise`() {
-        val options = EdgeTtsOptions()
-        val hebrew = LanguageDetector.detect(ChatTitleSpeech.speakableTitle("חדשות 12")!!).language
-        val english = LanguageDetector.detect(ChatTitleSpeech.speakableTitle("BBC News")!!).language
-        assertEquals(EdgeTts.hebrewVoice(options.gender), EdgeTts.voiceFor(options, hebrew))
-        assertEquals(EdgeTts.multilingualVoice(options.gender), EdgeTts.voiceFor(options, english))
     }
 
     @Test

@@ -22,7 +22,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Channels and bot chats include Telegram's official sponsored messages (Telegram API ToS 3.3): read aloud after the chat's messages with a "Sponsored" / "ממומן" cue and shown as a card with Sponsor info, About these ads and Report (see [docs/architecture.md](docs/architecture.md#sponsored-messages))
 - Per-channel cleaning rules (ads, outros, signatures, link handling) - see [docs/channel-rules.md](docs/channel-rules.md)
 - Voice engine / voice per language / speech rate - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
-- Microsoft Edge neural voices, the **default engine on new installs** (just pick Male or Female; Hebrew and other languages switch automatically): free, no key, unofficial, and message text and chat names are sent to Microsoft - see [below](#microsoft-edge-neural-tts-default-unofficial). The offline system voice is one tap away (onboarding or Voice settings) and is the fallback when Edge fails; installs updated from a version that used the system voice keep it
+- The phone's own **system text-to-speech** is the default engine: offline, free, nothing leaves the device
 - Optional Bring-Your-Own-Key **Gemini 2.5 Flash TTS** (high-quality voices, cached on device) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
@@ -55,42 +55,17 @@ Requirements: JDK 17 or 21, Android SDK (platform 36). Android Studio will set b
    Release signing and versioning (`TN_VERSION_NAME` in `gradle.properties`) are described in
    [docs/publishing.md](docs/publishing.md).
 
-   Unit tests are pure JVM tests (no device or emulator needed). The live Edge TTS network test is skipped
-   unless you opt in with `EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest`. CI (`.github/workflows/ci.yml`) runs
+   Unit tests are pure JVM tests (no device or emulator needed). CI (`.github/workflows/ci.yml`) runs
    `testDebugUnitTest assembleDebug` on every push to `main` and every pull request.
 
 ### Optional: Gemini TTS (Bring-Your-Own-Key)
 
-Gemini is optional (new installs default to Edge, see below). No Gemini key is required or shipped in the repo.
+Gemini is optional (the default engine is the offline system voice). No Gemini key is required or shipped in the repo.
 
 1. Create an API key at <https://aistudio.google.com/apikey> (free tier, with quotas).
 2. In the app: **Voice settings** → **Engine** → **Gemini**. Paste the key (tap the eye icon to check it) → **Save key**
    (the sheet then shows `Saved: AI…abcd`) → pick a voice → **Test voice** plays a sample in the language picked next to it. **Remove key** deletes it from the device.
 3. **Warning:** when synthesizing, the key and cleaned message text leave the device to `generativelanguage.googleapis.com`. The key is stored in EncryptedSharedPreferences and never logged. Identical messages reuse an on-device audio cache.
-
-### Microsoft Edge neural TTS (default, unofficial)
-
-**Edge is the default engine on new installs** (preselected in the first-run voice step; an install updated from a
-version that defaulted to the system voice keeps the system voice). Pick **System** in the onboarding or in Voice
-settings to keep everything on the phone.
-
-> ⚠️ **Unofficial.** This uses the endpoint behind Microsoft Edge's "Read aloud" feature,
-> the same approach as the open-source [`edge-tts`](https://github.com/rany2/edge-tts) Python library. It is
-> **not a supported Microsoft API**: it can break or be blocked at any time without notice.
-
-- **Cost: $0.** No account, no API key (the only token involved is the public constant built into Edge).
-- **Needs a network connection.** Cleaned message text and chat names are sent to Microsoft (`speech.platform.bing.com`).
-- In the app: **Voice settings** → **Engine** → **Edge**, then choose **Male** or **Female** and tap **Test voice**
-  (pick the sample language next to it; it defaults to your phone's language).
-  Hebrew messages use Avri (Hila for female); messages in other languages switch automatically to the Andrew
-  (Ava for female) multilingual voices. To force one specific Edge voice for every message, open **Advanced** and
-  type its short name (`edge-tts --list-voices`); this overrides Male / Female until you clear it.
-- Audio is cached on device by hash of text + voice (LRU, ~100 MB), so replays do not hit the network.
-  The speech-rate slider is applied at playback.
-- **Fallback:** on any failure (offline, timeout, service change) the app shows a short toast and reads the
-  message with system TTS; Edge is then skipped for a minute so an offline phone does not wait for a timeout
-  before every message.
-- Choosing **System** in Voice settings switches back to the offline engine at any time.
 
 ## Install on phone without USB
 
@@ -143,7 +118,7 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 |-----|-------|
 | [docs/architecture.md](docs/architecture.md) | Current structure, data flow, known gaps, target architecture |
 | [docs/channel-rules.md](docs/channel-rules.md) | Per-channel cleaning rules (`assets/channel_rules.json`) |
-| [docs/tts-voice-settings.md](docs/tts-voice-settings.md) | Engines, voice per language, speech rate, OpenAI / Edge TTS |
+| [docs/tts-voice-settings.md](docs/tts-voice-settings.md) | Engines, voice per language, speech rate, Gemini TTS |
 | [docs/spoken-phrases.md](docs/spoken-phrases.md) | Playback cues (dings, silent skips) and per-message language detection |
 | [docs/mark-as-read.md](docs/mark-as-read.md) | Mark-as-read behaviour and the TDLib call sequence |
 | [docs/publishing.md](docs/publishing.md) | Google Play release: application ID, versioning, upload keystore, Play App Signing, signed AAB in CI |
@@ -153,14 +128,11 @@ work is tracked in the [Polish roadmap](https://github.com/yedidyatob/TelegramNa
 ## Privacy & security
 
 - The app has no server and sends no analytics. Messages are read through TDLib (only Telegram is contacted for
-  them). **On a new install the default voice is Microsoft Edge**, so the text being read and the chat names go to
-  Microsoft; with the **System** voice everything is spoken on the device.
+  them). With the default **System** voice everything is spoken on the device.
 - **Optional Gemini TTS**: if you enable it and paste your own API key, cleaned message text is sent to
   `generativelanguage.googleapis.com` to synthesize speech. The key is stored in EncryptedSharedPreferences on device and is never
   logged or shipped in the repo. Get a key at <https://aistudio.google.com/apikey>. Synthesized audio is cached
   on disk by hash of text+voice so the same message is not re-synthesized.
-- **Edge TTS** (default on new installs): cleaned message text and chat names are sent to Microsoft's unofficial Edge
-  "Read aloud" endpoint (`speech.platform.bing.com`); no key or account is involved. Audio is cached on device.
 - The Telegram session and message cache live in the app's private storage (`filesDir/tdlib`). Android backup is
   disabled, so the session is never uploaded or transferred; after a reinstall you log in again.
 - The TDLib database (session, chats, message cache) is **encrypted at rest** with a random 32-byte key that is

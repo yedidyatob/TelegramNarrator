@@ -31,19 +31,12 @@ class TtsFailuresTest {
     }
 
     @Test
-    fun `Edge handshake codes`() {
-        assertEquals(FallbackReason.EDGE_THROTTLED, TtsFailures.edgeHandshake(429))
-        assertEquals(FallbackReason.EDGE_BLOCKED, TtsFailures.edgeHandshake(403))
-        assertEquals(FallbackReason.EDGE_UNAVAILABLE, TtsFailures.edgeHandshake(503))
-    }
-
-    @Test
     fun `transport errors are found in the cause chain`() {
         assertEquals(FallbackReason.NO_NETWORK, TtsFailures.transport(UnknownHostException("api.google.com"), FallbackReason.GEMINI_TIMEOUT))
-        assertEquals(FallbackReason.NO_NETWORK, TtsFailures.transport(IOException("wrapped", ConnectException()), FallbackReason.EDGE_TIMEOUT))
-        assertEquals(FallbackReason.EDGE_TIMEOUT, TtsFailures.transport(SocketTimeoutException(), FallbackReason.EDGE_TIMEOUT))
+        assertEquals(FallbackReason.NO_NETWORK, TtsFailures.transport(IOException("wrapped", ConnectException()), FallbackReason.GEMINI_TIMEOUT))
+        assertEquals(FallbackReason.GEMINI_TIMEOUT, TtsFailures.transport(SocketTimeoutException(), FallbackReason.GEMINI_TIMEOUT))
         assertEquals(FallbackReason.GEMINI_TIMEOUT, TtsFailures.transport(java.io.InterruptedIOException("timeout"), FallbackReason.GEMINI_TIMEOUT))
-        assertNull(TtsFailures.transport(IOException("Gemini: some error"), FallbackReason.EDGE_TIMEOUT))
+        assertNull(TtsFailures.transport(IOException("Gemini: some error"), FallbackReason.GEMINI_TIMEOUT))
     }
 
     @Test
@@ -81,15 +74,5 @@ class TtsFailuresTest {
         assertEquals(2, chunks.size)
         assertEquals(30, chunks[0].length)
         assertEquals(20, chunks[1].length)
-    }
-
-    @Test
-    fun `edge no-audio means an unsupported voice`() {
-        assertEquals(
-            FallbackReason.EDGE_UNSUPPORTED_VOICE,
-            io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer.reasonFor(
-                io.github.yedidyatob.telegramnarrator.data.edge.EdgeTtsClient.NoAudioException()
-            )
-        )
     }
 }

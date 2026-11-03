@@ -13,13 +13,10 @@ import androidx.lifecycle.viewModelScope
 import io.github.yedidyatob.telegramnarrator.BuildConfig
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.core.audio.TtsManager
-import io.github.yedidyatob.telegramnarrator.data.edge.EdgeSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiKeyStore
 import io.github.yedidyatob.telegramnarrator.data.gemini.GeminiSpeechSynthesizer
 import io.github.yedidyatob.telegramnarrator.data.tts.TtsPreferences
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackManager
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeTts
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechSynthesisOutcome
@@ -45,7 +42,6 @@ class TtsSettingsViewModel @Inject constructor(
     private val ttsManager: TtsManager,
     private val preferences: TtsPreferences,
     private val geminiKeyStore: GeminiKeyStore,
-    private val edgeSpeech: EdgeSpeechSynthesizer,
     private val geminiSpeech: GeminiSpeechSynthesizer,
     playbackManager: PlaybackManager,
     @ApplicationContext private val context: Context,
@@ -75,7 +71,6 @@ class TtsSettingsViewModel @Inject constructor(
     fun reload() {
         val current = _state.value
         _state.value = stateFrom(preferences.settings.value).copy(
-            edge = EdgeVoiceUiState.from(preferences.settings.value.edge, testing = current.edge.testing),
             gemini = geminiState(testing = current.gemini.testing),
             testLanguage = current.testLanguage
         )
@@ -94,7 +89,6 @@ class TtsSettingsViewModel @Inject constructor(
     private fun stateFrom(settings: TtsSettings) = TtsSettingsUiState(
         provider = settings.provider,
         system = systemState(settings),
-        edge = EdgeVoiceUiState.from(settings.edge),
         gemini = geminiState(testing = false),
         speechRate = settings.speechRate,
         markAsRead = settings.markAsReadEnabled(BuildConfig.DEBUG),
@@ -168,46 +162,6 @@ class TtsSettingsViewModel @Inject constructor(
         ttsManager.speak(testSentence(language), Locale.forLanguageTag(language.code), onStart = { done() }) { done() }
     }
 
-    // ---- Edge -----------------------------------------------------------------------------------
-
-    fun setEdgeGender(gender: EdgeVoiceGender) {
-        preferences.update { it.copy(edge = it.edge.copy(gender = gender)) }
-        _state.update { it.copy(edge = it.edge.copy(gender = gender)) }
-    }
-
-    /**
-     * Advanced: sets a custom Edge voice used for every message (overrides Male / Female). Blank clears it.
-     * Returns false (and changes nothing) when [voice] is not a valid Edge short name.
-     */
-    fun setEdgeCustomVoice(voice: String?): Boolean {
-        val trimmed = voice?.trim().orEmpty()
-        if (trimmed.isNotEmpty() && !EdgeTts.isValidVoiceName(trimmed)) return false
-        val custom = trimmed.ifEmpty { null }
-        preferences.update { it.copy(edge = it.edge.copy(customVoice = custom)) }
-        _state.update { it.copy(edge = it.edge.copy(customVoice = custom)) }
-        return true
-    }
-
-    /**
-     * Plays the sample in the selected test language with the voice Edge would use for a message in that
-     * language: Avri / Hila for Hebrew, the same-gender multilingual voice otherwise, or the custom voice.
-     */
-    fun testEdgeVoice() {
-        val edge = _state.value.edge
-        if (!VoiceSettingsLogic.canTestEdge(isPlaying.value, edge.testing)) return
-        val language = _state.value.testLanguage
-        val voice = EdgeTts.voiceFor(preferences.settings.value.edge, language.code)
-        val sentence = testSentence(language)
-        _state.update { it.copy(edge = it.edge.copy(testing = true)) }
-        viewModelScope.launch {
-            val outcome = withContext(Dispatchers.IO) {
-                edgeSpeech.synthesizeForTest(sentence, voice)
-            }
-            _state.update { it.copy(edge = it.edge.copy(testing = false)) }
-            handleTestOutcome(outcome, R.string.settings_edge_test_failed, edgeSpeech::discard)
-        }
-    }
-
     // ---- Gemini ---------------------------------------------------------------------------------
 
     fun setGeminiVoice(voice: String) {
@@ -270,7 +224,7 @@ class TtsSettingsViewModel @Inject constructor(
             is SpeechSynthesisOutcome.Ready -> playTestFile(outcome, failedMessage, discard)
             // The specific reason (invalid key, no credit, offline…) when there is one
             is SpeechSynthesisOutcome.Fallback -> toast(
-                if (outcome.reason == FallbackReason.GEMINI_FAILED || outcome.reason == FallbackReason.EDGE_FAILED) failedMessage
+                if (outcome.reason == FallbackReason.GEMINI_FAILED) failedMessage
                 else TtsFailureMessages.messageRes(outcome.reason)
             )
             SpeechSynthesisOutcome.UseSystem -> Unit

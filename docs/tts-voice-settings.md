@@ -6,8 +6,7 @@ Home screen -> tune icon (and the Player's engine chip) opens the voice settings
 Voice settings
 ──────────────────────────────────────────────
 Engine                                (heading)
- (•) Edge     Free natural voices, needs internet
- ( ) System   On your phone, works offline
+ (•) System   On your phone, works offline
  ( ) Gemini   Your own key, paid
 ──────────────────────────────────────────────
 <only the selected engine's section>
@@ -21,11 +20,10 @@ Playback                              (heading)
 | Selected engine | Section shown | Contents |
 |-----------------|---------------|----------|
 | **System** | System voice | Speech engine dropdown, one voice dropdown per language, "only offline voices" line + **Open system TTS settings**, Test voice |
-| **Edge** | Edge voice | **Male \| Female** toggle, helper line, Test voice, small info line, collapsed **Advanced** (custom voice name) |
 | **Gemini** | Gemini voice | API key field (masked, show/hide), **Get an API key** link (opens aistudio.google.com/apikey in the browser), "Saved: AI…abcd" / "No key saved", Save / Remove key, voice dropdown, Test voice, privacy line |
 
-The system engine/voice pickers are never shown for Edge or Gemini (they do not use them; system TTS is only
-their silent fallback). While the system TTS engine (re)starts, only the System section shows a loading row;
+The system engine/voice pickers are never shown for Gemini (it does not use them; system TTS is only
+its silent fallback). While the system TTS engine (re)starts, only the System section shows a loading row;
 the engine choice and Playback work immediately. Voice changes and tests are disabled while the reading plays.
 
 ### Test voice
@@ -39,46 +37,43 @@ Each engine speaks the sample with the voice it would really use for a message i
 | Engine | Voice used for the test |
 |--------|-------------------------|
 | System | The voice chosen for that language (or the engine default), via the same per-language switching as playback |
-| Edge | Hebrew: Avri / Hila; any other language: the same-gender multilingual voice (Andrew / Ava); a custom voice always wins |
 | Gemini | The selected voice (Gemini voices are multilingual) |
 
-While the sample loads, the button is disabled and shows a small spinner: for Edge / Gemini until the audio is
+While the sample loads, the button is disabled and shows a small spinner: for Gemini until the audio is
 synthesized (or found in the cache), for System until the engine starts speaking.
 
 ### "Preparing audio…" during playback
 
 `PlaybackManager.isPreparingAudio` (`StateFlow<Boolean>`) is true while the current message's audio is not ready:
-Edge / Gemini synthesis, a voice-note download, or system TTS before the utterance starts (`TtsManager.speak(onStart)`).
+Gemini synthesis, a voice-note download, or system TTS before the utterance starts (`TtsManager.speak(onStart)`).
 The Home now-playing bar then shows a small spinner and "Preparing audio…" instead of "Now playing". The flag only
 turns on after 300 ms (`DelayedLoading`, `DelayedLoadingTest`), so cache hits and fast starts never flash it; it is
 cleared on every new queue item, pause, skip and stop, and a superseded load's late completion is ignored.
 
 Section visibility and Test-voice enablement are pure functions in `domain/tts/VoiceSettingsLogic.kt`
 (`VoiceSettingsLogicTest`). The sheet is a stateless `VoiceSettingsContent(state, isPlaying, actions)` with
-`@Preview`s in `VoiceSettingsPreviews.kt` (System, System loading, Edge, Edge testing in French, Edge + custom voice, Gemini, Gemini dark).
+`@Preview`s in `VoiceSettingsPreviews.kt` (System, System debug, System loading, Gemini, Gemini dark).
 
 ## Text-to-speech engine
 
 | Engine | Default | Network | Cost | Notes |
 |--------|---------|---------|------|-------|
-| **Edge** (Microsoft neural voices) | ✅ new installs | yes | $0 | **Unofficial**, sends text and chat names to Microsoft, see below |
-| **System** | updated installs | no | free | On-device Android TTS (also the fallback for the others) |
+| **System** | ✅ | no | free | On-device Android TTS (also the fallback for Gemini) |
 | **Gemini** | | yes | paid (your key) | Bring-Your-Own-Key, see below |
 
-The choice is stored as `provider` (`system` / `gemini` / `edge`) in `tts_settings`. Builds from the OpenAI era
+The choice is stored as `provider` (`system` / `gemini`) in `tts_settings`. Builds from the OpenAI era
 stored an `openai_enabled` flag; it is migrated to `provider = gemini` on first read.
 
-**No stored choice** (`TtsPreferences`, `SpeechProvider.fromStored`): a fresh install (the package manager's
-`firstInstallTime == lastUpdateTime`) starts on **Edge** (`SpeechProvider.DEFAULT`); an install updated from an
-earlier version, where "nothing stored" meant the system voice, keeps **System** (`UPGRADE_DEFAULT`), so updating
-never starts sending someone's messages to Microsoft. The resolved engine is saved immediately, so later updates
-don't change it. Unknown stored ids fall back to System. The onboarding's voice step lists Edge first and
-preselects the resolved engine.
+**No stored choice, or an unknown id** (`TtsPreferences`, `SpeechProvider.fromStored`): **System**
+(`SpeechProvider.DEFAULT`). This includes `edge`, the Microsoft Edge engine that earlier versions had (removed for
+reliability and privacy). When the stored file holds anything the current version would not write (a migrated
+provider id, the old `edge_gender` / `edge_custom_voice` / `edge_voice` keys), `TtsPreferences` rewrites it on
+startup, so no stale keys stay behind. Logout also wipes any leftover `cacheDir/edge_tts` audio (`SpeechCaches`).
 
 ## System TTS
 
 The **system text-to-speech** engines installed on the device: offline, nothing is sent. Also the fallback
-whenever Edge or Gemini fails.
+whenever Gemini fails.
 
 - **Speech engine**: dropdown of the installed TTS engines (system default or a specific one). Switching restarts
   TextToSpeech (the section shows its loading row meanwhile). Voice choices are dropped when the engine changes
@@ -89,52 +84,10 @@ whenever Edge or Gemini fails.
 - **Test voice** speaks the sample in the selected test language with the voice chosen for that language and the
   current speech rate.
 
-## Microsoft Edge neural TTS (unofficial)
-
-> ⚠️ Unofficial: this is the endpoint behind Edge's "Read aloud", used the same way as the open-source
-> [`edge-tts`](https://github.com/rany2/edge-tts) library. It is not a supported Microsoft API and may break or
-> be blocked at any time. $0, no key, needs network. In the sheet this is one small info line ("Unofficial
-> Microsoft service, free, needs internet; falls back to the system voice if unavailable").
-
-**Voices: just Male | Female.** The app already switches language per message, so there is no Hebrew/English
-voice choice:
-
-| Message language (`LanguageDetector`) | Male (default) | Female |
-|---------------------------------------|----------------|--------|
-| Hebrew | `he-IL-AvriNeural` | `he-IL-HilaNeural` |
-| Anything else | `en-US-AndrewMultilingualNeural` | `en-US-AvaMultilingualNeural` |
-
-**Advanced** (collapsed by default): a custom Edge voice short name (`edge-tts --list-voices`, validated). When set,
-it reads every message, overrides Male / Female (the toggle is disabled) and Advanced opens automatically.
-**Clear** returns to Male / Female.
-
-Stored as `edge_gender` (`male` / `female`) and `edge_custom_voice` in `tts_settings`. Migration from the old single
-`edge_voice` key (read once when the new keys are absent, dropped on the next save): Avri / Andrew -> Male,
-Hila / Ava -> Female, any other valid voice -> custom voice, missing / invalid -> Male. The voice a migrated user
-hears does not change (`EdgeTtsTest`).
-
-1. `EdgeTtsClient` opens a WebSocket to
-   `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=…&ConnectionId=…&Sec-MS-GEC=…&Sec-MS-GEC-Version=…`
-   (Edge browser headers, random `muid` cookie), sends `speech.config` (output `audio-24khz-48kbitrate-mono-mp3`)
-   and an SSML request, and collects the binary `Path:audio` frames until `Path:turn.end`.
-   `Sec-MS-GEC` is SHA-256 of the Windows file time (rounded to 5 minutes) + the public client token; a 403 with a
-   `Date` header corrects the clock skew and retries once (as edge-tts does).
-2. Text is XML-escaped, control characters removed, and split into ≤ 4096-byte requests whose MP3s are concatenated.
-3. The MP3 is cached under `cacheDir/edge_tts/<sha256(voice + text)>.mp3` (LRU-trimmed to ~100 MB) and played
-   through the `MediaPlayer` queue path. The speech-rate slider is applied with `PlaybackParams.setSpeed`, so it
-   does not invalidate the cache.
-4. **Fallback:** connection error, handshake rejection, 15 s without data, or no audio → toast (throttled to one
-   per 30 s) and system TTS for that message; Edge is then skipped for 60 s. An unplayable cached file is
-   deleted and the message is read by system TTS.
-5. **Test voice** fetches the sample in the selected test language with the voice Edge would use for it (Avri /
-   Hila for Hebrew, Andrew / Ava multilingual otherwise, or the custom voice) and plays it.
-
-Pure logic (URL / token / SSML builders, text splitting, frame parsing, cache key, gender -> voice, prefs migration) is in
-`domain/edge/EdgeTts.kt` and unit tested (`EdgeTtsTest`). An opt-in live smoke test hits the real service:
-`EDGE_TTS_LIVE=1 ./gradlew testDebugUnitTest --tests '*EdgeTtsClientLiveTest*'`.
+## Cloud prefetch
 
 Known limitations: audio is fetched before playback starts (no streaming), so a very long *first* message still
-waits for its own synthesis (roughly 4-5x faster than real time). While a cloud (Gemini / Edge) item plays, the
+waits for its own synthesis (roughly 4-5x faster than real time). While a Gemini item plays, the
 next `CloudTtsPrefetch.COUNT` (default 2) speakable messages are synthesized into the existing disk cache so the
 queue does not stall on each subsequent item. Prefetch is cancelled on skip / stop / pause / engine change and
 is not used for the system-TTS path; network failures still fall back to system TTS as before.
@@ -167,7 +120,7 @@ There is **no cloud key in the repo**. Get a key at [aistudio.google.com/apikey]
 ## Playback (all engines)
 
 - **Speech rate**: 0.5× - 2.0× in 0.1 steps, value shown next to the label; applied to all languages (system
-  TTS rate, Gemini has fixed rate, Edge MediaPlayer speed).
+  TTS rate; Gemini has a fixed rate).
 - **Mark messages as read in Telegram** (debug builds only): on by default. When enabled, messages are
   marked read in Telegram only after they were fully spoken (or skipped). Turn off to leave chats unread
   while testing. Release builds do not show the switch and always mark played messages as read, ignoring a
@@ -178,7 +131,7 @@ There is **no cloud key in the repo**. Get a key at [aistudio.google.com/apikey]
 `TtsManager` still switches the language per utterance (`LanguageDetector`) for **system** TTS. After `setLanguage(...)` it applies the
 voice chosen for **that language** if there is one (and it is still installed and offline); languages without a
 choice use the engine's default voice. The choices are stored in SharedPreferences (`tts_settings`: `engine`, `rate`,
-`voice.<language>`, `mark_as_read`, `provider`, `gemini_voice`, `edge_gender`, `edge_custom_voice`), see
+`voice.<language>`, `mark_as_read`, `provider`, `gemini_voice`), see
 `TtsPreferences`. The Gemini API key is in a separate encrypted prefs file (`GeminiKeyStore`). Pure logic (grouping,
 filtering, clamping, settings updates, cache keys, section visibility) is in `domain/tts/TtsVoiceLogic.kt`,
-`domain/tts/VoiceSettingsLogic.kt`, `domain/edge/EdgeTts.kt` and `domain/gemini/GeminiTts.kt` and is unit tested.
+`domain/tts/VoiceSettingsLogic.kt` and `domain/gemini/GeminiTts.kt` and is unit tested.

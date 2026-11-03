@@ -13,10 +13,10 @@ Storage", a use-case layer; the Onboarding and Player screens came later with #2
 | Language / UI | Kotlin, Jetpack Compose (Material 3), Navigation Compose, single `MainActivity` |
 | DI | Hilt (`core/di/AppModule.kt` + `@Inject` constructors) |
 | Telegram | TDLib 1.8.56 from JitPack (`com.github.tdlibx:td`), wrapped by `TdLibClient` |
-| Speech | Microsoft Edge neural TTS (unofficial; default on new installs), Android `TextToSpeech` (offline; fallback, and the engine of updated installs that never chose one), optional Gemini 2.5 Flash TTS (BYOK) |
+| Speech | Android `TextToSpeech` (offline; default and fallback), optional Gemini 2.5 Flash TTS (BYOK) |
 | Playback | Foreground `PlaybackService` + `MediaSessionCompat`, `MediaPlayer` for voice notes, dings and cloud TTS audio |
 | Persistence | TDLib's own database in `filesDir/tdlib`, encrypted with a Keystore-wrapped key (`TdLibDatabaseKeyStore`); settings in `SharedPreferences`; Gemini key in `EncryptedSharedPreferences`; cloud-TTS audio in an LRU disk cache |
-| Backend | None. The app talks only to Telegram, plus Gemini / Microsoft if the user opts into those engines |
+| Backend | None. The app talks only to Telegram, plus Gemini if the user opts into it |
 
 ## Layers and packages
 
@@ -52,8 +52,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── gemini/       GeminiTts (voices, cache key, helpers)
-│   ├── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
-│   └── edge/         EdgeTts (SSML/protocol helpers, voice mapping)
+│   └── security/     DatabaseEncryptionPolicy (which key to try / re-key / reset), WrappedKeyCodec
 ├── data/      Implementations that touch TDLib, Android or the network
 │   ├── tdlib/TdLibClient            one TDLib client; updates as a SharedFlow, suspend send(), latest connection state
 │   ├── connection/TdLibConnectionMonitor  UpdateConnectionState → ConnectionStatus
@@ -65,7 +64,6 @@ io.github.yedidyatob.telegramnarrator
 │   ├── auth/DeviceCountrySignals    SIM / network / locale country for the login default country
 │   ├── tts/TtsPreferences           SharedPreferences (read synchronously by TtsManager)
 │   ├── gemini/                      GeminiKeyStore, GeminiSpeechClient/Synthesizer/Cache
-│   ├── edge/                        EdgeTtsClient (OkHttp WebSocket), EdgeSpeechSynthesizer/Cache
 │   └── speech/DiskAudioCache        shared LRU file cache for synthesized audio
 └── core/      Android infrastructure
     ├── service/PlaybackService      foreground service: queue processing, notification, media session
@@ -97,8 +95,8 @@ it is never reset while the Keystore is unavailable. `AppNavigation` in `MainAct
 
 **Onboarding (#20).** Shown once, before the login, to users who are not signed in (someone already signed in, e.g.
 after an update, never sees it): what the app does; the unofficial-app notice and what stays on the device, with the
-privacy policy link (and, when Edge is selected, that its text and chat names go to Microsoft); the voice engine
-(Edge first and preselected on a new install; System, with a check for an offline Hebrew voice and a shortcut to the
+privacy policy link; the voice engine
+(System, preselected by default, with a check for an offline Hebrew voice and a shortcut to the
 system TTS settings; Gemini with an inline API-key field), written to `TtsPreferences`; and on Android 13+
 the notification permission (the step is left out when it is already granted). Skip, or finishing, sets the
 `OnboardingPreferences` flag and the login follows.
@@ -116,7 +114,7 @@ itself. A failed refresh with chats on screen only shows a snackbar.
 **Player (#20).** `PlaybackService` publishes a `NowPlaying` (chat, avatar, the message being read, its position from
 `PlaybackPlan` — only chats and messages that are actually heard count —, the engine speaking) through
 `PlaybackManager`; `PlayerUiState` adds pause / preparing / the sponsored ad / the engine indicator (a system voice
-standing in for Edge or Gemini is shown as a fallback). The mini player at the bottom of Home opens the Player
+standing in for Gemini is shown as a fallback). The mini player at the bottom of Home opens the Player
 screen (slide up; closes with ⌄, the predictive back gesture or when playback ends): avatar, chat position, the
 message in its own direction, message position, previous / play-pause / next message (laid out left-to-right in RTL
 too, like media controls), next chat and stop. Previous (`ACTION_PREVIOUS_MSG`, `ChatPlaybackHistory`) stays within
@@ -132,7 +130,7 @@ settings only.
    the chat's official sponsored message, `Silence`, `Outro` = end ding),
 3. plays each item, running the generic `MessageCleaner` and `MessageSpeechBody` (silent skip of media-only /
    symbol-only rows) just before speaking: voice notes and dings through `MediaPlayer`; text through the selected `SpeechProvider`
-   (`SYSTEM` → `TtsManager`; `GEMINI` / `EDGE` → synthesize to a WAV in the disk cache, prefetching the next
+   (`SYSTEM` → `TtsManager`; `GEMINI` → synthesize to a WAV in the disk cache, prefetching the next
    messages while the current one plays, falling back to system TTS on failure),
 4. records progress in `ReadCheckpointer` and marks messages read in batches via
    `ChatRepository.markChatAsRead` (only messages that were actually played or deliberately skipped; always on in

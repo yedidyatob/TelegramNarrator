@@ -1,6 +1,6 @@
 # Privacy Policy: Narri
 
-_Last updated: October 6, 2026_
+_Last updated: November 3, 2026_
 
 Narri ("the app") is an Android app, developed by Yedidya Toberman ("I", "me"), that reads
 your unread Telegram messages aloud. This policy explains what data the app handles, where it goes, and how you
@@ -17,11 +17,9 @@ endorsed or supported by Telegram.
   shared for advertising and is not used to train AI models. In channels and bot chats the app shows Telegram's
   official sponsored messages, because Telegram requires it (see section 2a).
 - Your Telegram data is exchanged **only with Telegram's servers** and is stored **on your device**, encrypted.
-- **The default voice engine on a new install is Microsoft Edge, an online service:** with it, the text of the
-  messages being read and the chat titles are sent to Microsoft for speech synthesis. You can switch to the
-  **System** voice, which works entirely on your device, in the first-run introduction or at any time in the voice
-  settings. (Installs updated from a version that used the System voice keep it.) Gemini is optional and needs your
-  own API key.
+- **The default voice engine is the System voice, which works entirely on your device.** The optional Gemini
+  engine (your own API key) sends the text being read to Google; you choose it in the first-run introduction or
+  in the voice settings.
 
 ## What the app handles and where it goes
 
@@ -65,28 +63,26 @@ through TDLib, when an ad was **viewed** (read aloud in full, or its text fully 
 **open its link**, and when you **report** it; these reports contain only the chat and the ad, nothing else
 from your device. The ads are selected and served by Telegram
 ([About these ads](https://ads.telegram.org), [Telegram's Privacy Policy](https://telegram.org/privacy)); the
-developer does not choose them, receives nothing about them and earns nothing from them. If you use an online
-voice engine, the ad's text is sent to it like a message.
+developer does not choose them, receives nothing about them and earns nothing from them. If you use Gemini, the ad's text is sent to it like a message.
 
 ### 3. Speech synthesis (text-to-speech)
 
-You choose the voice engine in the first-run introduction and, at any time, in the app's voice settings. A new
-install starts with **Edge**; an install updated from an earlier version keeps the engine it had (the System voice
-unless you had chosen another one). If Edge or Gemini cannot be reached, that message is read with the System voice.
+You choose the voice engine in the first-run introduction and, at any time, in the app's voice settings. The default is the
+**System** voice (earlier versions also offered a Microsoft Edge voice; it was removed, and installs that used it
+now use the System voice). If Gemini cannot be reached, that message is read with the System voice.
 
 | Engine | What leaves your device | Recipient |
 |---|---|---|
 | **System** | Nothing is sent by the app. The text is handed to the text-to-speech engine installed on your phone (for example Google Speech Services). The app lists only offline voices; what the engine itself does is governed by its own provider's policy. | None |
-| **Edge** (default on new installs; unofficial) | The cleaned text of each message to be spoken and the title of each chat being read, the chosen voice name and a random identifier generated for each request. Like any internet connection, your IP address is visible to the service. | Microsoft, through the online service behind the "Read aloud" feature of the Microsoft Edge browser ([Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)). This is not an official Microsoft API for third-party apps. |
 | **Gemini** (optional, your own API key) | The cleaned text of each message to be spoken and the title of each chat being read, and your Gemini API key (to authorize the request). | Google, through its Generative AI API ([Google Privacy Policy](https://policies.google.com/privacy)). Requests are billed to your own Google Cloud account. |
 
 "Cleaned text" means the message text after the app removes links, ads and similar parts it does not read
 aloud. Before a chat's messages the app speaks the chat's title (the group or channel name, or, for a one-on-one
-chat, the other person's name, without emoji and symbols), so with an online engine that title is sent too.
+chat, the other person's name, without emoji and symbols), so with Gemini that title is sent too.
 Sender names of individual messages are not sent unless they appear in the message text.
 While one message plays, the app may already send the next few queued messages so that playback has no gaps.
 
-To save data and money, audio produced by Edge or Gemini is **cached on your device** (in the app's cache
+To save data and money, audio produced by Gemini is **cached on your device** (in the app's cache
 folder), named by a one-way hash of the text, so that the same message is not sent again.
 
 ### 4. Settings and your Gemini API key
@@ -105,7 +101,7 @@ database, your settings and your API key are never copied to Google Drive or to 
 
 | Permission | Why |
 |---|---|
-| Internet | Connect to Telegram (including its sponsored messages) and to the online voice service in use (Edge by default, or Gemini) |
+| Internet | Connect to Telegram (including its sponsored messages) and to the online voice service in use (Gemini, if you choose it) |
 | Foreground service (media playback) | Keep reading aloud while the screen is off or another app is open |
 | Notifications (optional) | Show playback controls (pause, skip, stop) in the notification and on the lock screen |
 
@@ -113,20 +109,20 @@ The app does not access your contacts, location, camera, microphone, photos or f
 
 ## Security
 
-All network connections are encrypted in transit: Telegram traffic uses Telegram's MTProto protocol, the Edge
-and Gemini services use TLS (HTTPS / secure WebSocket). Data at rest is kept in the app's private storage; the
+All network connections are encrypted in transit: Telegram traffic uses Telegram's MTProto protocol, the Gemini
+service uses TLS (HTTPS). Data at rest is kept in the app's private storage; the
 Telegram database and the Gemini key are encrypted as described above.
 
 ## Keeping and deleting your data
 
 - **Log out** (in the ⋮ menu of the main screen) ends the app's Telegram session and deletes the Telegram database
-  (session, chats and cached messages) from your device. It also deletes the cached Edge and Gemini audio.
+  (session, chats and cached messages) from your device. It also deletes the cached speech audio.
 - **Remove key** in the voice settings deletes your Gemini API key.
 - **Clear storage** (Android Settings → Apps → Narri → Storage) or **uninstalling** the
   app deletes everything the app stored on your device, including settings and the audio cache.
 - Data held by Telegram (your account and messages) is managed in Telegram; see Telegram's Privacy Policy. You
   can also end this app's session from another Telegram app under *Settings → Devices*.
-- Text you sent to Microsoft or Gemini for speech synthesis is handled under their policies.
+- Text you sent to Gemini for speech synthesis is handled under their policies.
 
 Because I never receive your data, there is nothing for me to delete on a server; if you have questions, contact
 me (below).

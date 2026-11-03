@@ -22,11 +22,12 @@ import io.github.yedidyatob.telegramnarrator.core.service.UpNext
 import io.github.yedidyatob.telegramnarrator.domain.about.AppVersionInfo
 import io.github.yedidyatob.telegramnarrator.domain.audio.NowPlaying
 import io.github.yedidyatob.telegramnarrator.domain.audio.PlaybackPosition
-import io.github.yedidyatob.telegramnarrator.domain.edge.EdgeVoiceGender
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.MessageContentType
+import io.github.yedidyatob.telegramnarrator.domain.tts.EngineOption
 import io.github.yedidyatob.telegramnarrator.domain.tts.SpeechProvider
 import io.github.yedidyatob.telegramnarrator.domain.tts.TestLanguage
+import io.github.yedidyatob.telegramnarrator.domain.tts.VoiceOption
 import io.github.yedidyatob.telegramnarrator.ui.components.AboutDialog
 import io.github.yedidyatob.telegramnarrator.ui.screens.home.ChatList
 import io.github.yedidyatob.telegramnarrator.ui.screens.home.HomeTopBar
@@ -37,7 +38,8 @@ import io.github.yedidyatob.telegramnarrator.ui.screens.player.PlayerContent
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsActions
 import io.github.yedidyatob.telegramnarrator.ui.screens.settings.VoiceSettingsContent
 import io.github.yedidyatob.telegramnarrator.ui.theme.TelegramNarratorTheme
-import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EdgeVoiceUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.SystemVoiceUiState
+import io.github.yedidyatob.telegramnarrator.ui.viewmodel.VoiceGroup
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineIndicator
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.EngineLabel
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.PlayerUiState
@@ -114,13 +116,13 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
         chatPosition = PlaybackPosition(1, 5),
         messagePosition = PlaybackPosition(3, data.chats[0].unreadCount),
         messageCount = data.chats[0].unreadCount,
-        engine = SpeechProvider.EDGE
+        engine = SpeechProvider.SYSTEM
     )
 
     private val playerState get() = PlayerUiState(
         isActive = true,
         nowPlaying = nowPlaying,
-        engine = EngineIndicator(EngineLabel.EDGE)
+        engine = EngineIndicator(EngineLabel.SYSTEM)
     )
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -190,8 +192,15 @@ abstract class PlayStoreScreenshots(private val lang: String, private val data: 
         show {
             VoiceSettingsContent(
                 state = TtsSettingsUiState(
-                    provider = SpeechProvider.EDGE,
-                    edge = EdgeVoiceUiState(gender = EdgeVoiceGender.FEMALE),
+                    provider = SpeechProvider.SYSTEM,
+                    system = SystemVoiceUiState(
+                        loading = false,
+                        engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
+                        groups = listOf(
+                            VoiceGroup("he", if (lang == "he") "עברית" else "Hebrew", listOf(VoiceOption("he-il-x-heb-local", "he-IL", "he", 400, requiresNetwork = false, installed = true)), "he-il-x-heb-local"),
+                            VoiceGroup("en", if (lang == "he") "אנגלית" else "English", listOf(VoiceOption("en-us-x-iol-local", "en-US", "en", 400, requiresNetwork = false, installed = true)), null)
+                        )
+                    ),
                     testLanguage = data.testLanguage
                 ),
                 isPlaying = false,
