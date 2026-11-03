@@ -22,7 +22,7 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
-# ---- security-crypto / Tink (OpenAI key store) -------------------------
+# ---- security-crypto / Tink (Gemini key store) -------------------------
 # Tink references compile-only Error Prone annotations; without this R8 fails the release build.
 -dontwarn com.google.errorprone.annotations.Immutable
 

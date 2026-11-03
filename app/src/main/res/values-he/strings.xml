@@ -253,7 +253,7 @@
     <string name="settings_gemini_remove_key">הסרת המפתח</string>
     <string name="settings_gemini_voice">קול</string>
     <string name="settings_gemini_test_needs_key">שמרו מפתח כדי לבדוק את הקול</string>
-    <string name="settings_gemini_cost_privacy">בערך באותו מחיר כמו OpenAI tts-1 (השמע מחויב לפי טוקן; מחירי היכרות עשויים להשתנות). טקסט ההודעות, שמות הצ׳אטים והמפתח נשלחים רק ל-generativelanguage.googleapis.com. המפתח נשמר מוצפן במכשיר הזה.</string>
+    <string name="settings_gemini_cost_privacy">Google מחייבת את המפתח שלכם לפי טוקן שמע (המחירים עשויים להשתנות). טקסט ההודעות, שמות הצ׳אטים והמפתח נשלחים רק ל-generativelanguage.googleapis.com. המפתח נשמר מוצפן במכשיר הזה.</string>
     <string name="settings_gemini_test_failed">בדיקת קול Gemini נכשלה (בדקו את המפתח ואת הרשת).</string>
     <string name="settings_section_playback">השמעה</string>
     <string name="settings_rate">מהירות דיבור</string>

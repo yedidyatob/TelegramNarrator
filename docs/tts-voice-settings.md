@@ -61,8 +61,7 @@ Section visibility and Test-voice enablement are pure functions in `domain/tts/V
 | **System** | ✅ | no | free | On-device Android TTS (also the fallback for Gemini) |
 | **Gemini** | | yes | paid (your key) | Bring-Your-Own-Key, see below |
 
-The choice is stored as `provider` (`system` / `gemini`) in `tts_settings`. Builds from the OpenAI era
-stored an `openai_enabled` flag; it is migrated to `provider = gemini` on first read.
+The choice is stored as `provider` (`system` / `gemini`) in `tts_settings`.
 
 **No stored choice, or an unknown id** (`TtsPreferences`, `SpeechProvider.fromStored`): **System**
 (`SpeechProvider.DEFAULT`).

@@ -9,8 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Stores the user's Gemini API key in EncryptedSharedPreferences (separate file from the former
- * OpenAI key store so no old OpenAI key is ever sent to Google).
+ * Stores the user's Gemini API key in EncryptedSharedPreferences.
  * The key is never written to logs; callers must not log [getApiKey] results.
  */
 @Singleton
