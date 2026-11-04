@@ -53,7 +53,7 @@ class DemoAwareAuthRepository(
         combine(real.authState, demo.active, demoCodePending) { state, active, pending ->
             when {
                 active -> AuthState.Authenticated
-                pending -> AuthState.WaitCode
+                pending -> AuthState.WaitCode(phoneNumber = DemoLogin.PHONE)
                 else -> state
             }
         }
@@ -77,6 +77,15 @@ class DemoAwareAuthRepository(
     }
 
     override suspend fun checkAuthenticationPassword(password: String) = real.checkAuthenticationPassword(password)
+
+    /** No code is sent for the demo login, so nothing to resend. */
+    override suspend fun resendCode() {
+        if (!demoCodePending.value) real.resendCode()
+    }
+
+    override fun changePhoneNumber() {
+        if (demoCodePending.value) demoCodePending.value = false else real.changePhoneNumber()
+    }
 
     override suspend fun logOut() {
         if (demo.isActive) demo.active.value = false else real.logOut()

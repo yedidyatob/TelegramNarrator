@@ -2,12 +2,15 @@ package io.github.yedidyatob.telegramnarrator.data.repository
 
 import android.util.Log
 import io.github.yedidyatob.telegramnarrator.BuildConfig
+import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdGateway
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibDatabaseKeyStore
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
+import io.github.yedidyatob.telegramnarrator.domain.auth.CodeDelivery
 import io.github.yedidyatob.telegramnarrator.domain.model.ApiCredentials
 import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
 import io.github.yedidyatob.telegramnarrator.domain.model.StartupFailure
+import io.github.yedidyatob.telegramnarrator.domain.model.UnsupportedLoginStep
 import io.github.yedidyatob.telegramnarrator.domain.repository.AuthRepository
 import io.github.yedidyatob.telegramnarrator.domain.security.DatabaseEncryptionPolicy
 import kotlinx.coroutines.CancellationException
@@ -16,7 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -45,7 +48,15 @@ class TdLibAuthRepository
         private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
         private val _authState = MutableStateFlow<AuthState>(AuthState.Initializing)
-        override val authState: Flow<AuthState> = _authState.asStateFlow()
+
+        /** "Wrong number?" was tapped: show the phone step although TDLib still waits for the code. */
+        private val changingNumber = MutableStateFlow(false)
+
+        override val authState: Flow<AuthState> =
+            combine(_authState, changingNumber) { state, changing ->
+                val pendingLogin = state is AuthState.WaitCode || state is AuthState.WaitPassword || state is AuthState.Unsupported
+                if (changing && pendingLogin) AuthState.WaitPhoneNumber else state
+            }
 
         init {
             repositoryScope.launch {
@@ -80,7 +91,19 @@ class TdLibAuthRepository
                     }
 
                     is TdApi.AuthorizationStateWaitCode -> {
-                        AuthState.WaitCode
+                        codeState(state.codeInfo)
+                    }
+
+                    is TdApi.AuthorizationStateWaitEmailAddress, is TdApi.AuthorizationStateWaitEmailCode -> {
+                        AuthState.Unsupported(UnsupportedLoginStep.EMAIL)
+                    }
+
+                    is TdApi.AuthorizationStateWaitRegistration -> {
+                        AuthState.Unsupported(UnsupportedLoginStep.REGISTRATION)
+                    }
+
+                    is TdApi.AuthorizationStateWaitOtherDeviceConfirmation -> {
+                        AuthState.Unsupported(UnsupportedLoginStep.OTHER_DEVICE)
                     }
 
                     is TdApi.AuthorizationStateWaitPassword -> {
@@ -109,6 +132,14 @@ class TdLibAuthRepository
                     }
                 }
             _authState.value = newState
+        }
+
+        private fun codeState(info: TdApi.AuthenticationCodeInfo?): AuthState.WaitCode {
+            val type = CodeDelivery.fromTdType(info?.type?.javaClass?.simpleName) ?: CodeDelivery.UNKNOWN
+            val next = CodeDelivery.fromTdType(info?.nextType?.javaClass?.simpleName)
+            // Code types only: never the phone number or the code
+            AutoLog.event("Login code sent: type=$type next=$next timeout=${info?.timeout}")
+            return AuthState.WaitCode(info?.phoneNumber.orEmpty(), type, next, info?.timeout ?: 0)
         }
 
         /**
@@ -190,7 +221,18 @@ class TdLibAuthRepository
         }
 
         override suspend fun setPhoneNumber(phoneNumber: String) {
+            // Default settings (null): no flash / missed calls, no SMS Retriever, no Firebase (this app has none).
+            // Also allowed while TDLib waits for a code / password, which replaces that pending login ("Wrong number?").
             client.send<TdApi.Ok>(TdApi.SetAuthenticationPhoneNumber(phoneNumber, null))
+            changingNumber.value = false
+        }
+
+        override suspend fun resendCode() {
+            client.send<TdApi.Ok>(TdApi.ResendAuthenticationCode(TdApi.ResendCodeReasonUserRequest()))
+        }
+
+        override fun changePhoneNumber() {
+            changingNumber.value = true
         }
 
         override suspend fun checkAuthenticationCode(code: String) {

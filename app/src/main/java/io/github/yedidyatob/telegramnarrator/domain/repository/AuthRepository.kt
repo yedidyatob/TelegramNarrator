@@ -15,5 +15,11 @@ interface AuthRepository {
 
     suspend fun checkAuthenticationPassword(password: String)
 
+    /** "Send again" on the code step (TDLib `resendAuthenticationCode`). */
+    suspend fun resendCode()
+
+    /** "Wrong number?": back to the phone step; the next [setPhoneNumber] replaces the pending login. */
+    fun changePhoneNumber()
+
     suspend fun logOut()
 }

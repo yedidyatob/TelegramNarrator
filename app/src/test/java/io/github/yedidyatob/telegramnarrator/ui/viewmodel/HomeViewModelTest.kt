@@ -81,6 +81,10 @@ class HomeViewModelTest {
         override suspend fun checkAuthenticationPassword(password: String) = Unit
 
         override suspend fun logOut() = Unit
+
+        override suspend fun resendCode() = Unit
+
+        override fun changePhoneNumber() = Unit
     }
 
     private class FakeConnection : ConnectionMonitor {

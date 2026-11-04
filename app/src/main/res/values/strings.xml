@@ -23,7 +23,26 @@
     <string name="login_title_code">Enter verification code</string>
     <string name="login_label_code">Verification Code</string>
     <string name="login_btn_verify_code">Verify Code</string>
-    <string name="login_subtitle_code">Telegram sent the code to your other Telegram app or by SMS</string>
+    <!-- Code step: where Telegram sent the code (TDLib authenticationCodeType) -->
+    <string name="login_code_sent_to">Code for %1$s</string>
+    <string name="login_code_via_app">Check the Telegram app on your other device: the code is in the chat from \"Telegram\".</string>
+    <string name="login_code_via_sms">We sent the code by SMS.</string>
+    <string name="login_code_via_sms_word">We sent a word by SMS. Enter that word.</string>
+    <string name="login_code_via_sms_phrase">We sent a phrase by SMS. Enter that phrase.</string>
+    <string name="login_code_via_call">You will get a phone call that tells you the code.</string>
+    <string name="login_code_via_missed_call">You will get a missed call. The code is the last digits of the calling number.</string>
+    <string name="login_code_via_fragment">The code was sent to your anonymous number on Fragment (fragment.com).</string>
+    <string name="login_code_via_firebase">Telegram wants to verify this device in a way this app can\'t. Tap \"Send again\" when it becomes available to get the code another way.</string>
+    <string name="login_code_via_unknown">Enter the code you received.</string>
+    <string name="login_code_resend_in">Send again in %1$d s</string>
+    <string name="login_code_resend">Send again</string>
+    <string name="login_code_resend_sms">Send by SMS instead</string>
+    <string name="login_code_resend_call">Call me instead</string>
+    <string name="login_code_wrong_number">Wrong number?</string>
+    <string name="login_btn_back">Back</string>
+    <string name="login_unsupported_email">Telegram asks for an email login step for this account, which this app doesn\'t support. Log in once with the official Telegram app, then try again.</string>
+    <string name="login_unsupported_registration">There is no Telegram account for this number. Create one in the official Telegram app first, then log in here.</string>
+    <string name="login_unsupported_other_device">Confirm the login on your other device, or go back and log in with your phone number.</string>
     <string name="login_subtitle_password">Your account is protected by two-step verification</string>
     <string name="login_error_title">Could not start Telegram</string>
     <string name="login_btn_retry">Retry</string>
