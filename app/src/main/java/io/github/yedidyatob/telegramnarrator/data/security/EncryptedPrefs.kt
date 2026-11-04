@@ -9,7 +9,9 @@ import androidx.security.crypto.MasterKey
 /**
  * EncryptedSharedPreferences [file], or null when the device's secure storage is broken. Callers then keep their
  * data in memory or not at all, never in plaintext (#67). [unavailable] is logged with the exception type only.
+ * The deprecated androidx.security-crypto API is kept deliberately for launch (no migration for now).
  */
+@Suppress("DEPRECATION")
 fun encryptedPrefsOrNull(
     context: Context,
     file: String,

@@ -250,8 +250,6 @@ dependencies {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        // Media3 marks most session / SimpleBasePlayer APIs as UnstableApi; the whole playback stack opts in
-        freeCompilerArgs.add("-opt-in=androidx.media3.common.util.UnstableApi")
     }
 }
 

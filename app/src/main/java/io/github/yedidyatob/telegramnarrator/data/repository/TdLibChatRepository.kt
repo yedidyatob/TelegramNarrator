@@ -75,9 +75,7 @@ class TdLibChatRepository(
                         refreshUnreadList()
                     }
 
-                    else -> {
-                        Unit
-                    }
+                    else -> {}
                 }
             }
         }

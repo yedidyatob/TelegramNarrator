@@ -11,10 +11,10 @@ import java.util.Locale
  * script falls back to the device language.
  */
 object LanguageDetector {
-    val HEBREW: Locale = Locale("he")
+    val HEBREW: Locale = Locale.forLanguageTag("he")
     val ENGLISH: Locale = Locale.ENGLISH
-    val RUSSIAN: Locale = Locale("ru")
-    val ARABIC: Locale = Locale("ar")
+    val RUSSIAN: Locale = Locale.forLanguageTag("ru")
+    val ARABIC: Locale = Locale.forLanguageTag("ar")
 
     /** The script language of [text], or the device language when it has no letters of a known script. */
     fun detect(

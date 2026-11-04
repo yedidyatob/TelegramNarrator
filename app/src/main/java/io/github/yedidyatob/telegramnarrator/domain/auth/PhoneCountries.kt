@@ -30,7 +30,7 @@ object PhoneCountries {
     fun displayName(
         regionCode: String,
         displayLocale: Locale = Locale.getDefault(),
-    ): String = Locale("", regionCode).getDisplayCountry(displayLocale).ifBlank { regionCode }
+    ): String = Locale.forLanguageTag("und-$regionCode").getDisplayCountry(displayLocale).ifBlank { regionCode }
 
     /**
      * Search by country name (UI language or English), ISO code or dial code: "isr", "ישראל", "IL", "972", "+972".

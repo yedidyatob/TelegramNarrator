@@ -112,12 +112,15 @@ class PlaybackSession(
                     .add(SessionCommand(COMMAND_NEXT_CHAT, Bundle.EMPTY))
                     .build()
             return MediaSession.ConnectionResult
-                .AcceptedResultBuilder(session)
+                .AcceptedResultBuilder()
+                .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
                 .setAvailableSessionCommands(sessionCommands)
                 .setMediaButtonPreferences(buttons)
                 .build()
         }
 
+        // Deprecated in Media3 but still called; only records which controller sent the command
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun onPlayerCommandRequest(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,

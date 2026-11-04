@@ -255,9 +255,7 @@ class TtsSettingsViewModel
                     )
                 }
 
-                SpeechSynthesisOutcome.UseSystem -> {
-                    Unit
-                }
+                SpeechSynthesisOutcome.UseSystem -> {}
             }
         }
 
