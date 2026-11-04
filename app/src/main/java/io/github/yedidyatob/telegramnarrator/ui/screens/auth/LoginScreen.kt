@@ -20,9 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,9 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.yedidyatob.telegramnarrator.R
+import io.github.yedidyatob.telegramnarrator.domain.auth.CodeDelivery
+import io.github.yedidyatob.telegramnarrator.domain.auth.CodeResend
+import io.github.yedidyatob.telegramnarrator.domain.auth.ResendKind
 import io.github.yedidyatob.telegramnarrator.domain.model.AuthState
+import io.github.yedidyatob.telegramnarrator.domain.model.UnsupportedLoginStep
 import io.github.yedidyatob.telegramnarrator.ui.components.PrivacyPolicyLink
 import io.github.yedidyatob.telegramnarrator.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(
@@ -104,10 +111,23 @@ fun LoginScreen(
 
                     is AuthState.WaitCode -> {
                         CodeInput(
+                            state = state,
                             isLoading = isLoading,
                             error = authErrorText,
                             onEnter = viewModel::onCodeEntered,
+                            onResend = viewModel::onResendCode,
+                            onChangeNumber = viewModel::onChangePhoneNumber,
                         )
+                    }
+
+                    is AuthState.Unsupported -> {
+                        Text(
+                            stringResource(state.step.messageRes()),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(0.8f).semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = viewModel::onChangePhoneNumber) { Text(stringResource(R.string.login_btn_back)) }
                     }
 
                     is AuthState.WaitPassword -> {
@@ -166,24 +186,83 @@ internal fun UnofficialAppNotice() {
 
 @Composable
 fun CodeInput(
+    state: AuthState.WaitCode,
     isLoading: Boolean,
     error: String?,
     onEnter: (String) -> Unit,
+    onResend: () -> Unit,
+    onChangeNumber: () -> Unit,
 ) {
     var text by rememberSaveable { mutableStateOf("") }
-    LoginStep(
-        title = stringResource(R.string.login_title_code),
-        subtitle = stringResource(R.string.login_subtitle_code),
-        label = stringResource(R.string.login_label_code),
-        buttonText = stringResource(R.string.login_btn_verify_code),
-        text = text,
-        onTextChange = { text = it },
-        keyboardType = KeyboardType.Number,
-        isLoading = isLoading,
-        error = error,
-        onEnter = onEnter,
-    )
+    val number = CodeResend.displayNumber(state.phoneNumber)
+    val subtitle =
+        listOfNotNull(
+            number.takeIf { it.isNotBlank() }?.let { stringResource(R.string.login_code_sent_to, it) },
+            stringResource(state.type.messageRes()),
+        ).joinToString("\n")
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        LoginStep(
+            title = stringResource(R.string.login_title_code),
+            subtitle = subtitle,
+            label = stringResource(R.string.login_label_code),
+            buttonText = stringResource(R.string.login_btn_verify_code),
+            text = text,
+            onTextChange = { text = it },
+            keyboardType = if (state.type.isText) KeyboardType.Text else KeyboardType.Number,
+            isLoading = isLoading,
+            error = error,
+            onEnter = onEnter,
+        )
+        if (state.nextType != null) {
+            // Counts down from codeInfo.timeout; a new code (resend) is a new state and restarts it
+            var secondsLeft by remember(state) { mutableIntStateOf(state.timeoutSec) }
+            LaunchedEffect(state) {
+                val start = System.currentTimeMillis()
+                while (secondsLeft > 0) {
+                    delay(250)
+                    secondsLeft = CodeResend.secondsLeft(state.timeoutSec, System.currentTimeMillis() - start)
+                }
+            }
+            TextButton(onClick = onResend, enabled = !isLoading && secondsLeft == 0) {
+                Text(
+                    if (secondsLeft > 0) {
+                        stringResource(R.string.login_code_resend_in, secondsLeft)
+                    } else {
+                        stringResource(CodeResend.kindOf(state.nextType).messageRes())
+                    },
+                )
+            }
+        }
+        TextButton(onClick = onChangeNumber, enabled = !isLoading) { Text(stringResource(R.string.login_code_wrong_number)) }
+    }
 }
+
+private fun CodeDelivery.messageRes(): Int =
+    when (this) {
+        CodeDelivery.TELEGRAM_APP -> R.string.login_code_via_app
+        CodeDelivery.SMS -> R.string.login_code_via_sms
+        CodeDelivery.SMS_WORD -> R.string.login_code_via_sms_word
+        CodeDelivery.SMS_PHRASE -> R.string.login_code_via_sms_phrase
+        CodeDelivery.CALL -> R.string.login_code_via_call
+        CodeDelivery.MISSED_CALL -> R.string.login_code_via_missed_call
+        CodeDelivery.FRAGMENT -> R.string.login_code_via_fragment
+        CodeDelivery.FIREBASE -> R.string.login_code_via_firebase
+        CodeDelivery.UNKNOWN -> R.string.login_code_via_unknown
+    }
+
+private fun ResendKind.messageRes(): Int =
+    when (this) {
+        ResendKind.SMS -> R.string.login_code_resend_sms
+        ResendKind.CALL -> R.string.login_code_resend_call
+        ResendKind.AGAIN -> R.string.login_code_resend
+    }
+
+private fun UnsupportedLoginStep.messageRes(): Int =
+    when (this) {
+        UnsupportedLoginStep.EMAIL -> R.string.login_unsupported_email
+        UnsupportedLoginStep.REGISTRATION -> R.string.login_unsupported_registration
+        UnsupportedLoginStep.OTHER_DEVICE -> R.string.login_unsupported_other_device
+    }
 
 @Composable
 fun PasswordInput(

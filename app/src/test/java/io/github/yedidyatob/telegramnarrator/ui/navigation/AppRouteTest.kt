@@ -15,7 +15,7 @@ class AppRouteTest {
     fun `first run goes to onboarding, then login`() {
         assertEquals(AppRoute.ONBOARDING, AppRoute.redirect(AuthState.WaitPhoneNumber, false, AppRoute.LOGIN))
         assertEquals(AppRoute.LOGIN, AppRoute.redirect(AuthState.WaitPhoneNumber, true, AppRoute.ONBOARDING))
-        assertNull(AppRoute.redirect(AuthState.WaitCode, true, AppRoute.LOGIN))
+        assertNull(AppRoute.redirect(AuthState.WaitCode(), true, AppRoute.LOGIN))
     }
 
     @Test

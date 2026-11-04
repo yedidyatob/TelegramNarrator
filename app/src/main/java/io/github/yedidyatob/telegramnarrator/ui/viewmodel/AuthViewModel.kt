@@ -3,6 +3,7 @@ package io.github.yedidyatob.telegramnarrator.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 import io.github.yedidyatob.telegramnarrator.data.auth.DeviceCountrySignals
 import io.github.yedidyatob.telegramnarrator.data.tdlib.TdLibException
 import io.github.yedidyatob.telegramnarrator.domain.auth.LoginError
@@ -61,16 +62,32 @@ class AuthViewModel
         }
 
         /** [phoneNumber] is already normalized to E.164 by the phone field ([phoneNumbers]). */
-        fun onPhoneNumberEntered(phoneNumber: String) {
+        fun onPhoneNumberEntered(phoneNumber: String) = runStep { authRepository.setPhoneNumber(phoneNumber) }
+
+        fun onCodeEntered(code: String) = runStep { authRepository.checkAuthenticationCode(code) }
+
+        fun onResendCode() = runStep { authRepository.resendCode() }
+
+        /** "Wrong number?" / "Back": the phone step again. */
+        fun onChangePhoneNumber() {
+            _error.value = null
+            authRepository.changePhoneNumber()
+        }
+
+        private fun runStep(step: suspend () -> Unit) {
             if (_isLoading.value) return
             viewModelScope.launch {
                 _isLoading.value = true
                 _error.value = null
                 try {
-                    authRepository.setPhoneNumber(phoneNumber)
+                    step()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    // TDLib's error code / text (e.g. PHONE_CODE_INVALID), never the phone number or code
+                    AutoLog.event(
+                        "Login step failed: ${(e as? TdLibException)?.let { "${it.code} ${it.tdMessage}" } ?: e.javaClass.simpleName}",
+                    )
                     _error.value = loginErrorOf(e)
                 } finally {
                     _isLoading.value = false
@@ -78,37 +95,5 @@ class AuthViewModel
             }
         }
 
-        fun onCodeEntered(code: String) {
-            if (_isLoading.value) return
-            viewModelScope.launch {
-                _isLoading.value = true
-                _error.value = null
-                try {
-                    authRepository.checkAuthenticationCode(code)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _error.value = loginErrorOf(e)
-                } finally {
-                    _isLoading.value = false
-                }
-            }
-        }
-
-        fun onPasswordEntered(password: String) {
-            if (_isLoading.value) return
-            viewModelScope.launch {
-                _isLoading.value = true
-                _error.value = null
-                try {
-                    authRepository.checkAuthenticationPassword(password)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    _error.value = loginErrorOf(e)
-                } finally {
-                    _isLoading.value = false
-                }
-            }
-        }
+        fun onPasswordEntered(password: String) = runStep { authRepository.checkAuthenticationPassword(password) }
     }

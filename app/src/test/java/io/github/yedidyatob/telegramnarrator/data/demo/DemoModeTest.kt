@@ -37,6 +37,14 @@ class DemoModeTest {
         override suspend fun logOut() {
             calls += "logout"
         }
+
+        override suspend fun resendCode() {
+            calls += "resend"
+        }
+
+        override fun changePhoneNumber() {
+            calls += "change"
+        }
     }
 
     private val real = RecordingAuth()
@@ -67,7 +75,11 @@ class DemoModeTest {
     fun `demo login and logout never reach Telegram`() =
         runTest {
             auth.setPhoneNumber("+9990000000")
-            assertEquals(AuthState.WaitCode, auth.authState.first())
+            assertEquals(AuthState.WaitCode(phoneNumber = DemoLogin.PHONE), auth.authState.first())
+            auth.resendCode()
+            auth.changePhoneNumber()
+            assertEquals(AuthState.WaitPhoneNumber, auth.authState.first())
+            auth.setPhoneNumber("+999 000 0000")
             try {
                 auth.checkAuthenticationCode("11111")
                 fail()
