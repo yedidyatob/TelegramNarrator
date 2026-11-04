@@ -96,7 +96,7 @@ class PhoneNumberNormalizer(
                 Result.Invalid(Reason.WRONG_LENGTH)
             }
 
-            PhoneNumberUtil.ValidationResult.INVALID_COUNTRY_CODE, null -> {
+            PhoneNumberUtil.ValidationResult.INVALID_COUNTRY_CODE -> {
                 Result.Invalid(Reason.INVALID)
             }
         }

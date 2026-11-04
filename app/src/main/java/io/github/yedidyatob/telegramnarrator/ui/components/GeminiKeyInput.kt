@@ -23,9 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.yedidyatob.telegramnarrator.R
 import io.github.yedidyatob.telegramnarrator.domain.gemini.GeminiTts
+import kotlinx.coroutines.launch
 
 /**
  * Gemini API key text field (masked, with paste and show/hide), shared by onboarding and Voice settings.
@@ -54,7 +56,8 @@ fun GeminiApiKeyField(
     onDone: (() -> Unit)? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -65,14 +68,25 @@ fun GeminiApiKeyField(
         keyboardOptions =
             KeyboardOptions(
                 keyboardType = KeyboardType.Ascii,
-                autoCorrect = false,
+                autoCorrectEnabled = false,
                 imeAction = if (onDone != null) ImeAction.Done else ImeAction.Default,
             ),
         keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
         trailingIcon = {
             Row {
                 if (value.isBlank() && enabled) {
-                    IconButton(onClick = { clipboardManager.getText()?.text?.let(onValueChange) }) {
+                    IconButton(onClick = {
+                        scope.launch {
+                            val clip = clipboard.getClipEntry()?.clipData
+                            if (clip != null && clip.itemCount > 0) {
+                                clip
+                                    .getItemAt(0)
+                                    .text
+                                    ?.toString()
+                                    ?.let(onValueChange)
+                            }
+                        }
+                    }) {
                         Icon(Icons.Filled.ContentPaste, contentDescription = stringResource(R.string.settings_gemini_paste_key))
                     }
                 }

@@ -242,7 +242,7 @@ class PlaybackService :
             ACTION_PLAY_ALL -> {
                 // startForegroundService() requires startForeground() within ~5 s and loading chats can take
                 // longer: a buffering player with playWhenReady makes Media3 start the foreground right away
-                playChats((intent!!.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf()).toList())
+                playChats((intent.getLongArrayExtra(EXTRA_CHAT_IDS) ?: longArrayOf()).toList())
             }
 
             ACTION_STOP -> {
@@ -270,7 +270,7 @@ class PlaybackService :
             }
 
             ACTION_JUMP_TO_CHAT -> {
-                commands.jumpToQueueIndex(intent?.getIntExtra(EXTRA_QUEUE_INDEX, -1) ?: -1)
+                commands.jumpToQueueIndex(intent.getIntExtra(EXTRA_QUEUE_INDEX, -1))
             }
         }
         // Not restarted after the process is killed: playback never resumes by itself. The reading position is

@@ -108,6 +108,7 @@ class TtsManager
                             callback?.invoke(start)
                         }
 
+                        @Suppress("OVERRIDE_DEPRECATION") // Abstract, so it must be implemented
                         override fun onError(utteranceId: String?) {
                             // Handle error, maybe skip to next
                             finishUtterance(utteranceId, completed = false)

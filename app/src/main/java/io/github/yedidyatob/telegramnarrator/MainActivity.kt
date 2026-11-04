@@ -144,9 +144,7 @@ fun AppNavigation(
                 onOpenPlayerHandled()
             }
 
-            AppRoute.OpenPlayer.WAIT -> {
-                Unit
-            }
+            AppRoute.OpenPlayer.WAIT -> {}
         }
     }
 
