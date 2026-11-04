@@ -64,24 +64,32 @@ class OnboardingViewModel
         private val _hasGeminiKey = MutableStateFlow(geminiKeyStore.hasApiKey())
         val hasGeminiKey: StateFlow<Boolean> = _hasGeminiKey.asStateFlow()
 
-        private val _hebrewVoice = MutableStateFlow<Boolean?>(null)
+        private val _deviceLanguageVoice = MutableStateFlow<Boolean?>(null)
 
-        /** Whether the system engine has an offline Hebrew voice; null while the engine starts. */
-        val hebrewVoice: StateFlow<Boolean?> = _hebrewVoice.asStateFlow()
+        /** Whether the system engine has an offline voice for the device language; null while the engine starts. */
+        val deviceLanguageVoice: StateFlow<Boolean?> = _deviceLanguageVoice.asStateFlow()
+
+        private fun hasDeviceLanguageVoice() =
+            OnboardingFlow.hasVoiceFor(
+                ttsManager.availableVoices(),
+                java.util.Locale
+                    .getDefault()
+                    .language,
+            )
 
         init {
             viewModelScope.launch {
                 ttsManager.isInitialized.collect { ready ->
-                    _hebrewVoice.value = if (ready) OnboardingFlow.hasHebrewVoice(ttsManager.availableVoices()) else null
+                    _deviceLanguageVoice.value = if (ready) hasDeviceLanguageVoice() else null
                 }
             }
         }
 
-        /** Back from the system TTS settings: a Hebrew voice may have been installed meanwhile. */
-        fun recheckHebrewVoice() {
+        /** Back from the system TTS settings: a voice may have been installed meanwhile. */
+        fun recheckVoice() {
             if (!ttsManager.isInitialized.value) return
             ttsManager.reloadVoices()
-            _hebrewVoice.update { OnboardingFlow.hasHebrewVoice(ttsManager.availableVoices()) }
+            _deviceLanguageVoice.update { hasDeviceLanguageVoice() }
         }
 
         val isLastStep: Boolean get() = stepIndex.value >= steps.lastIndex

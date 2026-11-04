@@ -95,7 +95,7 @@ Video: record 20-30 s showing Play all → screen off / home → notification an
 Telegram sends the login code to the account's other sessions or by SMS, so reviewers use the built-in
 **demo login** instead (`data/demo/`): phone **+999 000 0000**, code **12345**. +999 is an unassigned country
 code, so it can never be a real account. It never touches TDLib, the network or the Telegram database: a few
-invented channels (English and Hebrew) are kept in memory, *Play all* reads them with the System voice (background
+invented channels (English; plus Hebrew ones on a Hebrew device) are kept in memory, *Play all* reads them with the System voice (background
 / screen-off playback and media controls work as usual), marking as read only changes the in-memory list, and
 *Log out* returns to the normal login. Works in release builds.
 
@@ -137,7 +137,7 @@ FEATURES
 • Lists your chats with unread messages; play all of them, a selection, or a single chat
 • Pause, resume, skip a message or a whole chat, from the app, the notification, the lock screen or headset buttons
 • Voice messages are played in the queue
-• Detects the language of every message (great for mixed Hebrew / English channels)
+• Detects the language of every message (great for channels that mix languages)
 • Cleans up channel posts: skips links, ads, signatures and symbol-only lines
 • Marks messages as read in Telegram only after they were actually read aloud
 • Adjustable speech rate

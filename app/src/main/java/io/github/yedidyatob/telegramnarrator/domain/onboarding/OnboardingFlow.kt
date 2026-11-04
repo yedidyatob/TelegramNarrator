@@ -31,6 +31,12 @@ object OnboardingFlow {
         signedIn: Boolean,
     ): Boolean = !completed && !signedIn
 
-    /** True when the system engine has a Hebrew voice that works offline (the app's main language). */
-    fun hasHebrewVoice(voices: List<VoiceOption>): Boolean = TtsVoiceLogic.usableVoices(voices).any { it.language == TtsVoiceLogic.HEBREW }
+    /** True when the system engine has an offline voice for [language] (the device language, e.g. "en"). */
+    fun hasVoiceFor(
+        voices: List<VoiceOption>,
+        language: String,
+    ): Boolean {
+        val code = TtsVoiceLogic.normalizeLanguage(language)
+        return TtsVoiceLogic.usableVoices(voices).any { it.language == code }
+    }
 }

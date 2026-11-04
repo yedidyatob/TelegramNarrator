@@ -5,11 +5,11 @@ enum class TestLanguage(
     val code: String,
 ) {
     ENGLISH("en"),
-    HEBREW("he"),
-    ARABIC("ar"),
-    RUSSIAN("ru"),
     SPANISH("es"),
     FRENCH("fr"),
+    RUSSIAN("ru"),
+    ARABIC("ar"),
+    HEBREW("he"),
     ;
 
     companion object {

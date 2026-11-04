@@ -70,7 +70,6 @@ object TtsVoiceLogic {
     const val DEFAULT_RATE = 1.0f
     const val RATE_STEP = 0.1f
 
-    const val HEBREW = "he"
     private const val ENGLISH = "en"
 
     /** Lower-case language code with the legacy Java codes mapped to the modern ones ("iw" -> "he"). */
@@ -97,12 +96,11 @@ object TtsVoiceLogic {
     }
 
     /**
-     * The languages to offer voices for: Hebrew first (the app's main language), then the device
-     * languages in their order of preference, then English (the language of Latin-script text and of the
+     * The languages to offer voices for: the device languages in their order of preference, then English (the language of Latin-script text and of the
      * English spoken phrases). No duplicates.
      */
     fun languagesToShow(deviceLanguages: List<String>): List<String> =
-        (listOf(HEBREW) + deviceLanguages.map { normalizeLanguage(it) } + ENGLISH)
+        (deviceLanguages.map { normalizeLanguage(it) } + ENGLISH)
             .filter { it.isNotEmpty() }
             .distinct()
 

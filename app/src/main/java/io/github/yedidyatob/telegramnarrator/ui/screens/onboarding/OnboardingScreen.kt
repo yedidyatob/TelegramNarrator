@@ -114,7 +114,7 @@ import io.github.yedidyatob.telegramnarrator.ui.viewmodel.OnboardingViewModel
 data class VoiceStepState(
     val provider: SpeechProvider = SpeechProvider.DEFAULT,
     /** null while the system engine starts. */
-    val hebrewVoice: Boolean? = null,
+    val languageVoice: Boolean? = null,
     val hasGeminiKey: Boolean = false,
 )
 
@@ -135,7 +135,7 @@ fun OnboardingScreen(
 ) {
     val stepIndex by viewModel.stepIndex.collectAsStateWithLifecycle()
     val provider by viewModel.provider.collectAsStateWithLifecycle()
-    val hebrewVoice by viewModel.hebrewVoice.collectAsStateWithLifecycle()
+    val languageVoice by viewModel.deviceLanguageVoice.collectAsStateWithLifecycle()
     val hasKey by viewModel.hasGeminiKey.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -146,12 +146,12 @@ fun OnboardingScreen(
     // Whatever the answer, the onboarding is done (playback works without the permission)
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { finish() }
 
-    // Back from the system TTS settings: look for a Hebrew voice again
+    // Back from the system TTS settings: look for a voice again
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer =
             LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) viewModel.recheckHebrewVoice()
+                if (event == Lifecycle.Event.ON_RESUME) viewModel.recheckVoice()
             }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -161,7 +161,7 @@ fun OnboardingScreen(
     OnboardingContent(
         steps = viewModel.steps,
         stepIndex = stepIndex,
-        voice = VoiceStepState(provider, hebrewVoice, hasKey),
+        voice = VoiceStepState(provider, languageVoice, hasKey),
         voiceActions =
             VoiceStepActions(
                 onSelect = viewModel::selectProvider,
@@ -422,7 +422,7 @@ private fun VoicePage(
             description = stringResource(R.string.onboarding_voice_system_desc),
             onSelect = { actions.onSelect(SpeechProvider.SYSTEM) },
         ) {
-            HebrewVoiceStatus(state.hebrewVoice, actions.onOpenTtsSettings)
+            LanguageVoiceStatus(state.languageVoice, actions.onOpenTtsSettings)
         }
         VoiceOptionCard(
             selected = state.provider == SpeechProvider.GEMINI,
@@ -485,26 +485,29 @@ private fun VoiceOptionCard(
 }
 
 @Composable
-private fun HebrewVoiceStatus(
-    hebrewVoice: Boolean?,
+private fun LanguageVoiceStatus(
+    hasVoice: Boolean?,
     onOpenTtsSettings: () -> Unit,
 ) {
-    if (hebrewVoice == null) return
+    if (hasVoice == null) return
+    // The device language's name in that language ("English", "עברית", "Deutsch")
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val language = locale.getDisplayLanguage(locale)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            if (hebrewVoice) Icons.Rounded.CheckCircle else Icons.Rounded.WarningAmber,
+            if (hasVoice) Icons.Rounded.CheckCircle else Icons.Rounded.WarningAmber,
             contentDescription = null,
-            tint = if (hebrewVoice) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+            tint = if (hasVoice) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            stringResource(if (hebrewVoice) R.string.onboarding_voice_hebrew_ok else R.string.onboarding_voice_hebrew_missing),
+            stringResource(if (hasVoice) R.string.onboarding_voice_language_ok else R.string.onboarding_voice_language_missing, language),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
     }
-    if (!hebrewVoice) {
+    if (!hasVoice) {
         TextButton(onClick = onOpenTtsSettings) { Text(stringResource(R.string.settings_system_open_tts)) }
     }
 }

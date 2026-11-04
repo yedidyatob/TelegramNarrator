@@ -3,16 +3,21 @@ package io.github.yedidyatob.telegramnarrator.data.demo
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import io.github.yedidyatob.telegramnarrator.domain.model.Message
 import io.github.yedidyatob.telegramnarrator.domain.repository.ChatRepository
+import io.github.yedidyatob.telegramnarrator.domain.tts.TtsVoiceLogic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import java.util.Locale
 
 /** In-memory [ChatRepository] over [DemoData]; marking as read only removes messages from local state. */
-class FakeChatRepository : ChatRepository {
-    private val unread = MutableStateFlow(DemoData.messages())
+class FakeChatRepository(
+    private val language: () -> String = { Locale.getDefault().language },
+) : ChatRepository {
+    private val unread = MutableStateFlow(DemoData.messages(language()))
 
+    /** Fresh sample state in the current device language (called on every demo login). */
     fun reset() {
-        unread.value = DemoData.messages()
+        unread.value = DemoData.messages(language())
     }
 
     private fun chatOf(
@@ -61,7 +66,10 @@ class FakeChatRepository : ChatRepository {
     override val markAsReadEnabled: Boolean = true
 }
 
-/** Clearly invented channels and messages (English and Hebrew), the same style as the Play Store screenshots. */
+/**
+ * Clearly invented channels and messages, the same style as the Play Store screenshots. The Hebrew channels only
+ * appear when the device language is Hebrew (next to the English ones), so other users see English only.
+ */
 object DemoData {
     val channels: List<Pair<String, List<String>>> =
         listOf(
@@ -78,6 +86,11 @@ object DemoData {
                         "ומומלץ לרחוץ רק בחופים מוכרזים ולשמור על הילדים.",
                     "תחזית מזג האוויר: נאה ברוב האזורים, עם עלייה קלה בטמפרטורות לקראת סוף השבוע.",
                 ),
+            "Morning Briefing" to
+                listOf(
+                    "Good morning! Expect clear skies today, with a light breeze in the afternoon.",
+                    "Traffic is light on all main roads this morning.",
+                ),
             "Recipes & Cooking" to
                 listOf(
                     "Today's recipe: a simple tomato soup. Roast the tomatoes with garlic, then blend with stock.",
@@ -91,13 +104,17 @@ object DemoData {
 
     fun chatId(index: Int): Long = -1_000_000_000_001L - index
 
-    /** Unread messages per chat id, oldest first. */
-    fun messages(): Map<Long, List<Message>> {
+    private fun isHebrew(title: String) = title.any { it in '\u05D0'..'\u05EA' }
+
+    /** Unread messages per chat id, oldest first; Hebrew channels are empty (hidden) unless [language] is Hebrew. */
+    fun messages(language: String): Map<Long, List<Message>> {
+        val hebrewDevice = TtsVoiceLogic.normalizeLanguage(language) == "he"
         val start = 1_767_225_600L // 2026-01-01, a fixed sample date
         return channels.indices.associate { index ->
             val chatId = chatId(index)
+            val texts = channels[index].second.takeIf { hebrewDevice || !isHebrew(channels[index].first) }.orEmpty()
             chatId to
-                channels[index].second.mapIndexed { i, text ->
+                texts.mapIndexed { i, text ->
                     Message(
                         id = (i + 1).toLong(),
                         chatId = chatId,

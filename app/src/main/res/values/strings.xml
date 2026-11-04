@@ -135,8 +135,9 @@
     <string name="onboarding_voice_system_desc">The text-to-speech engine of your phone. Free and offline: nothing leaves the device.</string>
     <string name="onboarding_voice_gemini_title">Gemini voice</string>
     <string name="onboarding_voice_gemini_desc">Natural voices with your own Gemini API key, billed to you. Message text is sent to Google.</string>
-    <string name="onboarding_voice_hebrew_ok">A Hebrew voice is installed</string>
-    <string name="onboarding_voice_hebrew_missing">No Hebrew voice found. Install one to hear Hebrew messages.</string>
+    <!-- %1$s: the device language's name, e.g. "English" -->
+    <string name="onboarding_voice_language_ok">A voice for %1$s is installed</string>
+    <string name="onboarding_voice_language_missing">No voice for %1$s found. Install one to hear messages in %1$s.</string>
     <string name="onboarding_voice_gemini_later">You can also add the key later in Voice settings. Until then the system voice reads.</string>
     <string name="onboarding_voice_gemini_saved">Key saved</string>
     <string name="onboarding_notifications_title">Controls on your lock screen</string>

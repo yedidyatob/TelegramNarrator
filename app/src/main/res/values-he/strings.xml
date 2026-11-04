@@ -198,8 +198,8 @@
     <string name="onboarding_voice_system_desc">מנוע המרת הטקסט לדיבור של הטלפון. חינמי ועובד בלי אינטרנט: שום דבר לא יוצא מהמכשיר.</string>
     <string name="onboarding_voice_gemini_title">קול Gemini</string>
     <string name="onboarding_voice_gemini_desc">קולות טבעיים עם מפתח Gemini API משלכם, בחיוב שלכם. טקסט ההודעות נשלח ל-Google.</string>
-    <string name="onboarding_voice_hebrew_ok">מותקן קול בעברית</string>
-    <string name="onboarding_voice_hebrew_missing">לא נמצא קול בעברית. התקינו קול כדי לשמוע הודעות בעברית.</string>
+    <string name="onboarding_voice_language_ok">מותקן קול בשפה %1$s</string>
+    <string name="onboarding_voice_language_missing">לא נמצא קול בשפה %1$s. התקינו קול כדי לשמוע הודעות בשפה זו.</string>
     <string name="onboarding_voice_gemini_later">אפשר להוסיף את המפתח גם מאוחר יותר בהגדרות הקול. עד אז קול המערכת מקריא.</string>
     <string name="onboarding_voice_gemini_saved">המפתח נשמר</string>
     <string name="onboarding_notifications_title">שליטה ממסך הנעילה</string>

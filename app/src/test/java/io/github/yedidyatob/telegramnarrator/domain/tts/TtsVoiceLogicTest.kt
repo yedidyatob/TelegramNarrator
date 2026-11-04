@@ -43,8 +43,8 @@ class TtsVoiceLogicTest {
 
     @Test
     fun `languages are hebrew first then device languages then english without duplicates`() {
-        assertEquals(listOf("he", "en"), TtsVoiceLogic.languagesToShow(emptyList()))
-        assertEquals(listOf("he", "ru", "en"), TtsVoiceLogic.languagesToShow(listOf("ru-RU")))
+        assertEquals(listOf("en"), TtsVoiceLogic.languagesToShow(emptyList()))
+        assertEquals(listOf("ru", "en"), TtsVoiceLogic.languagesToShow(listOf("ru-RU")))
         assertEquals(listOf("he", "en", "fr"), TtsVoiceLogic.languagesToShow(listOf("iw", "en-US", "fr-FR")))
     }
 
