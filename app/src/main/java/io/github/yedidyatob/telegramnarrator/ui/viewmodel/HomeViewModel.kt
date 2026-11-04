@@ -156,11 +156,14 @@ class HomeViewModel
             }
         }
 
-        /** Loads the chat list again (pull to refresh, Try again, reconnect). Runs one load at a time. */
-        fun refresh() {
-            if (refreshJob?.isActive == true) return
-            refreshJob =
-                viewModelScope.launch {
+        /**
+         * Loads the chat list again (pull to refresh, Try again, reconnect). Runs one load at a time; returns that
+         * load's job, so callers can wait for it even when it finishes immediately (in-memory demo repository).
+         */
+        fun refresh(): Job {
+            refreshJob?.takeIf { it.isActive }?.let { return it }
+            return viewModelScope
+                .launch {
                     _isLoading.value = true
                     if (load.value is ChatListLoad.Failed) load.value = ChatListLoad.Loading
                     try {
@@ -173,7 +176,7 @@ class HomeViewModel
                     } finally {
                         _isLoading.value = false
                     }
-                }
+                }.also { refreshJob = it }
         }
 
         private fun onLoadFailed(detail: String?) {
