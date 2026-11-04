@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -114,6 +115,17 @@ class HomeViewModelTest {
             repo.hang!!.complete(Unit)
             advanceUntilIdle()
             assertEquals(HomeContent.Empty, vm.uiState.value.content)
+            assertEquals(false, vm.uiState.value.isRefreshing)
+        }
+
+    @Test
+    fun `an instant refresh returns a finished job`() =
+        runTest(dispatcher) {
+            // Like the in-memory demo repository on Dispatchers.Main.immediate: the load completes inside refresh()
+            Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+            val vm = viewModel()
+            val job = vm.refresh()
+            assertTrue(job.isCompleted)
             assertEquals(false, vm.uiState.value.isRefreshing)
         }
 

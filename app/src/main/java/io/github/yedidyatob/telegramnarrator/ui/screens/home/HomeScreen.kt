@@ -136,13 +136,8 @@ fun HomeScreen(
         LaunchedEffect(Unit) {
             // Run the refresh and a minimum display time in parallel; whichever takes longer wins.
             // This prevents the spinner from vanishing before the user even sees it.
-            val started = viewModel.uiState.value.isRefreshing // already loading?
-            viewModel.refresh()
-            val waitForLoad =
-                async {
-                    if (!started) viewModel.uiState.first { it.isRefreshing } // wait for it to start
-                    viewModel.uiState.first { !it.isRefreshing } // wait for it to finish
-                }
+            // Wait for the load's job, not for isRefreshing to flip: a load that finishes at once never shows it
+            val waitForLoad = async { viewModel.refresh().join() }
             val waitForMinDuration = async { delay(300) }
             waitForLoad.await()
             waitForMinDuration.await()

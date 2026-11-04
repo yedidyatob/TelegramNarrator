@@ -104,7 +104,11 @@ class DemoAwareChatRepository(
     override suspend fun markChatAsRead(
         chatId: Long,
         messageIds: List<Long>,
-    ) = current.markChatAsRead(chatId, messageIds)
+    ) {
+        // The debug-only "don't mark as read" setting lives in the real repository; honour it in demo mode too
+        if (demo.isActive && !real.markAsReadEnabled) return
+        current.markChatAsRead(chatId, messageIds)
+    }
 
     override suspend fun getVoiceFilePath(fileId: Int): String? = current.getVoiceFilePath(fileId)
 
@@ -112,7 +116,7 @@ class DemoAwareChatRepository(
 
     override suspend fun loadChats() = current.loadChats()
 
-    override val markAsReadEnabled: Boolean get() = current.markAsReadEnabled
+    override val markAsReadEnabled: Boolean get() = real.markAsReadEnabled
 }
 
 /** Always "connected" in demo mode (TDLib's state is irrelevant there). */
