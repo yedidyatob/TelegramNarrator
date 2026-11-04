@@ -1,7 +1,7 @@
 # Narri (Unofficial Telegram TTS)
 
-**Narri** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), with a focus on
-Hebrew and mixed Hebrew/English channels. It logs in with your own Telegram account through
+**Narri** (the app's display name) is an Android app that reads your **unread Telegram messages aloud** (text-to-speech), in whatever
+language each chat is written (mixed-language channels included). It logs in with your own Telegram account through
 [TDLib](https://core.telegram.org/tdlib), lists the chats with unread messages, and plays them one after
 another; messages are marked as read in Telegram only after they were actually spoken.
 
@@ -16,7 +16,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - "Play all" or play a single chat; a mini player opens the full **Player** screen: the message being read (in its own direction), message and chat position, previous / next message, next chat, pause/resume, the voice engine in use
 - Playback controls in the notification, on the lock screen, and with headset / Bluetooth media buttons
 - Voice notes are played as audio in the queue (no spoken "Voice note" / sender label); if unplayable, skipped silently but still marked read
-- Language is detected **per message** for TTS voice selection (Hebrew/English) - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
+- Language is detected **per message** for TTS voice selection - see [docs/spoken-phrases.md](docs/spoken-phrases.md)
 - Chat boundaries play a ding followed by the spoken chat title (in the title's own language); end-of-queue plays a distinct ding (no spoken "New chat" / "End of messages")
 - Media-only and symbol-only messages (photo/video without caption, or rows like `####`) are skipped silently but still marked read with the next spoken text
 - Channels and bot chats include Telegram's official sponsored messages (Telegram API ToS 3.3): read aloud after the chat's messages with a "Sponsored" / "ממומן" cue and shown as a card with Sponsor info, About these ads and Report (see [docs/architecture.md](docs/architecture.md#sponsored-messages))
@@ -26,7 +26,7 @@ another; messages are marked as read in Telegram only after they were actually s
 - Optional Bring-Your-Own-Key **Gemini 2.5 Flash TTS** (high-quality voices, cached on device) - see [docs/tts-voice-settings.md](docs/tts-voice-settings.md)
 - Links are skipped by default (spoken as "Link")
 
-The UI is English only by design; a few labels (e.g. link replacement) have Hebrew overrides when the device locale is Hebrew.
+UI languages and how the app picks a voice per chat: see [docs/languages.md](docs/languages.md).
 
 ## Build
 

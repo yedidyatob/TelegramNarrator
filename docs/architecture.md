@@ -48,7 +48,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── cleaning/     ChannelRules model + ChannelRulesEngine
 │   ├── home/         UnreadChatFilter, ChatSelectionLogic, HomeStateMapper (loading / empty / error / offline)
 │   ├── connection/   ConnectionStatus + ConnectionMonitor (TDLib connection state)
-│   ├── onboarding/   OnboardingFlow (steps, shown once, Hebrew voice check)
+│   ├── onboarding/   OnboardingFlow (steps, shown once, device-language voice check)
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
 │   ├── tts/          TtsSettings/TtsVoiceLogic, SpeechProvider, SpeechSynthesisOutcome
 │   ├── gemini/       GeminiTts (voices, cache key, helpers)
@@ -96,7 +96,7 @@ used: without it nothing is opened (secure-storage error, Retry). If TDLib rejec
 **Onboarding (#20).** Shown once, before the login, to users who are not signed in (someone already signed in, e.g.
 after an update, never sees it): what the app does; the unofficial-app notice and what stays on the device, with the
 privacy policy link; the voice engine
-(System, preselected by default, with a check for an offline Hebrew voice and a shortcut to the
+(System, preselected by default, with a check for an offline voice in the device language and a shortcut to the
 system TTS settings; Gemini with an inline API-key field), written to `TtsPreferences`; and on Android 13+
 the notification permission (the step is left out when it is already granted). Skip, or finishing, sets the
 `OnboardingPreferences` flag and the login follows.

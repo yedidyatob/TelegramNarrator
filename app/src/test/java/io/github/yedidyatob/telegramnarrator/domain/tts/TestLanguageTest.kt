@@ -34,7 +34,7 @@ class TestLanguageTest {
 
     @Test
     fun `the list stays small and every language has its own name and sentence`() {
-        assertEquals(listOf("en", "he", "ar", "ru", "es", "fr"), TestLanguage.values().map { it.code })
+        assertEquals(listOf("en", "es", "fr", "ru", "ar", "he"), TestLanguage.values().map { it.code })
         assertEquals(
             TestLanguage.values().size,
             TestLanguage

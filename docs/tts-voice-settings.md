@@ -28,8 +28,8 @@ the engine choice and Playback work immediately. Voice changes and tests are dis
 
 ### Test voice
 
-Every engine section ends with a compact **language dropdown** next to **Test voice**: English, עברית, العربية,
-Русский, Español, Français (sample sentences are string resources, `test_sentence_*`, never translated). The default
+Every engine section ends with a compact **language dropdown** next to **Test voice**: English, Español, Français,
+Русский, العربية, עברית (sample sentences are string resources, `test_sentence_*`, never translated). The default
 is the device UI language when it is in that list (legacy `iw` counts as Hebrew), otherwise English
 (`TestLanguage.defaultFor`, `TestLanguageTest`). The choice is shared by all engines while the sheet is open.
 Each engine speaks the sample with the voice it would really use for a message in that language:
@@ -74,7 +74,7 @@ whenever Gemini fails.
 - **Speech engine**: dropdown of the installed TTS engines (system default or a specific one). Switching restarts
   TextToSpeech (the section shows its loading row meanwhile). Voice choices are dropped when the engine changes
   (voice names belong to one engine).
-- **Voices**: one dropdown per language - Hebrew first, then the device languages, then English. Pick a voice or
+- **Voices**: one dropdown per language - the device languages, then English. Pick a voice or
   "Default voice"; each voice shows its locale and quality. Only installed offline voices are listed.
 - **Open system TTS settings** (`com.android.settings.TTS_SETTINGS`) to install more voices.
 - **Test voice** speaks the sample in the selected test language with the voice chosen for that language and the

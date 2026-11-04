@@ -43,11 +43,12 @@ class OnboardingFlowTest {
     )
 
     @Test
-    fun `hebrew voice must be installed and offline`() {
-        assertTrue(OnboardingFlow.hasHebrewVoice(listOf(voice("en-US"), voice("he-IL"))))
-        assertFalse(OnboardingFlow.hasHebrewVoice(listOf(voice("en-US"))))
-        assertFalse(OnboardingFlow.hasHebrewVoice(listOf(voice("he-IL", installed = false))))
-        assertFalse(OnboardingFlow.hasHebrewVoice(listOf(voice("he-IL", network = true))))
-        assertFalse(OnboardingFlow.hasHebrewVoice(emptyList()))
+    fun `the device language voice must be installed and offline`() {
+        assertTrue(OnboardingFlow.hasVoiceFor(listOf(voice("en-US"), voice("he-IL")), "iw"))
+        assertFalse(OnboardingFlow.hasVoiceFor(listOf(voice("en-US")), "he"))
+        assertTrue(OnboardingFlow.hasVoiceFor(listOf(voice("en-US")), "en"))
+        assertFalse(OnboardingFlow.hasVoiceFor(listOf(voice("he-IL", installed = false)), "he"))
+        assertFalse(OnboardingFlow.hasVoiceFor(listOf(voice("he-IL", network = true)), "he"))
+        assertFalse(OnboardingFlow.hasVoiceFor(emptyList(), "he"))
     }
 }

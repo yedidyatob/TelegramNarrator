@@ -262,7 +262,7 @@ class TtsManager
 
         /**
          * Switches the engine to [target]. If the voice data for it isn't installed, falls back to
-         * the Hebrew default, then to the device language, and finally keeps whatever is set.
+         * the device language, and finally keeps whatever is set.
          */
         private fun applyLanguage(target: Locale) {
             val engine = tts ?: return

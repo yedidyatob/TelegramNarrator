@@ -68,7 +68,7 @@ private val EN =
                 Chat(2, "Morning Briefing", 5),
                 Chat(3, "Recipes & Cooking", 8),
                 Chat(4, "Weekend Hiking Group", 3),
-                Chat(5, "חדשות הבוקר", 6),
+                Chat(5, "World News Today", 6),
                 Chat(6, "Book Club", 2),
                 Chat(7, "Daily Fitness Tips", 4),
                 Chat(8, "Neighborhood Updates", 7),
@@ -216,8 +216,9 @@ abstract class PlayStoreScreenshots(
                             SystemVoiceUiState(
                                 loading = false,
                                 engines = listOf(EngineOption("com.google.android.tts", "Speech Services by Google")),
+                                // Like the app: Hebrew voices are only listed on a Hebrew device
                                 groups =
-                                    listOf(
+                                    listOfNotNull(
                                         VoiceGroup(
                                             "he",
                                             if (lang ==
@@ -238,7 +239,7 @@ abstract class PlayStoreScreenshots(
                                                 ),
                                             ),
                                             "he-il-x-heb-local",
-                                        ),
+                                        ).takeIf { lang == "he" },
                                         VoiceGroup(
                                             "en",
                                             if (lang ==

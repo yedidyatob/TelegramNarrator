@@ -41,7 +41,8 @@ class DemoModeTest {
 
     private val real = RecordingAuth()
     private val demo = DemoMode()
-    private val fake = FakeChatRepository()
+    private var deviceLanguage = "iw"
+    private val fake = FakeChatRepository { deviceLanguage }
     private val auth = DemoAwareAuthRepository(real, demo, fake)
 
     @Test
@@ -107,5 +108,15 @@ class DemoModeTest {
             assertEquals(DemoData.channels.size - 1, fake.getUnreadChats().first().size)
             fake.reset()
             assertEquals(DemoData.channels.size, fake.getUnreadChats().first().size)
+        }
+
+    @Test
+    fun `non-Hebrew devices only get the English demo channels`() =
+        runTest {
+            deviceLanguage = "en"
+            fake.reset()
+            val titles = fake.getUnreadChats().first().map { it.title }
+            assertTrue(titles.isNotEmpty())
+            assertTrue(titles.none { title -> title.any { it in '\u05D0'..'\u05EA' } })
         }
 }
