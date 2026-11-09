@@ -17,7 +17,7 @@ secureStorage = "1.1.0"
 mlkitLanguageId = "17.0.6" # com.google.mlkit:language-id (bundled model, on-device, #89) # androidx.security:security-crypto
 tdlib = "1.8.56" # tdlibx pre-built TDLib for Android (JitPack)
 media3 = "1.11.1"
-libphonenumber = "9.0.42" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
+libphonenumber = "9.0.43" # Google libphonenumber: per-country trunk prefix / length rules for the login phone field
 
 ksp = "2.3.13"
 robolectric = "4.17" # JVM Android runtime for the Play screenshot tests (tools/play-assets)
