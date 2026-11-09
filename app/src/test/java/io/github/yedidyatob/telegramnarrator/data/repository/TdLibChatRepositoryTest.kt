@@ -47,6 +47,15 @@ class TdLibChatRepositoryTest {
     }
 
     @Test
+    fun `the repository is subscribed when its constructor returns, so no chat sent right after is lost`() {
+        val userCache = TdLibUserCache(gateway)
+        runBlocking { withTimeout(5_000) { while (gateway.bus.subscriberCount < 1) yield() } }
+        val repo = TdLibChatRepository(gateway, userCache, { markAsRead }, scope)
+        gateway.publish(TdApi.UpdateNewChat(chat(7)))
+        assertEquals(7L, eventually { repo.getUnreadChats().first { it.isNotEmpty() } }.single().id)
+    }
+
+    @Test
     fun `update of an unknown chat fetches it`() {
         gateway.reply = { f -> if (f is TdApi.GetChat) chat(f.chatId, title = "Fetched") else TdApi.Ok() }
         val repo = repository()

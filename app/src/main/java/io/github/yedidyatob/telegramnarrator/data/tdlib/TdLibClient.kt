@@ -1,7 +1,6 @@
 package io.github.yedidyatob.telegramnarrator.data.tdlib
 
 import android.util.Log
-import io.github.yedidyatob.telegramnarrator.core.diagnostics.AutoLog
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +32,6 @@ class TdLibClient
         private val _connectionState = MutableStateFlow<TdApi.ConnectionState?>(null)
         override val connectionState: StateFlow<TdApi.ConnectionState?> = _connectionState.asStateFlow()
 
-        // #131 diagnostics, to be removed after: how many chats TDLib announced, to compare with what the chat
-        // repository logs once it subscribes (a chat announced before that is never sent again)
-        private val newChats =
-            java.util.concurrent.atomic
-                .AtomicInteger()
-
         init {
             Client.execute(TdApi.SetLogVerbosityLevel(1))
             recreateClient()
@@ -46,7 +39,6 @@ class TdLibClient
 
         override fun recreateClient() {
             Log.d(TAG, "Recreating TDLib client")
-            newChats.set(0)
             client =
                 Client.create(
                     ::onUpdate,
@@ -56,15 +48,6 @@ class TdLibClient
         }
 
         private fun onUpdate(update: TdApi.Object) {
-            if (update is TdApi.UpdateNewChat) {
-                val n = newChats.incrementAndGet()
-                if (n == 1 || n % 50 == 0) AutoLog.event("#131 client UpdateNewChat count=$n")
-            }
-            if (update is TdApi.UpdateAuthorizationState) {
-                AutoLog.event(
-                    "#131 client auth=${update.authorizationState.javaClass.simpleName}",
-                )
-            }
             when (update) {
                 is TdApi.UpdateAuthorizationState -> _authorizationState.value = update.authorizationState
                 is TdApi.UpdateConnectionState -> _connectionState.value = update.state

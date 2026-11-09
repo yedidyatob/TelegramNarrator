@@ -1,6 +1,5 @@
 package io.github.yedidyatob.telegramnarrator.data.repository
 
-import io.github.yedidyatob.telegramnarrator.domain.home.UnreadChatFilter
 import io.github.yedidyatob.telegramnarrator.domain.model.Chat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +18,6 @@ data class ChatSnapshot(
     val lastReadInboxMessageId: Long,
     val unreadMentionCount: Int,
     val photoFileId: Int?,
-    val muteFor: Int?,
     /** Order in each chat list it is in, by list (see [listKey]); a list with order 0 is left out. */
     val orders: Map<String, Long>,
     /** A one-to-one chat (user or bot): language detection uses fewer samples (#89). */
@@ -73,7 +71,6 @@ data class ChatSnapshot(
                 lastReadInboxMessageId = chat.lastReadInboxMessageId,
                 unreadMentionCount = chat.unreadMentionCount,
                 photoFileId = chat.photo?.small?.id,
-                muteFor = chat.notificationSettings?.muteFor,
                 orders = ordersOf(chat.positions),
                 isPrivate = chat.type is TdApi.ChatTypePrivate || chat.type is TdApi.ChatTypeSecret,
             )
@@ -111,10 +108,10 @@ class ChatCache {
         chats.value = emptyMap()
     }
 
-    /** Unread, not muted chats, main-list order first (same rule as before #13). */
+    /** Chats with unread messages, main-list order first. */
     fun unreadChats(): List<Chat> =
         chats.value.values
-            .filter { UnreadChatFilter.shouldIncludeInUnreadList(unreadCount = it.unreadCount, muteFor = it.muteFor) }
+            .filter { it.unreadCount > 0 }
             .map { it.toDomain() }
             .sortedByDescending { it.order }
 
@@ -141,10 +138,6 @@ class ChatCache {
 
             is TdApi.UpdateChatUnreadMentionCount -> {
                 modify(update.chatId) { it.copy(unreadMentionCount = update.unreadMentionCount) }
-            }
-
-            is TdApi.UpdateChatNotificationSettings -> {
-                modify(update.chatId) { it.copy(muteFor = update.notificationSettings?.muteFor) }
             }
 
             is TdApi.UpdateChatPosition -> {

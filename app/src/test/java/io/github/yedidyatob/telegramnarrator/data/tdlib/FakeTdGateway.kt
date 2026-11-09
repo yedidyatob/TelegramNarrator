@@ -47,14 +47,12 @@ object TdFixtures {
         title: String = "Chat $id",
         unread: Int = 1,
         mainOrder: Long = id,
-        muteFor: Int = 0,
     ): TdApi.Chat =
         TdApi.Chat().apply {
             this.id = id
             this.title = title
             unreadCount = unread
             lastReadInboxMessageId = 0
-            notificationSettings = TdApi.ChatNotificationSettings().apply { this.muteFor = muteFor }
             positions = if (mainOrder == 0L) emptyArray() else arrayOf(position(TdApi.ChatListMain(), mainOrder))
         }
 

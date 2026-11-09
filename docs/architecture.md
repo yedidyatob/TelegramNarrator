@@ -46,7 +46,7 @@ io.github.yedidyatob.telegramnarrator
 │   ├── sponsored/    SponsoredMessagesRepository (cache, view-once, click / report), SponsoredAd, SponsoredSpeech,
 │   │                 SponsoredLinkPolicy, SponsoredReportFlow, SponsoredAdCache, SponsoredViewTracker
 │   ├── cleaning/     ChannelRules model + ChannelRulesEngine
-│   ├── home/         UnreadChatFilter, ChatSelectionLogic, HomeStateMapper (loading / empty / error / offline)
+│   ├── home/         ChatSelectionLogic, HomeStateMapper (loading / empty / error / offline)
 │   ├── connection/   ConnectionStatus + ConnectionMonitor (TDLib connection state)
 │   ├── onboarding/   OnboardingFlow (steps, shown once, device-language voice check)
 │   ├── auth/         PhoneCountryResolver, PhoneNumberNormalizer (libphonenumber), PhoneCountries, PhoneFieldValidation
@@ -102,7 +102,8 @@ the notification permission (the step is left out when it is already granted). S
 `OnboardingPreferences` flag and the login follows.
 
 **Unread list.** `TdLibChatRepository.getUnreadChats()` turns TDLib chat updates into a `Flow<List<Chat>>`;
-`UnreadChatFilter` and `ChatSelectionLogic` (via `PlaybackManager`) decide what is shown and selected.
+it lists every chat with unread messages (muted ones too), and `ChatSelectionLogic` (via `PlaybackManager`)
+decides what is selected.
 Tapping a chat opens a preview sheet (`HomeViewModel.selectChat`) from which it can be played, or its messages
 marked read without playing them. `HomeStateMapper` turns the list, the `LoadChats` result (a 20 s timeout counts as
 a failure; TDLib's 404 "everything loaded" does not) and the `ConnectionMonitor` status into one body state:
@@ -177,7 +178,7 @@ The direction (details and plans live in the linked issues, tracked by the "Poli
 - **TdLibClient robustness** (#13): no lost updates, cancellable sends, thread safety.
 - **Keep less data on disk**: consider `useMessageDatabase = false` (follow-up from #15).
 - **UI** (#20): the Player screen, onboarding and Home states are in. Still open there: sleep timer, an up-next queue
-  list, chat filters (muted / archived) and opening the Player from the notification.
+  list, chat filters (e.g. archived) and opening the Player from the notification.
 - **Tooling currency** (#21): AGP/Kotlin/Compose BOM upgrades, Hilt via KSP (SDK 36 is already in, on AGP 8.2.1 with
   `android.suppressUnsupportedCompileSdk`).
 - **Publishing readiness** (#24): done in code and docs (`applicationId`, release signing, versioning, privacy
