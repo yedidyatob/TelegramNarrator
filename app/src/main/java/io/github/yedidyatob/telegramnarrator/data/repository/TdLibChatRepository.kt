@@ -41,13 +41,17 @@ class TdLibChatRepository(
     }
 
     private val cache = ChatCache()
+    private val diagnostics = ChatListDiagnostics() // #131, to be removed after
     private val _unreadChats = MutableStateFlow<List<Chat>>(emptyList())
 
     override val markAsReadEnabled: Boolean get() = markAsReadSetting()
 
     init {
+        // #131: was the login already done (and chats already sent) before this repository subscribed?
+        diagnostics.log("repository created auth=${client.authorizationState.value?.javaClass?.simpleName}")
         repositoryScope.launch {
             client.updates.collect { update ->
+                diagnostics.update(update, cache::get)
                 when (val result = cache.apply(update)) {
                     ChatCache.Result.Changed -> refreshUnreadList()
                     is ChatCache.Result.Unknown -> repositoryScope.launch { getOrFetchChat(result.chatId) }
@@ -70,6 +74,7 @@ class TdLibChatRepository(
                     }
 
                     is TdApi.AuthorizationStateClosed -> {
+                        diagnostics.log("closed, clearing ${cache.snapshot.value.size} cached chats")
                         // A new client (new session / account) starts without the old chats
                         cache.clear()
                         refreshUnreadList()
@@ -100,7 +105,11 @@ class TdLibChatRepository(
         }
     }
 
-    private suspend fun fetchChat(chatId: Long): ChatSnapshot = cache.put(client.send(TdApi.GetChat(chatId))).also { refreshUnreadList() }
+    private suspend fun fetchChat(chatId: Long): ChatSnapshot =
+        cache.put(client.send(TdApi.GetChat(chatId))).also {
+            refreshUnreadList()
+            diagnostics.fetched(it)
+        }
 
     override suspend fun getChatMessages(
         chatId: Long,
@@ -288,10 +297,18 @@ class TdLibChatRepository(
      */
     override suspend fun loadChats() {
         try {
-            while (true) client.send<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
+            var page = 0
+            while (true) {
+                client.send<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
+                // #131: the page's updates may still be queued, so these counts can lag a little
+                diagnostics.loaded("page=${++page}", cache.snapshot.value.values)
+            }
         } catch (e: TdLibException) {
             // 404: every chat of the list is loaded
-            if (e.code == 404) return
+            if (e.code == 404) {
+                diagnostics.loaded("done", cache.snapshot.value.values)
+                return
+            }
             Log.e("ChatRepository", "LoadChats failed", e)
             throw e
         }
