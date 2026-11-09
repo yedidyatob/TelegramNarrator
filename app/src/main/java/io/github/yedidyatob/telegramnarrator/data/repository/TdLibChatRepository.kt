@@ -282,13 +282,15 @@ class TdLibChatRepository(
     /** Downloaded, or stopped without being downloaded (failed / cancelled). */
     private fun TdApi.LocalFile?.isFinished(): Boolean = this != null && (isDownloadingCompleted || !isDownloadingActive)
 
+    /**
+     * Loads the whole main list (#131). Each LoadChats only adds the next page; a chat that was never loaded
+     * stays unknown until a new message arrives in it, so existing unread chats further down were missing.
+     */
     override suspend fun loadChats() {
         try {
-            Log.d("ChatRepository", "Requesting LoadChats(Main, 100)...")
-            client.send<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
-            Log.d("ChatRepository", "LoadChats request sent successfully")
+            while (true) client.send<TdApi.Ok>(TdApi.LoadChats(TdApi.ChatListMain(), 100))
         } catch (e: TdLibException) {
-            // 404: every chat of the list is already loaded - not an error
+            // 404: every chat of the list is loaded
             if (e.code == 404) return
             Log.e("ChatRepository", "LoadChats failed", e)
             throw e

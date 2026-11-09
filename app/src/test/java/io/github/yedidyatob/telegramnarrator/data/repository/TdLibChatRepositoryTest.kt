@@ -80,6 +80,14 @@ class TdLibChatRepositoryTest {
     }
 
     @Test
+    fun `loadChats requests pages until the whole list is loaded`() {
+        var pages = 0
+        gateway.reply = { if (it is TdApi.LoadChats && ++pages > 3) TdApi.Error(404, "Not Found") else TdApi.Ok() }
+        runBlocking { repository().loadChats() }
+        assertEquals(4, gateway.sentOf<TdApi.LoadChats>().size)
+    }
+
+    @Test
     fun `voice note path arrives through UpdateFile`() {
         gateway.reply = { f -> if (f is TdApi.DownloadFile) file(7, completed = false, active = true) else TdApi.Ok() }
         val repo = repository()
