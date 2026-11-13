@@ -139,7 +139,7 @@
     <string name="home_btn_stop">עצירה</string>
     <string name="home_btn_logout">התנתקות</string>
     <string name="home_empty_title">אין הודעות חדשות</string>
-    <string name="home_empty_subtitle">אין כרגע צ׳אטים שלא נקראו. הודעות חדשות יופיעו כאן (צ׳אטים מושתקים לא מוצגים).</string>
+    <string name="home_empty_subtitle">אין כרגע צ׳אטים שלא נקראו. הודעות חדשות יופיעו כאן.</string>
     <string name="home_refresh">רענון</string>
     <string name="home_retry">ניסיון חוזר</string>
     <string name="home_loading_chats">הצ׳אטים נטענים</string>

@@ -47,6 +47,15 @@ class TdLibChatRepositoryTest {
     }
 
     @Test
+    fun `the repository is subscribed when its constructor returns, so no chat sent right after is lost`() {
+        val userCache = TdLibUserCache(gateway)
+        runBlocking { withTimeout(5_000) { while (gateway.bus.subscriberCount < 1) yield() } }
+        val repo = TdLibChatRepository(gateway, userCache, { markAsRead }, scope)
+        gateway.publish(TdApi.UpdateNewChat(chat(7)))
+        assertEquals(7L, eventually { repo.getUnreadChats().first { it.isNotEmpty() } }.single().id)
+    }
+
+    @Test
     fun `update of an unknown chat fetches it`() {
         gateway.reply = { f -> if (f is TdApi.GetChat) chat(f.chatId, title = "Fetched") else TdApi.Ok() }
         val repo = repository()
@@ -77,6 +86,14 @@ class TdLibChatRepositoryTest {
         gateway.authorizationState.value = TdApi.AuthorizationStateReady()
         repository()
         eventually { while (gateway.sentOf<TdApi.LoadChats>().isEmpty()) yield() }
+    }
+
+    @Test
+    fun `loadChats requests pages until the whole list is loaded`() {
+        var pages = 0
+        gateway.reply = { if (it is TdApi.LoadChats && ++pages > 3) TdApi.Error(404, "Not Found") else TdApi.Ok() }
+        runBlocking { repository().loadChats() }
+        assertEquals(4, gateway.sentOf<TdApi.LoadChats>().size)
     }
 
     @Test

@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AutoBrowseTreeTest {
-    // Home's unread list as the repository gives it: already filtered (unread, not muted) and ordered
+    // Home's unread list as the repository gives it: already filtered (unread) and ordered
     private val chats = listOf(Chat(1, "News", 3), Chat(3, "Work", 2))
 
     @Test

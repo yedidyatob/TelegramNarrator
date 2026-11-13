@@ -15,8 +15,8 @@ class FakeTdGateway : TdGateway {
     val sent = CopyOnWriteArrayList<TdApi.Function<*>>()
     var recreated = 0
 
-    /** Reply to a request; throw to fail it. Default: Ok. */
-    var reply: suspend (TdApi.Function<*>) -> TdApi.Object = { TdApi.Ok() }
+    /** Reply to a request; throw to fail it. Default: Ok, and 404 (list fully loaded) for LoadChats. */
+    var reply: suspend (TdApi.Function<*>) -> TdApi.Object = { if (it is TdApi.LoadChats) TdApi.Error(404, "Not Found") else TdApi.Ok() }
 
     fun publish(update: TdApi.Object) {
         if (update is TdApi.UpdateAuthorizationState) authorizationState.value = update.authorizationState
@@ -47,14 +47,12 @@ object TdFixtures {
         title: String = "Chat $id",
         unread: Int = 1,
         mainOrder: Long = id,
-        muteFor: Int = 0,
     ): TdApi.Chat =
         TdApi.Chat().apply {
             this.id = id
             this.title = title
             unreadCount = unread
             lastReadInboxMessageId = 0
-            notificationSettings = TdApi.ChatNotificationSettings().apply { this.muteFor = muteFor }
             positions = if (mainOrder == 0L) emptyArray() else arrayOf(position(TdApi.ChatListMain(), mainOrder))
         }
 

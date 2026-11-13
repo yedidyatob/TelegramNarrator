@@ -20,7 +20,7 @@ sealed interface ChatListLoad {
 sealed interface HomeContent {
     data object Loading : HomeContent
 
-    /** No unread chats (muted chats are never listed). */
+    /** No unread chats. */
     data object Empty : HomeContent
 
     /** No network and nothing to show yet; loads by itself when the network is back. */

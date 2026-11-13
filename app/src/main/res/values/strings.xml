@@ -75,7 +75,7 @@
     <string name="home_btn_stop">Stop</string>
     <string name="home_btn_logout">Log out</string>
     <string name="home_empty_title">You\'re all caught up</string>
-    <string name="home_empty_subtitle">No unread chats right now. New messages show up here (muted chats are left out).</string>
+    <string name="home_empty_subtitle">No unread chats right now. New messages show up here.</string>
     <string name="home_refresh">Refresh</string>
     <string name="home_retry">Try again</string>
     <string name="home_loading_chats">Loading your chats</string>

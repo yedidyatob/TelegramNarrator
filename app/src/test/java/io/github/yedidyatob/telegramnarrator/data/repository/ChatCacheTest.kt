@@ -56,14 +56,13 @@ class ChatCacheTest {
     }
 
     @Test
-    fun `unread list keeps unread, unmuted chats by main order and follows mute changes`() {
+    fun `unread list keeps chats with unread messages by main order, muted ones too`() {
         cache.put(chat(1, unread = 2, mainOrder = 5))
-        cache.put(chat(2, unread = 1, mainOrder = 9))
+        val muted = TdApi.ChatNotificationSettings().apply { muteFor = Int.MAX_VALUE }
+        cache.put(chat(2, unread = 1, mainOrder = 9).apply { notificationSettings = muted })
         cache.put(chat(3, unread = 0, mainOrder = 7))
-        cache.put(chat(4, unread = 3, mainOrder = 8, muteFor = Int.MAX_VALUE))
         assertEquals(listOf(2L, 1L), cache.unreadChats().map { it.id })
-        cache.apply(TdApi.UpdateChatNotificationSettings(2, TdApi.ChatNotificationSettings().apply { muteFor = Int.MAX_VALUE }))
-        assertEquals(listOf(1L), cache.unreadChats().map { it.id })
+        assertEquals(ChatCache.Result.Ignored, cache.apply(TdApi.UpdateChatNotificationSettings(1, TdApi.ChatNotificationSettings())))
     }
 
     @Test
