@@ -21,7 +21,7 @@ libphonenumber = "9.0.42" # Google libphonenumber: per-country trunk prefix / le
 
 ksp = "2.3.13"
 robolectric = "4.17" # JVM Android runtime for the Play screenshot tests (tools/play-assets)
-roborazzi = "1.77.0" # Roborazzi: captures the Robolectric screenshots
+roborazzi = "1.79.0" # Roborazzi: captures the Robolectric screenshots
 json = "20260814" # org.json for JVM unit tests (Android's org.json is a stub there)
 ktlintGradle = "14.2.0" # org.jlleitschuh.gradle.ktlint: ktlintCheck / ktlintFormat tasks
 ktlint = "1.8.0" # ktlint engine used by that plugin (rules configured in .editorconfig)
